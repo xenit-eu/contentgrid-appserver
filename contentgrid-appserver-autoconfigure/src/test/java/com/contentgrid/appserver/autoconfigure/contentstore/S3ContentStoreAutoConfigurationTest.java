@@ -2,8 +2,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import io.minio.MinioAsyncClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -27,7 +26,7 @@ class S3ContentStoreAutoConfigurationTest {
         contextRunner
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(ContentStore.class);
+                    assertThat(context).doesNotHaveBean(ContentStoreResolver.class);
                 });
     }
 
@@ -41,7 +40,7 @@ class S3ContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                    assertThat(context).hasBean("s3ContentStoreResolver");
                 });
     }
 
@@ -60,7 +59,7 @@ class S3ContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                    assertThat(context).hasBean("s3ContentStoreResolver");
                     var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
                     assertThat(properties.url()).isEqualTo("http://localhost");
                     assertThat(properties.accessKey()).isEqualTo("accessKey");
@@ -82,7 +81,7 @@ class S3ContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                    assertThat(context).hasBean("s3ContentStoreResolver");
                     var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
                     assertThat(properties.connectionPoolSize()).isEqualTo(0);
                     assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(1);
@@ -123,7 +122,7 @@ class S3ContentStoreAutoConfigurationTest {
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(S3ContentStore.class);
+                    assertThat(context).hasBean("s3ContentStoreResolver");
                     assertThat(context).doesNotHaveBean("s3MinioAsyncClient");
                 });
     }

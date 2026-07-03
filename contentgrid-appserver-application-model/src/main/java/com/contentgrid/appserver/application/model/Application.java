@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
@@ -58,12 +59,15 @@ public class Application {
      * @param name the application name
      * @param entities set of entities within this application
      * @param relations set of relations between entities
+     * @param settings application-specific settings
      * @throws DuplicateElementException if duplicate entities are found
      * @throws EntityDefinitionNotFoundException if a relation references an entity not in the application
      */
     @Builder
-    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations) {
+    Application(@NonNull ApplicationName name, @Singular Set<Entity> entities, @Singular Set<Relation> relations,
+            ApplicationSettings settings) {
         this.name = name;
+        this.settings = settings == null ? ApplicationSettings.builder().build() : settings;
         var tables = new HashSet<TableName>();
         var linkNames = new HashSet<LinkName>();
         entities.forEach(entity -> {
@@ -108,6 +112,9 @@ public class Application {
      */
     @NonNull
     ApplicationName name;
+
+    @NonNull
+    ApplicationSettings settings;
 
     /**
      * Internal map of entities by name.

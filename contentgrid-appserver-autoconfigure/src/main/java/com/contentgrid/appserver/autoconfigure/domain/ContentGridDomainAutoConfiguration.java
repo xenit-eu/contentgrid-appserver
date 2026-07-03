@@ -2,13 +2,13 @@ package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.DomainEventDispatcher;
-import com.contentgrid.appserver.domain.automations.BlueprintArtifactAutomationsModelResolver;
 import com.contentgrid.appserver.domain.automations.AutomationsModelResolver;
+import com.contentgrid.appserver.domain.automations.BlueprintArtifactAutomationsModelResolver;
 import com.contentgrid.appserver.domain.automations.CachingAutomationsModelResolver;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
@@ -54,14 +54,14 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStore contentStore, DomainEventDispatcher dispatcher,
-            CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStore, dispatcher, cursorCodec, clock);
+    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStoreResolver contentStoreResolver,
+            DomainEventDispatcher dispatcher, CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, cursorCodec, clock);
     }
 
     @Bean
-    ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStore contentStore) {
-        return new ContentApiImpl(datamodelApi, contentStore);
+    ContentApi contentApi(DatamodelApiImpl datamodelApi, ContentStoreResolver contentStoreResolver) {
+        return new ContentApiImpl(datamodelApi, contentStoreResolver);
     }
 
     @Bean

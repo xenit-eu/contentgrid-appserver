@@ -61,7 +61,7 @@ class ContentApiImplTest {
 
     @BeforeEach
     void setup() {
-        contentApi = new ContentApiImpl(datamodelApi, contentStore);
+        contentApi = new ContentApiImpl(datamodelApi, application -> contentStore);
     }
 
     @Test

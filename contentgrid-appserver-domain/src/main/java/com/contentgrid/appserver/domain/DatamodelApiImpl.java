@@ -4,7 +4,6 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
@@ -36,6 +35,7 @@ import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
@@ -78,7 +78,7 @@ import lombok.extern.slf4j.Slf4j;
 public class DatamodelApiImpl implements DatamodelApi {
 
     private final QueryEngine queryEngine;
-    private final ContentStore contentStore;
+    private final ContentStoreResolver contentStoreResolver;
     private final DomainEventDispatcher domainEventDispatcher;
     private final CursorCodec cursorCodec;
     private final Clock clock;
@@ -94,6 +94,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
+        var contentStore = contentStoreResolver.resolve(application);
 
         var combinedMapper = inputMapper
                 .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))

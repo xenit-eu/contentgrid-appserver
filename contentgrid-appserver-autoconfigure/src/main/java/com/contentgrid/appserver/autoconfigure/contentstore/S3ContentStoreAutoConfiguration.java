@@ -2,6 +2,7 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration.S3Properties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import io.minio.MinioAsyncClient;
 import java.util.concurrent.TimeUnit;
@@ -19,7 +20,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
-@ConditionalOnClass({ContentStore.class, S3ContentStore.class, MinioAsyncClient.class})
+@ConditionalOnClass({ContentStoreResolver.class, ContentStore.class, S3ContentStore.class, MinioAsyncClient.class})
 @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "s3")
 @EnableConfigurationProperties(S3Properties.class)
 public class S3ContentStoreAutoConfiguration {
@@ -62,8 +63,9 @@ public class S3ContentStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(MinioAsyncClient.class)
-    ContentStore s3ContentStore(MinioAsyncClient minioClient, S3Properties properties) {
-        return new S3ContentStore(minioClient, properties.bucket());
+    ContentStoreResolver s3ContentStoreResolver(MinioAsyncClient minioClient, S3Properties properties) {
+        var contentStore = new S3ContentStore(minioClient, properties.bucket());
+        return application -> contentStore;
     }
 
 }

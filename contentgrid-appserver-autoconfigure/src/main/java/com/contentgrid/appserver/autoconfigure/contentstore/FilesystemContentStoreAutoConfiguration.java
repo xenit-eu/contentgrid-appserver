@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.contentstore;
 
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,16 +26,18 @@ public class FilesystemContentStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "ephemeral")
-    public ContentStore ephemeralContentStore() throws IOException {
-        return new FilesystemContentStore(Files.createTempDirectory("contentgrid", PERMISSIONS));
+    public ContentStoreResolver ephemeralContentStoreResolver() throws IOException {
+        var contentStore = new FilesystemContentStore(Files.createTempDirectory("contentgrid", PERMISSIONS));
+        return application -> contentStore;
     }
 
     @Bean
     @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "fs")
-    public ContentStore filesystemContentStore(@Value("${contentgrid.appserver.content.fs.path:}") Path path) throws IOException {
+    public ContentStoreResolver filesystemContentStoreResolver(@Value("${contentgrid.appserver.content.fs.path:}") Path path) throws IOException {
         if (path == null || path.toString().isBlank()) {
             throw new IllegalArgumentException("Property 'contentgrid.appserver.content.fs.path' is required when 'contentgrid.appserver.content-store.type' is 'fs'");
         }
-        return new FilesystemContentStore(Files.createDirectories(path, PERMISSIONS));
+        var contentStore = new FilesystemContentStore(Files.createDirectories(path, PERMISSIONS));
+        return application -> contentStore;
     }
 }

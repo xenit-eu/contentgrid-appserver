@@ -2,6 +2,9 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.json.model.ApplicationSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
@@ -51,6 +54,7 @@ import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonEx
 import com.contentgrid.appserver.application.model.json.exceptions.UnknownFilterTypeException;
 import com.contentgrid.appserver.application.model.json.exceptions.UnknownFlagException;
 import com.contentgrid.appserver.application.model.json.model.AllowedValuesConstraint;
+import com.contentgrid.appserver.application.model.json.model.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.json.model.ApplicationSchema;
 import com.contentgrid.appserver.application.model.json.model.Attribute;
 import com.contentgrid.appserver.application.model.json.model.AttributeConstraint;
@@ -138,11 +142,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 relations.add(relation);
             }
         }
+        com.contentgrid.appserver.application.model.settings.ApplicationSettings applicationSettings = null;
+        if (schema.getSettings() != null) {
+            applicationSettings = fromJsonApplicationSettings(schema.getSettings());
+        }
         return Application.builder()
                 .name(ApplicationName.of(
                         schema.getApplicationName()))
                 .entities(entities)
                 .relations(relations)
+                .settings(applicationSettings)
                 .build();
     }
 
@@ -154,6 +163,30 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private com.contentgrid.appserver.application.model.settings.ApplicationSettings fromJsonApplicationSettings(ApplicationSettings json) {
+        var builder = com.contentgrid.appserver.application.model.settings.ApplicationSettings.builder();
+        if (json.getContentEncryption() != null) {
+            builder.contentEncryption(fromJsonContentEncryption(json.getContentEncryption()));
+        }
+        return builder.build();
+    }
+
+    private com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings fromJsonContentEncryption(
+            ContentEncryptionSettings json) {
+        var builder = com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings.builder();
+        if (json.getEncryptionEngineAlgorithms() != null) {
+            json.getEncryptionEngineAlgorithms().stream()
+                    .map(ContentEncryptionEngineAlgorithm::valueOf)
+                    .forEach(builder::encryptionEngineAlgorithm);
+        }
+        if (json.getKeyWrapperAlgorithms() != null) {
+            json.getKeyWrapperAlgorithms().stream()
+                    .map(ContentEncryptionKeyWrapperAlgorithm::valueOf)
+                    .forEach(builder::keyWrapperAlgorithm);
+        }
+        return builder.build();
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
@@ -461,11 +494,38 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var relations = app.getRelations().stream()
                 .map(this::toJsonRelation)
                 .toList();
+        var applicationSettings = this.toJsonApplicationSettings(app.getSettings());
         var schema = new ApplicationSchema();
         schema.setApplicationName(app.getName().getValue());
         schema.setEntities(entities);
         schema.setRelations(relations);
+        schema.setSettings(applicationSettings);
         return schema;
+    }
+
+    private ApplicationSettings toJsonApplicationSettings(
+            com.contentgrid.appserver.application.model.settings.ApplicationSettings applicationSettings) {
+        var json = new ApplicationSettings();
+        applicationSettings.getContentEncryption()
+                .map(this::toJsonContentEncryptionSettings)
+                .ifPresent(json::setContentEncryption);
+        return json;
+    }
+
+    private ContentEncryptionSettings toJsonContentEncryptionSettings(
+            com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings settings) {
+        var json = new ContentEncryptionSettings();
+        if (!settings.getEncryptionEngineAlgorithms().isEmpty()) {
+            json.setEncryptionEngineAlgorithms(settings.getEncryptionEngineAlgorithms().stream()
+                    .map(ContentEncryptionEngineAlgorithm::name)
+                    .toList());
+        }
+        if (!settings.getKeyWrapperAlgorithms().isEmpty()) {
+            json.setKeyWrapperAlgorithms(settings.getKeyWrapperAlgorithms().stream()
+                    .map(ContentEncryptionKeyWrapperAlgorithm::name)
+                    .toList());
+        }
+        return json;
     }
 
     private Entity toJsonEntity(com.contentgrid.appserver.application.model.Entity entity) {

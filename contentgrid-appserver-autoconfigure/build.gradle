@@ -67,7 +67,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
-    testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-encryption'))
+    testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
     testImplementation project(':contentgrid-appserver-spring-boot-starter')
     testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
         because "Needed for endpoint security config. Main dep in contentgrid-appserver-spring-boot-starter, but only testImplementation here to avoid circular dependency."
@@ -77,6 +77,7 @@ dependencies {
     }
 
     testImplementation 'org.flywaydb:flyway-core'
+    testImplementation 'com.h2database:h2'
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
     testRuntimeOnly 'org.springframework:spring-webflux'
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'

@@ -4,6 +4,10 @@
   "title": "ContentGrid Application Configuration",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "The URI of the JSON schema this document conforms to."
+    },
     "applicationName": {
       "type": "string",
       "description": "The name of the application."
@@ -88,7 +92,8 @@
               "required": [
                 "name",
                 "attributePath"
-              ]
+              ],
+              "additionalProperties": false
             }
           }
         },
@@ -203,6 +208,38 @@
           }
         ]
       }
+    },
+    "settings": {
+      "type": "object",
+      "description": "Application-specific settings.",
+      "properties": {
+        "contentEncryption": {
+          "type": "object",
+          "description": "Content encryption configuration for this application.",
+          "properties": {
+            "encryptionEngineAlgorithms": {
+              "type": "array",
+              "description": "The content encryption engine algorithms to use. The first algorithm will be used for encryption, the additional algorithms will only be used for decryption. Defaults to [ AES128_CTR ].",
+              "items": {
+                "type": "string",
+                "enum": ["AES128_CTR", "AES192_CTR", "AES256_CTR", "ALFRESCO"]
+              },
+              "uniqueItems": true
+            },
+            "keyWrapperAlgorithms": {
+              "type": "array",
+              "description": "The key wrapper algorithms to use. Defaults to [ NONE ].",
+              "items": {
+                "type": "string",
+                "enum": ["NONE"]
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
@@ -210,6 +247,7 @@
     "version",
     "entities"
   ],
+  "additionalProperties": false,
   "$defs": {
     "relationEndPoint": {
       "type": "object",
@@ -248,7 +286,8 @@
       },
       "required": [
         "entityName"
-      ]
+      ],
+      "additionalProperties": false
     },
     "relationEndpointFlag": {
       "type": "string",
@@ -464,7 +503,8 @@
         "name",
         "attributes",
         "type"
-      ]
+      ],
+      "additionalProperties": false
     },
     "contentAttribute": {
       "type": "object",
@@ -600,7 +640,8 @@
               "rel"
             ]
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "translations": {
@@ -688,7 +729,8 @@
         "name",
         "attributePath",
         "type"
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "fullTextSearchFilter": {
       "type": "object",
@@ -715,7 +757,8 @@
         "attributePath",
         "type",
         "locale"
-      ]
+      ],
+      "unevaluatedProperties": false
     }
   }
 }

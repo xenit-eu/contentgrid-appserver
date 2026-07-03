@@ -15,6 +15,7 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.version.Version;
@@ -38,13 +39,14 @@ import lombok.SneakyThrows;
 @RequiredArgsConstructor
 public class ContentApiImpl implements ContentApi {
     private final DatamodelApiImpl datamodelApi;
-    private final ContentStore contentStore;
+    private final ContentStoreResolver contentStoreResolver;
 
     private AttributeDataContent extractContent(
             @NonNull Application application,
             @NonNull InternalEntityInstance entityData,
             @NonNull AttributeName attributeName
     ) {
+        var contentStore = contentStoreResolver.resolve(application);
         var contentAttribute = application.getRequiredEntityByName(entityData.getIdentity().getEntityName())
                 .getAttributeByName(attributeName)
                 .filter(ContentAttribute.class::isInstance)
@@ -52,7 +54,7 @@ public class ContentApiImpl implements ContentApi {
                 .orElseThrow(); // TODO: throw a properly typed exception when the wrong attribute name is given
 
         return new AttributeDataContent(
-                contentAttribute,
+                contentStore, contentAttribute,
                 entityData.getByAttributeName(attributeName, CompositeAttributeData.class).orElse(null)
         );
     }
@@ -133,6 +135,7 @@ public class ContentApiImpl implements ContentApi {
 
     @RequiredArgsConstructor
     private class AttributeDataContent implements Content {
+        private final ContentStore contentStore;
         @NonNull
         private final ContentAttribute contentAttribute;
         private final CompositeAttributeData attributeData;
@@ -140,10 +143,11 @@ public class ContentApiImpl implements ContentApi {
         private final ContentRangeRequest contentRange;
 
         public AttributeDataContent(
+                ContentStore contentStore,
                 ContentAttribute contentAttribute,
                 CompositeAttributeData attributeData
         ) {
-            this(contentAttribute, attributeData, null);
+            this(contentStore, contentAttribute, attributeData, null);
         }
 
         protected Optional<ContentReference> getContentId() {
@@ -154,7 +158,7 @@ public class ContentApiImpl implements ContentApi {
         @SneakyThrows
         @Override
         public Content withByteRange(long start, long endInclusive) {
-            return new AttributeDataContent(contentAttribute, attributeData, ContentRangeRequest.createRange(start, endInclusive));
+            return new AttributeDataContent(contentStore, contentAttribute, attributeData, ContentRangeRequest.createRange(start, endInclusive));
         }
 
         private <T> T getAttribute(SimpleAttribute attribute, Class<T> type) {

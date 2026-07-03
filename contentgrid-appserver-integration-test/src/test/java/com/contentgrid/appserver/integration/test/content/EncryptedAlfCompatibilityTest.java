@@ -5,6 +5,10 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
+import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -13,11 +17,11 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.contentstore.api.ContentAccessor;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.engine.DataEncryptionAlgorithm;
-import com.contentgrid.appserver.contentstore.impl.encryption.keys.DataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.KeyBytes;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.StoredDataEncryptionKey;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.TableStorageDataEncryptionKeyAccessor;
 import com.contentgrid.appserver.contentstore.impl.encryption.keys.WrappingKeyId;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -43,6 +47,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,10 +76,6 @@ import org.springframework.web.reactive.function.BodyInserters;
                 "contentgrid.appserver.content-store.type = ephemeral",
                 "contentgrid.thunx.abac.source = none",
                 "contentgrid.events.rabbitmq.enabled=false",
-                "contentgrid.appserver.content.encryption.enabled=true",
-                "contentgrid.appserver.content.encryption.bootstrap-tables=create-drop",
-                "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES128_CTR",
-                "contentgrid.appserver.content.encryption.engine.algorithms[1]=ALFRESCO",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",
         })
 class EncryptedAlfCompatibilityTest {
@@ -85,6 +86,13 @@ class EncryptedAlfCompatibilityTest {
 
     private static final Application APPLICATION = Application.builder()
             .name(ApplicationName.of("default"))
+            .settings(ApplicationSettings.builder()
+                    .contentEncryption(ContentEncryptionSettings.builder()
+                            .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                            .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
+                            .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
+                            .build())
+                    .build())
             .entity(Entity.builder()
                     .name(EntityName.of("employee"))
                     .table(TableName.of("employee"))
@@ -149,14 +157,14 @@ class EncryptedAlfCompatibilityTest {
     private WebTestClient client;
 
     @Autowired
-    @Qualifier("ephemeralContentStore")
-    private ContentStore contentStore;
+    @Qualifier("ephemeralContentStoreResolver")
+    private ContentStoreResolver contentStoreResolver;
 
     @Autowired
     private QueryEngine queryEngine;
 
     @Autowired
-    private DataEncryptionKeyAccessor dkeAccessor;
+    private DSLContext dslContext;
 
     @BeforeEach
     void setup() {
@@ -217,11 +225,13 @@ class EncryptedAlfCompatibilityTest {
 
         // write file as stored in Alfresco
         ContentAccessor written;
+        var contentStore = contentStoreResolver.resolve(APPLICATION);
         try (InputStream is = EncryptedAlfCompatibilityTest.class.getResourceAsStream(encryptedResource)) {
-                written = contentStore.writeContent(is);
+            written = contentStore.writeContent(is);
         }
 
         // record content-associated key 
+        var dkeAccessor = new TableStorageDataEncryptionKeyAccessor(dslContext);
         dkeAccessor.addKey(written.getReference(),
                 new StoredDataEncryptionKey(
                         DataEncryptionAlgorithm.of(alg),
@@ -229,7 +239,7 @@ class EncryptedAlfCompatibilityTest {
 
         // create entity creation data (typically done in DatamodelApi)
         // need to save the encrypted size (actual length is technically unknown internally)
-        String fileName = "test-" + UUID.randomUUID().toString();
+        String fileName = "test-" + UUID.randomUUID();
         var compositeContent = CompositeAttributeData.builder()
                 .name(AttributeName.of("file"))
                 .attribute(new SimpleAttributeData<>(AttributeName.of("id"), written.getReference().getValue()))

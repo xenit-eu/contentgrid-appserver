@@ -16,9 +16,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
+import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStore;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
+import org.junit.jupiter.api.AutoClose;
 import tools.jackson.databind.json.JsonMapper;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -45,7 +48,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = TestApplication.class, properties = {
@@ -70,12 +73,18 @@ class ContentRestControllerTest {
     @Autowired
     private TableCreator tableCreator;
 
-    @MockitoSpyBean
+    @MockitoBean
+    private ContentStoreResolver contentStoreResolverMock;
+
+    @AutoClose
+    private final ContentStore realContentStore = new MockContentStore();
     private ContentStore contentStoreSpy;
 
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
+        contentStoreSpy = Mockito.spy(realContentStore);
+        Mockito.when(contentStoreResolverMock.resolve(Mockito.any())).thenReturn(contentStoreSpy);
     }
 
     @AfterEach
