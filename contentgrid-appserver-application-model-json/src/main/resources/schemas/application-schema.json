@@ -247,9 +247,6 @@
               "description": "The database schema for this application"
             }
           },
-          "required": [
-            "schema"
-          ],
           "additionalProperties": false
         }
       },

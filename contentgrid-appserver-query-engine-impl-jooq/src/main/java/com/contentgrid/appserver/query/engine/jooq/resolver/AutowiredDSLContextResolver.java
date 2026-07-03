@@ -30,6 +30,9 @@ public class AutowiredDSLContextResolver implements DSLContextResolver {
     }
 
     private Settings configureSchema(Settings settings, SchemaName schemaName) {
+        if (schemaName == null) {
+            return settings;
+        }
         var renderMapping = settings.getRenderMapping() == null ? new RenderMapping() : settings.getRenderMapping();
         var schemata = new ArrayList<>(renderMapping.getSchemata());
 

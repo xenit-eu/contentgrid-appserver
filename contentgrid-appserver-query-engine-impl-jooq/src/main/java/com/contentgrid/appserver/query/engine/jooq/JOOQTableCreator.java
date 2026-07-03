@@ -43,7 +43,7 @@ public class JOOQTableCreator implements TableCreator {
 
     private void createSchema(DSLContext dslContext, Application application) {
         application.getSettings().getDatabase().ifPresent(settings -> {
-            if (!SchemaName.PUBLIC.equals(settings.getSchema())) {
+            if (settings.getSchema() != null && !SchemaName.PUBLIC.equals(settings.getSchema())) {
                 var schema = DSL.schema(DSL.name(settings.getSchema().getValue()));
                 dslContext.createSchemaIfNotExists(schema).execute();
             }
@@ -52,7 +52,7 @@ public class JOOQTableCreator implements TableCreator {
 
     private void dropSchema(DSLContext dslContext, Application application) {
         application.getSettings().getDatabase().ifPresent(settings -> {
-            if (!SchemaName.PUBLIC.equals(settings.getSchema())) {
+            if (settings.getSchema() != null && !SchemaName.PUBLIC.equals(settings.getSchema())) {
                 var schema = DSL.schema(DSL.name(settings.getSchema().getValue()));
                 dslContext.dropSchemaIfExists(schema).execute();
             }

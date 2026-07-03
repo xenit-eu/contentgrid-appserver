@@ -196,9 +196,11 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.settings.database.DatabaseSettings fromJsonDatabaseSettings(
             DatabaseSettings json) {
-        return com.contentgrid.appserver.application.model.settings.database.DatabaseSettings.builder()
-                .schema(SchemaName.of(json.getSchema()))
-                .build();
+        var builder = com.contentgrid.appserver.application.model.settings.database.DatabaseSettings.builder();
+        if (json.getSchema() != null) {
+            builder.schema(SchemaName.of(json.getSchema()));
+        }
+        return builder.build();
     }
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
@@ -545,7 +547,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
      private DatabaseSettings toJsonDatabaseSettings(
              com.contentgrid.appserver.application.model.settings.database.DatabaseSettings settings) {
         var json = new DatabaseSettings();
-        json.setSchema(settings.getSchema().getValue());
+        if (settings.getSchema() != null) {
+            json.setSchema(settings.getSchema().getValue());
+        }
         return json;
      }
 

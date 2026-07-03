@@ -546,6 +546,28 @@ class JOOQTableCreatorTest {
     }
 
     @Test
+    void applicationWithNoSchema() {
+        var application = Application.builder()
+                .name(ApplicationName.of("no-schema-application"))
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder().build())
+                        .build())
+                .entity(PERSON)
+                .build();
+
+        // create tables
+        tableCreator.createTables(application);
+
+        var tables = getTables("public");
+        assertEquals(List.of("person"), tables);
+
+        // drop tables
+        tableCreator.dropTables(application);
+        assertTrue(getTables("public").isEmpty());
+        assertTrue(getSchemas().contains("public")); // public is not dropped
+    }
+
+    @Test
     void applicationWithPublicSchema() {
         var application = Application.builder()
                 .name(ApplicationName.of("public-schema-application"))

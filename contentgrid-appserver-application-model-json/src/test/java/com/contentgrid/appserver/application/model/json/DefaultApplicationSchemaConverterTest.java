@@ -196,6 +196,33 @@ class DefaultApplicationSchemaConverterTest {
     }
 
     @Test
+    void testDatabaseSettingsSerialization_noSchema() {
+        var app = Application.builder()
+                .name(ApplicationName.of("test"))
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder().build())
+                        .build())
+                .build();
+
+        var out = new ByteArrayOutputStream();
+        new DefaultApplicationSchemaConverter().toJson(app, out);
+        var jsonOutput = out.toString(StandardCharsets.UTF_8);
+
+        assertThat(jsonOutput, sameJSONAs("""
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "test",
+                    "version": "1.0.0",
+                    "entities": [],
+                    "relations": [],
+                    "settings": {
+                        "database": {}
+                    }
+                }
+                """));
+    }
+
+    @Test
     void testUnknownFlag() {
         var jsonWithUnknownFlag = """
                 {
