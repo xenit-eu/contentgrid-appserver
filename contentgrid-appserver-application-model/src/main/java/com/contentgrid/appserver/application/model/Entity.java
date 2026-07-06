@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -371,29 +372,18 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
         );
     }
 
-    public SimpleAttribute resolveAttributePath(@NonNull AttributePath attributePath) {
-        return resolveAttributePath(this, attributePath);
-    }
 
-    private static SimpleAttribute resolveAttributePath(@NonNull HasAttributes container, @NonNull AttributePath attributePath) {
-        return switch (attributePath) {
-            case SimpleAttributePath simpleAttributePath -> {
-                var attr = container.getAttributeByName(simpleAttributePath.getFirst())
-                        .orElseThrow(() -> new AttributeNotFoundException("Attribute not found: " + simpleAttributePath.getFirst()));
-                if (attr instanceof SimpleAttribute simpleAttribute) {
-                    yield simpleAttribute;
-                }
-                throw new InvalidArgumentModelException("SimpleAttributePath didn't end up at SimpleAttribute: " + attributePath);
-            }
-            case CompositeAttributePath compositeAttributePath -> {
-                var attr = container.getAttributeByName(compositeAttributePath.getFirst())
-                        .orElseThrow(() -> new AttributeNotFoundException("Attribute not found: " + compositeAttributePath.getFirst()));
-                if (attr instanceof CompositeAttribute compAttribute) {
-                    yield resolveAttributePath(compAttribute, compositeAttributePath.getRest());
-                }
-                throw new AttributeNotFoundException("CompositeAttributePath goes over SimpleAttribute: " + attributePath);
-            }
-        };
+    /**
+     * @deprecated use {@link PropertyPathResolver#resolveAttributePath(HasAttributes, AttributePath)} instead
+     */
+    @Deprecated(forRemoval = true, since = "0.1.1")
+    public SimpleAttribute resolveAttributePath(@NonNull AttributePath attributePath) {
+        if (PropertyPathResolver.resolveAttributePath(this, attributePath) instanceof SimpleAttribute sa) {
+            return sa;
+        }
+        throw new AttributeNotFoundException(
+                "Resolving property path '%s' on entity '%s' did not result in a SimpleAttribute".formatted(
+                        attributePath, name));
     }
 
     public static EntityBuilder builder() {

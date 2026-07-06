@@ -5,10 +5,13 @@ import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
 import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -296,6 +299,13 @@ public class Application {
                 )));
     }
 
+    /**
+     * @return The {@link PropertyPathResolver} for the application
+     */
+    public PropertyPathResolver getPropertyPathResolver() {
+        return new  PropertyPathResolver(this);
+    }
+
     private Optional<AttributeSearchFilter> findFilterForRelation(Relation relation) {
         var sourceEntity = getRelationSourceEntity(relation);
         var targetEntity = getRelationTargetEntity(relation);
@@ -368,31 +378,16 @@ public class Application {
         });
     }
 
+    /**
+     * @deprecated use the {@link #getPropertyPathResolver()} instead
+     */
+    @Deprecated(forRemoval = true, since = "0.1.1")
     public SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
-        Entity currentEntity = entity;
-        PropertyPath currentPath = path;
-
-        while (currentPath != null) {
-            switch (currentPath) {
-                case AttributePath attributePath -> {
-                    // When we hit an attribute, validate the remaining path via the current entity
-                    return currentEntity.resolveAttributePath(attributePath);
-                }
-                case PropertyPath.CrossesRelation relationPath -> {
-                    final String entityName = currentEntity.getName().getValue(); // Make final for lambda
-                    var relation = getRelationForEntity(currentEntity, relationPath.getFirst())
-                        .orElseThrow(() -> new RelationNotFoundException(
-                            "Relation '%s' not found on entity '%s'"
-                                .formatted(relationPath.getFirst().getValue(), entityName)));
-
-                    // Move to the target entity
-                    currentEntity = getRelationTargetEntity(relation);
-                    currentPath = currentPath.getRest();
-                }
-            }
+        if (getPropertyPathResolver().resolve(entity.getName(), path) instanceof AttributeResolutionResult attributeResult
+                && attributeResult.getAttribute() instanceof SimpleAttribute simpleAttribute) {
+            return simpleAttribute;
         }
-
-        throw new AttributeNotFoundException("Invalid property path: path ended without reaching an attribute");
+        throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()));
     }
 
 }
