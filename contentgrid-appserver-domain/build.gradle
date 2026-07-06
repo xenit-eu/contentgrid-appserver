@@ -15,7 +15,7 @@ dependencies {
     implementation project(':contentgrid-appserver-contentstore-api')
     implementation project(':contentgrid-appserver-domain-spi')
     implementation 'org.springframework:spring-core'
-    implementation 'com.contentgrid.hateoas:contentgrid-pagination-offset:1.0.0'
+    implementation 'com.contentgrid.hateoas:contentgrid-pagination-offset:1.0.1'
     implementation 'tools.jackson.core:jackson-databind'
 
     testImplementation 'org.mockito:mockito-junit-jupiter'
