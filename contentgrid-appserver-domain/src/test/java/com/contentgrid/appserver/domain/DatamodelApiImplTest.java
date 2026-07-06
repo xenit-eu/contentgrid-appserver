@@ -245,7 +245,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "amount",
                                 "number",
@@ -272,7 +272,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(InvalidDataTypeException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "number",
                                 "amount",
@@ -306,7 +306,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(AllowedValuesConstraintViolationInvalidDataException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "confidentiality"
                         );
@@ -592,7 +592,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(InvalidDataTypeException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "customer",
                                 "products"
@@ -682,7 +682,7 @@ class DatamodelApiImplTest {
                     )
             )), AuthorizationContext.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, e -> {
-                        assertThat(e.getPath().toList()).isEqualTo(List.of("content"));
+                        assertThat(e.getPath()).hasToString("content");
                     });
 
             Mockito.verifyNoInteractions(contentStore, queryEngine);
@@ -769,7 +769,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "amount",
                                 "number"
@@ -851,7 +851,7 @@ class DatamodelApiImplTest {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(ContentMissingInvalidDataException.class);
-                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content"));
+                            assertThat(ex.getPath()).hasToString("content");
                         });
             });
         }
@@ -881,7 +881,7 @@ class DatamodelApiImplTest {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
-                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content", "mimetype"));
+                            assertThat(ex.getPath()).hasToString("content.mimetype");
                         });
             });
         }
@@ -1045,7 +1045,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "number"
                         );
@@ -1069,7 +1069,7 @@ class DatamodelApiImplTest {
                         .allSatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(AllowedValuesConstraintViolationInvalidDataException.class);
                         })
-                        .extracting(e -> String.join(".", e.getPath().toList()))
+                        .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
                                 "confidentiality"
                         );
@@ -1167,7 +1167,7 @@ class DatamodelApiImplTest {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(ContentMissingInvalidDataException.class);
-                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content"));
+                            assertThat(ex.getPath()).hasToString("content");
                         });
             });
 
@@ -1195,7 +1195,7 @@ class DatamodelApiImplTest {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
                             assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
-                            assertThat(ex.getPath().toList()).isEqualTo(List.of("content", "mimetype"));
+                            assertThat(ex.getPath()).hasToString("content.mimetype");
                         });
             });
         }

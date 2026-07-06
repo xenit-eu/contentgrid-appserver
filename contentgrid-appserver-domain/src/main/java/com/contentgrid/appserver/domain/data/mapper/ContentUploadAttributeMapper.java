@@ -3,7 +3,7 @@ package com.contentgrid.appserver.domain.data.mapper;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.values.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;

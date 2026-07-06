@@ -4,9 +4,10 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -30,7 +31,7 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
     @Builder
     FullTextSearchAttributeSearchFilter(@NonNull FilterName name,
                                         @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
-                                        @NonNull PropertyPath attributePath,
+                                        @NonNull PropertyPath.ResolvesToAttribute attributePath,
                                         @NonNull @Singular Set<SearchFilterFlag> flags,
                                         @NonNull Locale locale) {
         super(name, translations, attributePath, flags);
@@ -49,7 +50,7 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
         }
 
         public FullTextSearchAttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
-            this.attributePath = PropertyPath.of(attribute.getName());
+            this.attributePath = new SimpleAttributePath(attribute.getName());
             return this;
         }
     }

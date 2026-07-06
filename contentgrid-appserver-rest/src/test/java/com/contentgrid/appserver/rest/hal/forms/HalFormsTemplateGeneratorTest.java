@@ -18,7 +18,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -682,7 +682,7 @@ class HalFormsTemplateGeneratorTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.PREFIX)
                         .name(FilterName.of("one~prefix"))
-                        .attributePath(PropertyPath.of(AttributeName.of("one")))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("one")))
                         .build())
                 .build();
         var application = Application.builder()
@@ -718,7 +718,7 @@ class HalFormsTemplateGeneratorTest {
                         .build())
                 .sortableField(SortableField.builder()
                         .name(SortableName.of("one"))
-                        .propertyPath(PropertyPath.of(AttributeName.of("one")))
+                        .propertyPath(PropertyPath.toAttribute(AttributeName.of("one")))
                         .build())
                 .build();
         var application = Application.builder()

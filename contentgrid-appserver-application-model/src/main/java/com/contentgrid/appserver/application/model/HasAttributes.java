@@ -2,9 +2,9 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.CompositeAttributePath;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -19,7 +19,7 @@ public interface HasAttributes {
     List<Attribute> getAttributes();
 
     /**
-     * Locates a potentially nested attribute by it's path
+     * Locates a potentially nested attribute by its path
      * @param path The path to look up the attribute with
      * @return The attribute referenced by the path
      */
@@ -80,7 +80,7 @@ public interface HasAttributes {
         T attribute;
 
         private Entry<T> withPrefix(@NonNull AttributeName attributeName) {
-            return new Entry<>(path.withPrefix(attributeName), attribute);
+            return new Entry<>(new CompositeAttributePath(attributeName, path), attribute);
         }
 
         private <U extends Attribute> Optional<Entry<U>> forType(Class<U> attributeType) {

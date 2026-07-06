@@ -45,7 +45,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -81,7 +81,7 @@ class ApplicationTest {
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
-                    .attributePath(PropertyPath.of(AttributeName.of("invoiceNumber")))
+                    .attributePath(PropertyPath.toAttribute(AttributeName.of("invoiceNumber")))
                     .name(FilterName.of("invoiceNumber"))
                     .build())
             ;
@@ -99,7 +99,7 @@ class ApplicationTest {
                     .description("The email of the customer").type(Type.TEXT).build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
-                    .attributePath(PropertyPath.of(AttributeName.of("name")))
+                    .attributePath(PropertyPath.toAttribute(AttributeName.of("name")))
                     .name(FilterName.of("name~prefix"))
                     .build())
             .build();
@@ -335,7 +335,7 @@ class ApplicationTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("nonexistent.name"))
-                        .attributePath(PropertyPath.of(RelationName.of("nonexistent"), AttributeName.of("name")))
+                        .attributePath(PropertyPath.toAttributeUnchecked(RelationName.of("nonexistent"), AttributeName.of("name")))
                         .build())
                 .build();
 
@@ -362,7 +362,7 @@ class ApplicationTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("target.nonexistent"))
-                        .attributePath(PropertyPath.of(RelationName.of("target"), AttributeName.of("nonexistent")))
+                        .attributePath(PropertyPath.toAttributeUnchecked(RelationName.of("target"), AttributeName.of("nonexistent")))
                         .build())
                 .build();
 
@@ -429,7 +429,7 @@ class ApplicationTest {
                         AttributeSearchFilter.builder()
                                 .operation(Operation.PREFIX)
                                 .name(FilterName.of("filter~prefix"))
-                                .attributePath(PropertyPath.of(AttributeName.of("test")))
+                                .attributePath(PropertyPath.toAttribute(AttributeName.of("test")))
                                 .build()
                 )
                 .build();
@@ -465,7 +465,7 @@ class ApplicationTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(operation)
                         .name(FilterName.of("filter~ordered"))
-                        .attributePath(PropertyPath.of(AttributeName.of("test")))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("test")))
                         .build())
                 .build();
 
@@ -707,7 +707,7 @@ class ApplicationTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("orders.order_number"))
-                        .attributePath(PropertyPath.of(RelationName.of("orders"), AttributeName.of("order_number")))
+                        .attributePath(PropertyPath.toAttributeUnchecked(RelationName.of("orders"), AttributeName.of("order_number")))
                         .build())
                 .build();
 
@@ -785,12 +785,12 @@ class ApplicationTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.PREFIX)
                         .name(FilterName.of("products.name"))
-                        .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("name")))
+                        .attributePath(PropertyPath.toAttributeUnchecked(RelationName.of("products"), AttributeName.of("name")))
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("products.category"))
-                        .attributePath(PropertyPath.of(RelationName.of("products"), AttributeName.of("category")))
+                        .attributePath(PropertyPath.toAttributeUnchecked(RelationName.of("products"), AttributeName.of("category")))
                         .build())
                 .build();
 

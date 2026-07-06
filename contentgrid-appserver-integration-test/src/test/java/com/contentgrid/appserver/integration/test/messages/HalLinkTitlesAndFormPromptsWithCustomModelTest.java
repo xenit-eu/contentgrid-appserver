@@ -14,7 +14,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
@@ -148,12 +148,12 @@ class HalLinkTitlesAndFormPromptsWithCustomModelTest {
                     .type(Type.TEXT)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
-                    .attributePath(PropertyPath.of(AttributeName.of("id")))
+                    .attributePath(PropertyPath.toAttribute(AttributeName.of("id")))
                     .name(FilterName.of("id"))
                     .operation(Operation.EXACT)
                     .build())
             .sortableField(SortableField.builder()
-                    .propertyPath(PropertyPath.of(AttributeName.of("id")))
+                    .propertyPath(PropertyPath.toAttribute(AttributeName.of("id")))
                     .name(SortableName.of("id"))
                     .build())
             .build();

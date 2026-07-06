@@ -24,8 +24,8 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
@@ -715,8 +715,7 @@ class StructuredRelationsJOOQQueryEngineTest {
         if(relation.getSourceEndPoint().isRequired()) {
             thrown.isInstanceOfSatisfying(RequiredConstraintViolationException.class, ex -> {
                 assertThat(ex.getEntityIdentity()).isEqualTo(source.getIdentity());
-                assertThat(ex.getPropertyPath()).isEqualTo(
-                        new RelationPath(relation.getSourceEndPoint().getName(), null));
+                assertThat(ex.getPropertyPath()).isEqualTo(new SimpleRelationPath(relation.getSourceEndPoint().getName()));
             });
         }
         if(relation.getTargetEndPoint().isRequired()) {
@@ -781,8 +780,7 @@ class StructuredRelationsJOOQQueryEngineTest {
         if(relation.getSourceEndPoint().isRequired()) {
             thrown.isInstanceOfSatisfying(RequiredConstraintViolationException.class, ex -> {
                 assertThat(ex.getEntityIdentity()).isEqualTo(source.getIdentity());
-                assertThat(ex.getPropertyPath()).isEqualTo(
-                        new RelationPath(relation.getSourceEndPoint().getName(), null));
+                assertThat(ex.getPropertyPath()).isEqualTo(new SimpleRelationPath(relation.getSourceEndPoint().getName()));
             });
         }
         if(relation.getTargetEndPoint().isRequired()) {

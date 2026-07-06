@@ -4,7 +4,7 @@ import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -30,11 +30,9 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
 
     /**
      * The path to the attribute this search filter operates on.
-     * For simple attributes, this will be a single-element list.
-     * For composite attributes, this will be a multi-element list representing the path.
      */
     @NonNull
-    private final PropertyPath attributePath;
+    private final PropertyPath.ResolvesToAttribute attributePath;
 
     @NonNull
     @Delegate
@@ -50,7 +48,7 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
     protected BaseAttributeSearchFilter(
             @NonNull FilterName name,
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
-            @NonNull PropertyPath attributePath,
+            @NonNull PropertyPath.ResolvesToAttribute attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags) {
         this.name = name;
         this.translations = translations.withTranslationsBy(Locale.ROOT, t -> {

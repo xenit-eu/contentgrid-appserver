@@ -1,12 +1,12 @@
 package com.contentgrid.appserver.domain.data;
 
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.CompositeAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
 import com.contentgrid.appserver.application.model.values.PropertyName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.RelationPath;
 import java.util.Arrays;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -41,14 +41,14 @@ public class InvalidPropertyDataException extends InvalidDataException {
 
     @Override
     public String getMessage() {
-        return "Invalid property data at %s: %s".formatted(String.join(".", path.toList()), getCause().getMessage());
+        return "Invalid property data at %s: %s".formatted(path, getCause().getMessage());
     }
 
     @Override
     public InvalidPropertyDataException withinProperty(PropertyName propertyName) {
         var newPath = switch (propertyName) {
             case AttributeName attributeName -> new CompositeAttributePath(attributeName, (AttributePath) path);
-            case RelationName relationName -> new RelationPath(relationName, path);
+            case RelationName relationName -> CompositeRelationPath.of(relationName, path);
         };
         return new InvalidPropertyDataException(newPath, getCause());
     }

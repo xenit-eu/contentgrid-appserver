@@ -3,16 +3,16 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath.CrossesRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
-import com.contentgrid.appserver.application.model.values.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
-import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
@@ -210,8 +210,8 @@ public class ThunkExpressionGenerator {
                             currentPath.toList().stream().map(SymbolicReference::path)
                     ).toList();
                 }
-                case RelationPath relationPath -> {
-                    var relationName = relationPath.getRelation();
+                case CrossesRelation relationPath -> {
+                    var relationName = relationPath.getFirst();
                     var relation = application.getRelationForEntity(currentEntity, relationName)
                             .orElseThrow(() -> new IllegalArgumentException("Relation %s not found on entity %s"
                                     .formatted(relationName.getValue(), entityName)));

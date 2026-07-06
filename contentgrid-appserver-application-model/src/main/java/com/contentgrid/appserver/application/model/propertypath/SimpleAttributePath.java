@@ -1,11 +1,19 @@
-package com.contentgrid.appserver.application.model.values;
+package com.contentgrid.appserver.application.model.propertypath;
 
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
-@Value
-public class SimpleAttributePath implements AttributePath {
-    @NonNull AttributeName attribute;
+/**
+ * Attribute path that crosses only a single attribute name
+ */
+@RequiredArgsConstructor
+@EqualsAndHashCode
+public final class SimpleAttributePath implements AttributePath {
+    @NonNull
+    AttributeName attribute;
 
     @Override
     public @NonNull AttributeName getFirst() {

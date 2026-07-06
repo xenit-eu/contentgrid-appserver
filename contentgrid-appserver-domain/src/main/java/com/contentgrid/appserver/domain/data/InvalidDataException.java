@@ -3,8 +3,8 @@ package com.contentgrid.appserver.domain.data;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.PropertyName;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.RelationPath;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 
 /**
  * Base exception for all exceptions related to data validation
@@ -19,7 +19,7 @@ public abstract class InvalidDataException extends Exception {
     public InvalidPropertyDataException withinProperty(PropertyName name) {
         var path = switch (name) {
             case AttributeName attributeName -> new SimpleAttributePath(attributeName);
-            case RelationName relationName -> new RelationPath(relationName, null);
+            case RelationName relationName -> new SimpleRelationPath(relationName);
         };
         return new InvalidPropertyDataException(path, this);
     }

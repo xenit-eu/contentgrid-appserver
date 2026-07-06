@@ -25,7 +25,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
@@ -68,9 +68,9 @@ class EntityTest {
             .name(FilterName.of("filter2"))
             .attribute(ATTRIBUTE2)
             .build();
-    private static final SortableField SORTABLE1 = SortableField.builder().name(SortableName.of("sortable1")).propertyPath(PropertyPath.of(ATTRIBUTE1.getName())).build();
+    private static final SortableField SORTABLE1 = SortableField.builder().name(SortableName.of("sortable1")).propertyPath(PropertyPath.toAttribute(ATTRIBUTE1.getName())).build();
     private static final SortableField SORTABLE3 = SortableField.builder().name(SortableName.of("sortable3"))
-            .propertyPath(PropertyPath.of(CONTENT1.getName(), AttributeName.of("length"))).build();
+            .propertyPath(PropertyPath.toAttribute(CONTENT1.getName(), AttributeName.of("length"))).build();
 
     @Test
     void entityTest() {
@@ -143,7 +143,7 @@ class EntityTest {
         );
 
         var sortables = entity.getSortableFields();
-        var sortable2 = SortableField.builder().name(SortableName.of("sortable2")).propertyPath(PropertyPath.of(ATTRIBUTE2.getName())).build();
+        var sortable2 = SortableField.builder().name(SortableName.of("sortable2")).propertyPath(PropertyPath.toAttribute(ATTRIBUTE2.getName())).build();
 
         // validate that the list of sortable fields is immutable
         assertThrows(
@@ -351,7 +351,7 @@ class EntityTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("filter"))
-                        .attributePath(PropertyPath.of(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName()))
+                        .attributePath(PropertyPath.toAttribute(COMPOSITE.getName(), NESTED_ATTRIBUTE.getName()))
                         .build()
                 ).build();
     }
@@ -367,7 +367,7 @@ class EntityTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("filter"))
-                        .attributePath(PropertyPath.of(ATTRIBUTE1.getName(), AttributeName.of("foo")))
+                        .attributePath(PropertyPath.toAttribute(ATTRIBUTE1.getName(), AttributeName.of("foo")))
                         .build()
                 )
                 .build();
@@ -390,7 +390,7 @@ class EntityTest {
                 .searchFilter(AttributeSearchFilter.builder()
                         .operation(Operation.EXACT)
                         .name(FilterName.of("filter"))
-                        .attributePath(PropertyPath.of(COMPOSITE.getName()))
+                        .attributePath(PropertyPath.toAttribute(COMPOSITE.getName()))
                         .build()
                 )
                 .build();
@@ -446,7 +446,7 @@ class EntityTest {
 
     @Test
     void entity_duplicateSortableName() {
-        var duplicate = SortableField.builder().name(SORTABLE1.getName()).propertyPath(PropertyPath.of(ATTRIBUTE2.getName())).build();
+        var duplicate = SortableField.builder().name(SORTABLE1.getName()).propertyPath(PropertyPath.toAttribute(ATTRIBUTE2.getName())).build();
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))
@@ -462,7 +462,7 @@ class EntityTest {
 
     @Test
     void entity_sortableOnMissingAttribute() {
-        var sortable2 = SortableField.builder().name(SortableName.of("sortable2")).propertyPath(PropertyPath.of(ATTRIBUTE2.getName())).build();
+        var sortable2 = SortableField.builder().name(SortableName.of("sortable2")).propertyPath(PropertyPath.toAttribute(ATTRIBUTE2.getName())).build();
         var builder = Entity.builder()
                 .name(EntityName.of("entity"))
                 .pathSegment(PathSegmentName.of("segment"))

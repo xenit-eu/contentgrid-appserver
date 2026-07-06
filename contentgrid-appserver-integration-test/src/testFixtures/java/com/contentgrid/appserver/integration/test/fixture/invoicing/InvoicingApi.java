@@ -4,10 +4,10 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.RelationPath;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.DatamodelApi;
@@ -233,7 +233,7 @@ public class InvoicingApi {
         var relation = application.getRequiredRelationForEntity(entityName, relationName);
         var targetEntity = application.getRequiredEntityByName(relation.getTargetEndPoint().getEntity());
         var pagination = new EncodedCursorPagination(null, 100, SortData.unsorted());
-        var filterPath = new RelationPath(relation.getTargetEndPoint().getName(),
+        var filterPath = CompositeRelationPath.of(relation.getTargetEndPoint().getName(),
                 new SimpleAttributePath(sourceEntity.getPrimaryKey().getName()));
         var searchFilter = targetEntity.getSearchFilters().stream()
                 .filter(AttributeSearchFilter.class::isInstance)

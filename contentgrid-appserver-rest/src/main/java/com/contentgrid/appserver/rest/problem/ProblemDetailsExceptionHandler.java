@@ -104,7 +104,7 @@ public class ProblemDetailsExceptionHandler {
                     };
 
                     return MergedProblemProperties.extend(problem, Map.of(
-                            "field", String.join(".", e.getPath().toList())
+                            "field", e.getPath().toString()
                     ));
                 })
                 .toList()));
@@ -115,7 +115,7 @@ public class ProblemDetailsExceptionHandler {
         return createResponse(inputValidation(allExceptions(exception, UniqueConstraintViolationException.class)
                 .map(e -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_DUPLICATE_VALUE)
                         .withProperties(Map.of(
-                                "field", String.join(".", e.getPropertyPath().toList()),
+                                "field", e.getPropertyPath().toString(),
                                 "conflicting_item", linkFactoryProvider.toItem(e.getConflictingEntity()).toUri().toString()
                         )))
                 .toList()));
@@ -126,7 +126,7 @@ public class ProblemDetailsExceptionHandler {
         return createResponse(inputValidation(allExceptions(exception, RequiredConstraintViolationException.class)
                 .map(e -> problemFactory.createProblem(ProblemType.INPUT_VALIDATION_REQUIRED_VALUE)
                             .withProperties(Map.of(
-                                    "field", String.join(".", e.getPropertyPath().toList())
+                                    "field", e.getPropertyPath().toString()
                             )))
                 .toList()));
     }

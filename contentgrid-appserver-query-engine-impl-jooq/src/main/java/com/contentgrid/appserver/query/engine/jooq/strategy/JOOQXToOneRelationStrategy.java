@@ -3,7 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq.strategy;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
@@ -154,7 +154,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
                     return new RequiredConstraintViolationException(
                             sourceIdentity.getEntityName(),
                             sourceIdentity.getEntityId(),
-                            new RelationPath(relation.getSourceEndPoint().getName(), null)
+                            new SimpleRelationPath(relation.getSourceEndPoint().getName())
                     );
                 });
                 default -> e;
