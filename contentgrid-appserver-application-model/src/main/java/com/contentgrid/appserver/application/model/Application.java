@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
@@ -7,9 +8,12 @@ import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
@@ -29,7 +33,10 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.hateoas.uritemplate.InvalidUriTemplateException;
+import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -108,6 +115,9 @@ public class Application {
 
         // Validating entity search filters (happens here rather than in Entity because they might go across relations)
         this.entities.values().forEach(this::validateEntitySearchFilters);
+
+        // Validating entity links (happens here rather than in Entity or EntityLink because they might go to a relation)
+        this.entities.values().forEach(this::validateEntityLinks);
     }
 
     /**
@@ -370,6 +380,53 @@ public class Application {
                     }
             }
         });
+    }
+
+    private void validateEntityLinks(Entity entity) {
+        entity.getLinks().forEach(link -> {
+                    var supportedVariables = EnumSet.allOf(EntityLinkSubstitutionVariables.class);
+                    // These are always available
+                    supportedVariables.add(EntityLinkSubstitutionVariables.APPLICATION_ID);
+                    supportedVariables.add(EntityLinkSubstitutionVariables.ENTITY_ID);
+                    supportedVariables.add(EntityLinkSubstitutionVariables.ENTITY_LINK);
+                    supportedVariables.add(EntityLinkSubstitutionVariables.ENTITY_NAME);
+
+                    if (link.getOwner() != null) {
+                        supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_NAME);
+                        switch (getPropertyPathResolver().resolve(entity.getName(), link.getOwner())) {
+                            case AttributeResolutionResult attrResult when attrResult.getAttribute() instanceof SimpleAttribute:
+                                // Simple attributes have an owner value
+                                supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_VALUE);
+                                break;
+                            case AttributeResolutionResult attributeResolutionResult when attributeResolutionResult.getAttribute() instanceof ContentAttribute:
+                                // Content attributes have a link
+                                supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
+                                break;
+                            case RelationResolutionResult relationResolutionResult:
+                                // Relations have a link
+                                supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
+                                break;
+                            default:
+                                throw new InvalidEntityLinkException("Entity link owner property path '%s' on entity '%s' does not reference a supported type".formatted(link.getOwner(), entity.getName()));
+                        }
+                    }
+
+                    if (link.getStorage() != null) {
+                        throw new InvalidEntityLinkException("Entity links with storage are not supported");
+                    }
+
+                    if(link.getFallbackTemplate() != null) {
+                        var parser = new ParameterizedUriTemplateParser<>(supportedVariables);
+                        try {
+                            parser.parse(link.getFallbackTemplate().getTemplate().toTemplate());
+                        } catch (InvalidUriTemplateException e) {
+                            throw new InvalidEntityLinkException("Entity link fallback template references an unsupported substitution variable", e);
+                        }
+                    }
+
+                });
+
+
     }
 
     /**

@@ -40,4 +40,7 @@ public class Entity {
     private List<SearchFilter> searchFilters;
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<SortableField> sortableFields;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<EntityLink> links;
 }

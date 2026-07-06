@@ -420,6 +420,16 @@
           "name": "status",
           "attributePath": [{"name": "status", "type": "attr"}]
         }
+      ],
+      "links": [
+        {
+          "rel": "https://jira.example/project-link",
+          "owner": [{"name": "name", "type": "attr" }],
+          "fallbackTemplate": {
+            "template": "https://jira.example/project/%{owner.value}"
+          }
+        }
+
       ]
     },
     {

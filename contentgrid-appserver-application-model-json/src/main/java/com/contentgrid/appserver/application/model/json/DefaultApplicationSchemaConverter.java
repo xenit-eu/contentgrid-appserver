@@ -19,7 +19,16 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidEntityLinkTemplateException;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidPropertyPathException;
+import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.ConfigurableRelationEndPointTranslations;
@@ -41,13 +50,11 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFil
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.SortableName;
@@ -84,6 +91,10 @@ import com.contentgrid.appserver.application.model.json.model.Translations.Singl
 import com.contentgrid.appserver.application.model.json.model.UniqueConstraint;
 import com.contentgrid.appserver.application.model.json.model.UserAttribute;
 import com.contentgrid.appserver.application.model.json.validation.ApplicationSchemaValidator;
+import com.contentgrid.hateoas.uritemplate.InvalidUriTemplateException;
+import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplate;
+import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
+import java.util.EnumSet;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -237,6 +248,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             }
             sortableFields = list;
         }
+
+        List<EntityLink> links = new ArrayList<>();
+        if(jsonEntity.getLinks() != null) {
+            for (var jsonEntityLink : jsonEntity.getLinks()) {
+                links.add(fromJsonEntityLink(jsonEntityLink));
+            }
+        }
         return ENTITY_TRANSLATIONS.mapInto(jsonEntity, com.contentgrid.appserver.application.model.Entity.builder())
                 .name(EntityName.of(jsonEntity.getName()))
                 .pathSegment(PathSegmentName.of(jsonEntity.getPathSegment()))
@@ -246,6 +264,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .attributes(attributes)
                 .searchFilters(searchFilters)
                 .sortableFields(sortableFields)
+                .links(links)
                 .build();
     }
 
@@ -494,6 +513,42 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return Collections.unmodifiableList(result);
     }
 
+    private EntityLink fromJsonEntityLink(com.contentgrid.appserver.application.model.json.model.EntityLink entityLink)
+            throws InvalidJsonException {
+        var identity =
+                entityLink.getName() != null ? new LinkIdentity.NamedLink(entityLink.getRel(), entityLink.getName())
+                        : new LinkIdentity.UnnamedLink(entityLink.getRel());
+
+        UriTemplateDefinition templateDefinition = null;
+        var fallbackTemplate = entityLink.getFallbackTemplate();
+        if (fallbackTemplate != null) {
+            var parser = new ParameterizedUriTemplateParser<>(EnumSet.allOf(UriTemplateDefinition.EntityLinkSubstitutionVariables.class));
+            ParameterizedUriTemplate<EntityLinkSubstitutionVariables> parameterizedUriTemplate = null;
+            try {
+                parameterizedUriTemplate = parser.parse(fallbackTemplate.getTemplate());
+            } catch (InvalidUriTemplateException e) {
+                throw new InvalidEntityLinkTemplateException(e);
+            }
+
+            templateDefinition = entityLink.getFallbackTemplate().getAutomationSystem() != null ?
+                    new UriTemplateDefinition.AutomationUriTemplateDefinition(
+                            entityLink.getFallbackTemplate().getAutomationSystem(),
+                            entityLink.getFallbackTemplate().getBasePathName(),
+                            parameterizedUriTemplate
+                    ) :
+                    new UriTemplateDefinition.SimpleUriTemplateDefinition(parameterizedUriTemplate);
+        }
+
+        return new EntityLink(
+                identity,
+                entityLink.getProfile(),
+                entityLink.getOwner() != null?fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class):null,
+                entityLink.getStorage() != null?fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class):null,
+                templateDefinition
+        );
+    }
+
+
     /**
      * Converts an Application to its JSON representation and writes it to the given OutputStream.
      *
@@ -574,6 +629,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .filter(searchfilter -> !searchfilter.hasFlag(SyntheticSearchFilterFlag.class))
                 .map(this::toJsonSearchFilter).toList());
         jsonEntity.setSortableFields(entity.getSortableFields().stream().map(this::toJsonSortableField).toList());
+        jsonEntity.setLinks(entity.getLinks().stream().map(this::toJsonEntityLink).toList());
         return jsonEntity;
     }
 
@@ -717,6 +773,32 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         jsonSortableField.setName(sortableField.getName().getValue());
         jsonSortableField.setAttributePath(toJsonPropertyPath(sortableField.getPropertyPath()));
         return jsonSortableField;
+    }
+
+    private com.contentgrid.appserver.application.model.json.model.EntityLink toJsonEntityLink(EntityLink entityLink) {
+        var jsonEntityLink = new com.contentgrid.appserver.application.model.json.model.EntityLink();
+
+        jsonEntityLink.setRel(entityLink.getIdentity().rel());
+        if(entityLink.getIdentity() instanceof LinkIdentity.NamedLink namedLink) {
+            jsonEntityLink.setName(namedLink.name());
+        }
+
+        jsonEntityLink.setProfile(entityLink.getProfile());
+
+        if(entityLink.getOwner() != null) {
+            jsonEntityLink.setOwner(toJsonPropertyPath(entityLink.getOwner()));
+        }
+        if(entityLink.getStorage() != null) {
+            jsonEntityLink.setStorage(toJsonPropertyPath(entityLink.getStorage()));
+        }
+
+        switch (entityLink.getFallbackTemplate()) {
+            case SimpleUriTemplateDefinition simple -> jsonEntityLink.setFallbackTemplate(new com.contentgrid.appserver.application.model.json.model.EntityLink.UriTemplateDefinition(null, null, simple.getTemplate().toTemplate()));
+            case AutomationUriTemplateDefinition automation -> jsonEntityLink.setFallbackTemplate(new com.contentgrid.appserver.application.model.json.model.EntityLink.UriTemplateDefinition(automation.getAutomationSystem(), automation.getBasePathName(), automation.getTemplate().toTemplate()));
+            case null -> jsonEntityLink.setFallbackTemplate(null);
+        }
+
+        return jsonEntityLink;
     }
 
     private List<PropertyPathElement> toJsonPropertyPath(PropertyPath propertyPath) {

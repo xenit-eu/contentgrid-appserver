@@ -95,6 +95,21 @@
               ],
               "additionalProperties": false
             }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "An additional link that can be added",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/plainLink"
+                },
+                {
+                  "$ref": "#/$defs/storageLink"
+                }
+              ]
+            }
           }
         },
         "required": [
@@ -770,6 +785,81 @@
         "locale"
       ],
       "unevaluatedProperties": false
+    },
+    "linkBase": {
+      "type": "object",
+      "properties": {
+        "rel": {
+          "type": "string",
+          "format": "uri",
+          "description": "The 'rel' property of the link"
+        },
+        "name": {
+          "type": "string",
+          "description": "The 'name' property of the link"
+        },
+        "profile": {
+          "type": "string",
+          "format": "uri",
+          "description": "The 'profile' property of the link"
+        },
+        "owner": {
+          "description": "Reference to the owning attribute or relation, if the link is owned.",
+          "$ref": "#/$defs/attributePath"
+        },
+        "fallbackTemplate": {
+          "$ref": "#/$defs/linkUriTemplateDefinition"
+        }
+      },
+      "required": [
+        "rel"
+      ],
+      "additionalProperties": false
+    },
+    "plainLink": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/linkBase"
+        },
+        {
+          "required": ["fallbackTemplate"]
+        }
+      ]
+    },
+    "storageLink": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/linkBase"
+        },
+        {
+          "properties": {
+            "storage": {
+              "$ref": "#/$defs/attributePath"
+            }
+          },
+          "required": ["storage"]
+        }
+      ]
+    },
+    "linkUriTemplateDefinition": {
+      "type": "object",
+      "properties": {
+        "automationSystem": {
+          "type": "string"
+        },
+        "basePathName": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        }
+      },
+      "required": ["template"],
+      "dependentRequired": {
+        "automationSystem": ["basePathName"],
+        "basePathName": ["automationSystem"]
+      },
+      "additionalProperties": false
     }
   }
 }
