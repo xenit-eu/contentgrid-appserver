@@ -11,6 +11,7 @@ import static uk.co.datumedge.hamcrest.json.SameJSONAs.sameJSONAs;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
+import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
@@ -29,6 +30,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.application.model.json.exceptions.SchemaValidationException;
@@ -135,6 +137,86 @@ class DefaultApplicationSchemaConverterTest {
                             "encryptionEngineAlgorithms": ["AES256_CTR"],
                             "keyWrapperAlgorithms": ["NONE"]
                         }
+                    }
+                }
+                """));
+    }
+
+    @Test
+    void testDatabaseSettingsDeserialization() throws Exception {
+        var json = """
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "test",
+                    "version": "1.0.0",
+                    "entities": [],
+                    "relations": [],
+                    "settings": {
+                        "database": {
+                            "schema": "V1"
+                        }
+                    }
+                }
+                """;
+        var app = new DefaultApplicationSchemaConverter().convert(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+        var settings = app.getSettings().getDatabase();
+        assertTrue(settings.isPresent());
+        assertEquals(SchemaName.of("V1"), settings.get().getSchema());
+    }
+
+    @Test
+    void testDatabaseSettingsSerialization() {
+        var app = Application.builder()
+                .name(ApplicationName.of("test"))
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder()
+                                .schema(SchemaName.of("V1"))
+                                .build())
+                        .build())
+                .build();
+
+        var out = new ByteArrayOutputStream();
+        new DefaultApplicationSchemaConverter().toJson(app, out);
+        var jsonOutput = out.toString(StandardCharsets.UTF_8);
+
+        assertThat(jsonOutput, sameJSONAs("""
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "test",
+                    "version": "1.0.0",
+                    "entities": [],
+                    "relations": [],
+                    "settings": {
+                        "database": {
+                            "schema": "V1"
+                        }
+                    }
+                }
+                """));
+    }
+
+    @Test
+    void testDatabaseSettingsSerialization_noSchema() {
+        var app = Application.builder()
+                .name(ApplicationName.of("test"))
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder().build())
+                        .build())
+                .build();
+
+        var out = new ByteArrayOutputStream();
+        new DefaultApplicationSchemaConverter().toJson(app, out);
+        var jsonOutput = out.toString(StandardCharsets.UTF_8);
+
+        assertThat(jsonOutput, sameJSONAs("""
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "test",
+                    "version": "1.0.0",
+                    "entities": [],
+                    "relations": [],
+                    "settings": {
+                        "database": {}
                     }
                 }
                 """));

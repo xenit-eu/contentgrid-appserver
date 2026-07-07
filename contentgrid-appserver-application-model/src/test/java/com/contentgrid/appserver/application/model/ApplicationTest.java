@@ -34,6 +34,7 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
+import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
@@ -46,6 +47,7 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
+import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import java.util.function.Supplier;
@@ -642,6 +644,24 @@ class ApplicationTest {
                 settings.getEncryptionEngineAlgorithms().getFirst());
         assertEquals(ContentEncryptionEngineAlgorithm.AES128_CTR,
                 settings.getEncryptionEngineAlgorithms().getLast());
+    }
+
+    @Test
+    void application_databaseSchema() {
+        var application = Application.builder()
+                .name(ApplicationName.of("databaseSchemaApplication"))
+                .entity(INVOICE)
+                .entity(CUSTOMER)
+                .relation(MANY_TO_ONE)
+                .settings(ApplicationSettings.builder()
+                        .database(DatabaseSettings.builder()
+                                .schema(SchemaName.of("V1"))
+                                .build())
+                        .build())
+                .build();
+        assertTrue(application.getSettings().getDatabase().isPresent());
+        var settings = application.getSettings().getDatabase().orElseThrow();
+        assertEquals(SchemaName.of("V1"), settings.getSchema());
     }
 
     /**

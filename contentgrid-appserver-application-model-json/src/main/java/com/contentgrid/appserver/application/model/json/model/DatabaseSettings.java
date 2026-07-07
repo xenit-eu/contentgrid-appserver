@@ -7,9 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApplicationSettings {
+public final class DatabaseSettings {
 
-    private ContentEncryptionSettings contentEncryption;
-    private DatabaseSettings database;
-
+    private String schema;
 }
