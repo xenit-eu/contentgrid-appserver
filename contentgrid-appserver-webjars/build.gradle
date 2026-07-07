@@ -7,7 +7,7 @@ dependencies {
 
     implementation 'jakarta.servlet:jakarta.servlet-api'
     implementation 'org.springframework:spring-webmvc'
-    implementation 'org.webjars:swagger-ui:5.32.6'
+    implementation 'org.webjars:swagger-ui:5.32.8'
     implementation 'org.webjars:hal-explorer:2.3.0'
     implementation 'org.webjars:webjars-locator-lite'
 
