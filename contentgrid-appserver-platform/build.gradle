@@ -16,6 +16,7 @@ dependencies {
 
         api 'com.contentgrid.hateoas:contentgrid-pagination-api:1.0.1'
         api 'com.contentgrid.hateoas:contentgrid-hateoas-spring:1.0.1'
+        api 'com.contentgrid.hateoas:contentgrid-hateoas-uritemplate:1.0.1'
 
         api 'com.fasterxml.uuid:java-uuid-generator:5.2.0'
 

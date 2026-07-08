@@ -8,6 +8,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.rest.test.TestApplication;
@@ -15,7 +16,9 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
 import java.util.UUID;
@@ -52,6 +55,11 @@ class RestFormatterTest {
     static class TestEntityInstance implements EntityInstance {
         final EntityIdentity identity;
         final SequencedMap<String, PlainDataEntry> data;
+
+        @Override
+        public Collection<EntityLinkData> getLinks() {
+            return List.of();
+        }
     }
 
     private static final String EXPECTED = """

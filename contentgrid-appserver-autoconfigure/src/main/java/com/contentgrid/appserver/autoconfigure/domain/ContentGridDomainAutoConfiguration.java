@@ -15,8 +15,10 @@ import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.LinkUriProvider;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
+import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -55,8 +57,8 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStoreResolver contentStoreResolver,
-            DomainEventDispatcher dispatcher, CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, cursorCodec, clock);
+            DomainEventDispatcher dispatcher, Function<Application, LinkUriProvider> linkUriProviderFactory, CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, linkUriProviderFactory, cursorCodec, clock);
     }
 
     @Bean

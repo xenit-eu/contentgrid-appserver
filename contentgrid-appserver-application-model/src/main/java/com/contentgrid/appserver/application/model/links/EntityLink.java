@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkE
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import java.net.URI;
+import java.util.Optional;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
@@ -38,6 +39,21 @@ public class EntityLink {
         if(this.storage == null && this.fallbackTemplate == null) {
             throw new InvalidEntityLinkException("Link %s must have either storage or a fallback template".formatted(identity));
         }
+    }
 
+    public Optional<URI> getProfile() {
+        return Optional.ofNullable(profile);
+    }
+
+    public Optional<PropertyPath> getOwner() {
+        return Optional.ofNullable(owner);
+    }
+
+    public Optional<AttributePath> getStorage() {
+        return Optional.ofNullable(storage);
+    }
+
+    public Optional<UriTemplateDefinition> getFallbackTemplate() {
+        return Optional.ofNullable(fallbackTemplate);
     }
 }

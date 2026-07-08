@@ -783,16 +783,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             jsonEntityLink.setName(namedLink.name());
         }
 
-        jsonEntityLink.setProfile(entityLink.getProfile());
+        jsonEntityLink.setProfile(entityLink.getProfile().orElse(null));
 
-        if(entityLink.getOwner() != null) {
-            jsonEntityLink.setOwner(toJsonPropertyPath(entityLink.getOwner()));
-        }
-        if(entityLink.getStorage() != null) {
-            jsonEntityLink.setStorage(toJsonPropertyPath(entityLink.getStorage()));
-        }
+        entityLink.getOwner()
+                .map(this::toJsonPropertyPath)
+                .ifPresent(jsonEntityLink::setOwner);
+        entityLink.getStorage()
+                .map(this::toJsonPropertyPath)
+                .ifPresent(jsonEntityLink::setStorage);
 
-        switch (entityLink.getFallbackTemplate()) {
+        switch (entityLink.getFallbackTemplate().orElse(null)) {
             case SimpleUriTemplateDefinition simple -> jsonEntityLink.setFallbackTemplate(new com.contentgrid.appserver.application.model.json.model.EntityLink.UriTemplateDefinition(null, null, simple.getTemplate().toTemplate()));
             case AutomationUriTemplateDefinition automation -> jsonEntityLink.setFallbackTemplate(new com.contentgrid.appserver.application.model.json.model.EntityLink.UriTemplateDefinition(automation.getAutomationSystem(), automation.getBasePathName(), automation.getTemplate().toTemplate()));
             case null -> jsonEntityLink.setFallbackTemplate(null);

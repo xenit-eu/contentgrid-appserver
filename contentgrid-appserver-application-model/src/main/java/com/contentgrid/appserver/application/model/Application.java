@@ -4,6 +4,8 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.RelationResolutionResult;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
@@ -12,7 +14,6 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkE
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
-import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
@@ -384,16 +385,16 @@ public class Application {
 
     private void validateEntityLinks(Entity entity) {
         entity.getLinks().forEach(link -> {
-                    var supportedVariables = EnumSet.allOf(EntityLinkSubstitutionVariables.class);
+                    var supportedVariables = EnumSet.noneOf(EntityLinkSubstitutionVariables.class);
                     // These are always available
                     supportedVariables.add(EntityLinkSubstitutionVariables.APPLICATION_ID);
                     supportedVariables.add(EntityLinkSubstitutionVariables.ENTITY_ID);
                     supportedVariables.add(EntityLinkSubstitutionVariables.ENTITY_LINK);
                     supportedVariables.add(EntityLinkSubstitutionVariables.ENTITY_NAME);
 
-                    if (link.getOwner() != null) {
+                    if (link.getOwner().isPresent()) {
                         supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_NAME);
-                        switch (getPropertyPathResolver().resolve(entity.getName(), link.getOwner())) {
+                        switch (getPropertyPathResolver().resolve(entity.getName(), link.getOwner().get())) {
                             case AttributeResolutionResult attrResult when attrResult.getAttribute() instanceof SimpleAttribute:
                                 // Simple attributes have an owner value
                                 supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_VALUE);
@@ -411,14 +412,14 @@ public class Application {
                         }
                     }
 
-                    if (link.getStorage() != null) {
+                    if (link.getStorage().isPresent()) {
                         throw new InvalidEntityLinkException("Entity links with storage are not supported");
                     }
 
-                    if(link.getFallbackTemplate() != null) {
+                    if(link.getFallbackTemplate().isPresent()) {
                         var parser = new ParameterizedUriTemplateParser<>(supportedVariables);
                         try {
-                            parser.parse(link.getFallbackTemplate().getTemplate().toTemplate());
+                            parser.parse(link.getFallbackTemplate().get().getTemplate().toTemplate());
                         } catch (InvalidUriTemplateException e) {
                             throw new InvalidEntityLinkException("Entity link fallback template references an unsupported substitution variable", e);
                         }
