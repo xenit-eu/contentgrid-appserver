@@ -135,6 +135,8 @@ public class Application {
     @Getter(AccessLevel.NONE)
     Set<Relation> relations = new LinkedHashSet<>();
 
+    PropertyPathResolver propertyPathResolver = new PropertyPathResolver(this);
+
     /**
      * Returns an unmodifiable set of relations.
      * @return an unmodifiable set of relations
@@ -297,13 +299,6 @@ public class Application {
                         relation.getTargetEndPoint().getEntity(),
                         relation.getSourceEndPoint().getName()
                 )));
-    }
-
-    /**
-     * @return The {@link PropertyPathResolver} for the application
-     */
-    public PropertyPathResolver getPropertyPathResolver() {
-        return new  PropertyPathResolver(this);
     }
 
     private Optional<AttributeSearchFilter> findFilterForRelation(Relation relation) {
