@@ -1,8 +1,9 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
-import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
@@ -11,7 +12,6 @@ import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundEx
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
 import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
-import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -22,7 +22,6 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
@@ -378,9 +377,13 @@ public class Application {
      */
     @Deprecated(forRemoval = true, since = "0.1.1")
     public SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
-        if (getPropertyPathResolver().resolve(entity.getName(), path) instanceof AttributeResolutionResult attributeResult
-                && attributeResult.getAttribute() instanceof SimpleAttribute simpleAttribute) {
-            return simpleAttribute;
+        try {
+            var attributeResult = propertyPathResolver.resolveAttribute(entity.getName(), path.as(ResolvesToAttribute.class));
+            if (attributeResult.getAttribute() instanceof SimpleAttribute simpleAttribute) {
+                return simpleAttribute;
+            }
+        } catch (InvalidPropertyPathException e) {
+            throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()), e);
         }
         throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()));
     }

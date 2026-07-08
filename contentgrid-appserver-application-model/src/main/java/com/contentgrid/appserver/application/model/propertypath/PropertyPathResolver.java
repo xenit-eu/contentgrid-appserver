@@ -30,6 +30,10 @@ public class PropertyPathResolver {
      */
     @Value
     public static class RelationResolutionResult implements ResolutionResult {
+
+        /**
+         * The resolved relation
+         */
         Relation relation;
     }
 
@@ -38,8 +42,20 @@ public class PropertyPathResolver {
      */
     @Value
     public static class AttributeResolutionResult implements ResolutionResult {
+
+        /**
+         * The entity that the resolved attribute is located on
+         */
         EntityName entityName;
+
+        /**
+         * The path inside the entity that the resolved attribute is located on
+         */
         AttributePath path;
+
+        /**
+         * The resolved attribute itself
+         */
         Attribute attribute;
     }
 
@@ -68,7 +84,21 @@ public class PropertyPathResolver {
                 }
             }
         }
-        throw new IllegalStateException("Resolving property path '%s' did not terminate at the end of the path".formatted(propertyPath));
+        throw new IllegalStateException("Resolving property path '%s' on entity '%s' did not terminate at the end of the path".formatted(propertyPath, entityName));
+    }
+
+    public Relation resolveRelation(@NonNull EntityName entityName, @NonNull PropertyPath.ResolvesToRelation propertyPath) {
+        if(resolve(entityName, propertyPath) instanceof RelationResolutionResult relationResolutionResult) {
+            return relationResolutionResult.getRelation();
+        }
+        throw new IllegalStateException("Resolving property path '%s' on entity '%s' did not result in a relation".formatted(propertyPath, entityName));
+    }
+
+    public AttributeResolutionResult resolveAttribute(@NonNull EntityName entityName, @NonNull PropertyPath.ResolvesToAttribute propertyPath) {
+        if(resolve(entityName, propertyPath) instanceof AttributeResolutionResult attributeResolutionResult) {
+            return attributeResolutionResult;
+        }
+        throw new IllegalStateException("Resolving property path '%s' on entity '%s' did not result in an  attribute".formatted(propertyPath, entityName));
     }
 
     public static Attribute resolveAttributePath(@NonNull HasAttributes container, @NonNull AttributePath attributePath) {
