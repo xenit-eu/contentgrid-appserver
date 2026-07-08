@@ -427,7 +427,10 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
-                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
+                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId)
+                            // The vat attribute is referenced by the owner of PERSON_VAT_LINK
+                            .attribute(new SimpleAttributeData<>(PERSON_VAT.getName(), "XXXX"))
+                            .build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                             "name", "Test person",
                             "vat", "XXXX",
@@ -460,7 +463,10 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
-                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
+                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId)
+                            // The vat attribute is referenced by the owner of PERSON_VAT_LINK
+                            .attribute(new SimpleAttributeData<>(PERSON_VAT.getName(), "XXXX"))
+                            .build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                     "name", "test",
                     "vat", "123456"

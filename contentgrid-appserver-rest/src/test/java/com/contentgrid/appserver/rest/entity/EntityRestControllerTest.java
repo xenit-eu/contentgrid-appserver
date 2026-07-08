@@ -34,6 +34,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -665,6 +667,40 @@ class EntityRestControllerTest {
                                 }
                             }
                             """.replace("${ENTITY_ID}", id)));
+        }
+
+        @Test
+        void getEntityWithEntityLinks() throws Exception {
+            var vat = UUID.randomUUID().toString();
+            var personUrl = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("name", "test")
+                            .param("vat", vat))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getRedirectedUrl();
+
+            var encodedPersonUrl = URLEncoder.encode(personUrl, StandardCharsets.UTF_8);
+
+            mockMvc.perform(get(personUrl).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    // A named link always renders as an array, with name and profile attributes
+                    .andExpect(jsonPath("$._links['https://vat.example/rel/lookup'][0].href",
+                            is("https://vat.example/lookup?vat=" + vat)))
+                    .andExpect(jsonPath("$._links['https://vat.example/rel/lookup'][0].name", is("vat")))
+                    .andExpect(jsonPath("$._links['https://vat.example/rel/lookup'][0].profile",
+                            is("https://vat.example/profile")))
+                    // An unnamed link renders as a single link object
+                    .andExpect(jsonPath("$._links['https://people.example/rel/preview'].href",
+                            is("https://people.example/preview?src=" + encodedPersonUrl)))
+                    .andExpect(jsonPath("$._links['https://people.example/rel/preview'].name").doesNotExist())
+                    .andExpect(jsonPath("$._links['https://people.example/rel/preview'].profile").doesNotExist());
+
+            // Entity links render the same way in application/prs.hal-forms+json
+            mockMvc.perform(get(personUrl).accept(MediaTypes.HAL_FORMS_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$._links['https://vat.example/rel/lookup'][0].name", is("vat")))
+                    .andExpect(jsonPath("$._links['https://people.example/rel/preview'].href",
+                            is("https://people.example/preview?src=" + encodedPersonUrl)));
         }
 
         @Test

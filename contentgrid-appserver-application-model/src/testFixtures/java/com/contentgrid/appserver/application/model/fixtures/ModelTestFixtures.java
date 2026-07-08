@@ -16,6 +16,13 @@ import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -39,6 +46,9 @@ import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
+import java.net.URI;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -86,6 +96,25 @@ public class ModelTestFixtures {
             .constraint(Constraint.allowedValues(List.of("female", "male")))
             .build();
 
+    public static final EntityLink PERSON_VAT_LINK = EntityLink.builder()
+            .identity(new NamedLink(URI.create("https://vat.example/rel/lookup"), "vat"))
+            .profile(URI.create("https://vat.example/profile"))
+            .owner(new SimpleAttributePath(PERSON_VAT.getName()))
+            .fallbackTemplate(linkTemplate("https://vat.example/lookup?vat=%{owner.value}"))
+            .build();
+
+    public static final EntityLink PERSON_PREVIEW_LINK = EntityLink.builder()
+            .identity(new UnnamedLink(URI.create("https://people.example/rel/preview")))
+            .fallbackTemplate(linkTemplate("https://people.example/preview?src=%{entity.link}"))
+            .build();
+
+    private static UriTemplateDefinition linkTemplate(String template) {
+        return new SimpleUriTemplateDefinition(
+                new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
+                        .parseUnchecked(template)
+        );
+    }
+
     public static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -99,6 +128,8 @@ public class ModelTestFixtures {
             .attribute(PERSON_VAT)
             .attribute(PERSON_AGE)
             .attribute(PERSON_GENDER)
+            .link(PERSON_VAT_LINK)
+            .link(PERSON_PREVIEW_LINK)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
