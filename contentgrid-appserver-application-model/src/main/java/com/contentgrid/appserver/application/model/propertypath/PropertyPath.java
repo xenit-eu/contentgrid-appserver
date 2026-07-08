@@ -91,10 +91,13 @@ public sealed interface PropertyPath extends Serializable permits CrossesAttribu
         position--;
         for(; position >= 0; position--) {
             path = switch (propertyNames[position]) {
-                case AttributeName attributeName -> switch (path) {
-                    case AttributePath attributePath -> new CompositeAttributePath(attributeName, attributePath);
-                    case CrossesRelation relationPath -> throw new IllegalArgumentException("Invalid PropertyPath: Cannot nest relation in attribute");
-                };
+                case AttributeName attributeName -> {
+                    try {
+                        yield new CompositeAttributePath(attributeName, path.as(AttributePath.class));
+                    } catch (InvalidPropertyPathException e) {
+                        throw new IllegalArgumentException("Invalid PropertyPath: Cannot nest relation in attribute", e);
+                    }
+                }
                 case RelationName relationName -> CompositeRelationPath.of(relationName, path);
             };
         }
