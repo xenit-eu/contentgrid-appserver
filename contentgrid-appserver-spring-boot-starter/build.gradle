@@ -31,7 +31,6 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
-    implementation 'com.contentgrid.opa-java-client:opa-async-java-client'
     implementation 'com.contentgrid.thunx:thunx-spring-webmvc'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 

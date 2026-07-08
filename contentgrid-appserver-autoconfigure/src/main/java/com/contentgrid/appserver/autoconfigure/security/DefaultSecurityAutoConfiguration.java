@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -31,6 +32,7 @@ import org.springframework.util.StringUtils;
 @AutoConfiguration(before = SecurityAutoConfiguration.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(SecurityFilterChain.class)
+@EnableWebSecurity
 public class DefaultSecurityAutoConfiguration {
 
     @Bean
@@ -40,7 +42,7 @@ public class DefaultSecurityAutoConfiguration {
             ObjectProvider<AuthorizationManager<RequestAuthorizationContext>> policyAuthorizationManager,
             @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}") String userIssuerUri,
             @Value("${contentgrid.security.extension-system.issuer-uri:#{null}}") String extensionIssuerUri
-    ) throws Exception {
+    ) {
         var authorizationManager = policyAuthorizationManager.getIfAvailable();
         if (authorizationManager != null) {
             http.authorizeHttpRequests(authorize -> authorize.anyRequest().access(authorizationManager));

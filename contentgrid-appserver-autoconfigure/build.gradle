@@ -33,7 +33,6 @@ dependencies {
     compileOnly 'com.contentgrid.thunx:thunx-spring-security'
     compileOnly 'com.contentgrid.thunx:thunx-pdp-opa'
 
-    compileOnly 'com.contentgrid.opa-java-client:opa-async-java-client'
     compileOnly 'io.minio:minio'
     compileOnly 'com.squareup.okhttp3:okhttp'
     compileOnly 'com.zaxxer:HikariCP'
@@ -51,7 +50,6 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot-starter-web'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'com.contentgrid.opa-java-client:opa-async-java-client'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     testImplementation 'org.springframework.boot:spring-boot-starter-jooq'

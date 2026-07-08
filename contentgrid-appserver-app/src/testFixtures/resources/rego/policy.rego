@@ -1,5 +1,5 @@
 # Note: ${system.policy.package} is automatically replaced with the package name.
-# Replace it when deploying this file to OPA directly with "package contentgrid.appserver"
+# When deploying directly to OPA, it will be replaced with "contentgrid.appserver"
 package ${system.policy.package}
 
 import rego.v1

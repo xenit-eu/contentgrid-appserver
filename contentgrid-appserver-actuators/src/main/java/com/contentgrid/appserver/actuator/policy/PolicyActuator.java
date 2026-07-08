@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.annotation.WebEndpoint;
@@ -19,6 +20,7 @@ import org.springframework.util.SystemPropertyUtils;
 
 @WebEndpoint(id = "policy")
 @Slf4j
+@RequiredArgsConstructor
 public class PolicyActuator {
     private static final Path PATH = Path.of("rego", "policy.rego");
     private static final PropertyPlaceholderHelper PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper(
@@ -29,11 +31,6 @@ public class PolicyActuator {
     private final BlueprintArtifact blueprintArtifact;
     @Nullable
     private final String policyPackage;
-
-    public PolicyActuator(BlueprintArtifact blueprintArtifact, @Nullable String policyPackage) {
-        this.blueprintArtifact = blueprintArtifact;
-        this.policyPackage = policyPackage;
-    }
 
     @ReadOperation(producesFrom = RegoProducible.class)
     public String readPolicy() throws IOException, BlueprintArtifactException, BlueprintArtifactItemUnreadableException {
