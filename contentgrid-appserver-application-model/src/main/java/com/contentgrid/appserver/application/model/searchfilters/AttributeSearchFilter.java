@@ -6,9 +6,10 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilte
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -38,7 +39,7 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
             @NonNull Operation operation,
             @NonNull FilterName name,
             @NonNull ConfigurableTranslatable<SearchFilterTranslations, ConfigurableSearchFilterTranslations> translations,
-            @NonNull PropertyPath attributePath,
+            @NonNull PropertyPath.ResolvesToAttribute attributePath,
             @NonNull @Singular Set<SearchFilterFlag> flags) {
         super(name, translations, attributePath, flags);
 
@@ -86,7 +87,7 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
         }
 
         public AttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
-            this.attributePath = PropertyPath.of(attribute.getName());
+            this.attributePath = new SimpleAttributePath(attribute.getName());
             return this;
         }
     }

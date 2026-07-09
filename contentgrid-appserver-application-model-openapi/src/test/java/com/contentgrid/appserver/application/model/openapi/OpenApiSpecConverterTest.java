@@ -49,9 +49,9 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.io.FileInputStream;
@@ -500,12 +500,12 @@ class OpenApiSpecConverterTest {
                         .type(Type.TEXT).build())
                 .searchFilter(AttributeSearchFilter.builder()
                         .name(FilterName.of("name"))
-                        .attributePath(PropertyPath.of(AttributeName.of("name")))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("name")))
                         .operation(Operation.EXACT)
                         .build())
                 .searchFilter(AttributeSearchFilter.builder()
                         .name(FilterName.of("name_hidden"))
-                        .attributePath(PropertyPath.of(AttributeName.of("name")))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("name")))
                         .operation(Operation.EXACT)
                         .flag(HiddenSearchFilterFlag.INSTANCE)
                         .build())
@@ -604,7 +604,7 @@ class OpenApiSpecConverterTest {
     private static AttributeSearchFilter exactFilter(String attributeName) {
         return AttributeSearchFilter.builder()
                 .name(FilterName.of(attributeName))
-                .attributePath(PropertyPath.of(AttributeName.of(attributeName)))
+                .attributePath(PropertyPath.toAttribute(AttributeName.of(attributeName)))
                 .operation(Operation.EXACT)
                 .build();
     }

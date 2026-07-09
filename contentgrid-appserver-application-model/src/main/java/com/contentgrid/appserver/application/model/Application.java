@@ -1,13 +1,18 @@
 package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
-import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
+import com.contentgrid.appserver.application.model.propertypath.CompositeRelationPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
@@ -17,14 +22,12 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
-import com.contentgrid.appserver.application.model.values.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.RelationPath;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.Collections;
 import java.util.HashSet;
@@ -130,6 +133,8 @@ public class Application {
      */
     @Getter(AccessLevel.NONE)
     Set<Relation> relations = new LinkedHashSet<>();
+
+    PropertyPathResolver propertyPathResolver = new PropertyPathResolver(this);
 
     /**
      * Returns an unmodifiable set of relations.
@@ -342,7 +347,7 @@ public class Application {
 
         var filter = AttributeSearchFilter.builder()
                 .name(filterName)
-                .attributePath(PropertyPath.of(relation.getTargetEndPoint().getName(), sourceEntity.getPrimaryKey().getName()))
+                .attributePath(CompositeRelationPath.of(relation.getTargetEndPoint().getName(), new SimpleAttributePath(sourceEntity.getPrimaryKey().getName())))
                 .flag(SyntheticSearchFilterFlag.INSTANCE)
                 .operation(Operation.EXACT)
                 .build();
@@ -367,31 +372,20 @@ public class Application {
         });
     }
 
+    /**
+     * @deprecated use the {@link #getPropertyPathResolver()} instead
+     */
+    @Deprecated(forRemoval = true, since = "0.1.1")
     public SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
-        Entity currentEntity = entity;
-        PropertyPath currentPath = path;
-
-        while (currentPath != null) {
-            switch (currentPath) {
-                case AttributePath attributePath -> {
-                    // When we hit an attribute, validate the remaining path via the current entity
-                    return currentEntity.resolveAttributePath(attributePath);
-                }
-                case RelationPath relationPath -> {
-                    final String entityName = currentEntity.getName().getValue(); // Make final for lambda
-                    var relation = getRelationForEntity(currentEntity, relationPath.getRelation())
-                        .orElseThrow(() -> new RelationNotFoundException(
-                            "Relation '%s' not found on entity '%s'"
-                                .formatted(relationPath.getFirst().getValue(), entityName)));
-
-                    // Move to the target entity
-                    currentEntity = getRelationTargetEntity(relation);
-                    currentPath = currentPath.getRest();
-                }
+        try {
+            var attributeResult = propertyPathResolver.resolveAttribute(entity.getName(), path.as(ResolvesToAttribute.class));
+            if (attributeResult.getAttribute() instanceof SimpleAttribute simpleAttribute) {
+                return simpleAttribute;
             }
+        } catch (InvalidPropertyPathException e) {
+            throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()), e);
         }
-
-        throw new AttributeNotFoundException("Invalid property path: path ended without reaching an attribute");
+        throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()));
     }
 
 }

@@ -10,10 +10,10 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
-import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.application.model.values.RelationPath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
@@ -432,7 +432,7 @@ public class JOOQQueryEngine implements QueryEngine {
             ) {
                 requiredFieldsMapping.put(
                         hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
-                        new RelationPath(relation.getSourceEndPoint().getName(), null)
+                        new SimpleRelationPath(relation.getSourceEndPoint().getName())
                 );
             }
 
@@ -491,8 +491,7 @@ public class JOOQQueryEngine implements QueryEngine {
                     JOOQRelationStrategyFactory.forRelation(relation) instanceof HasSourceTableColumnRef<Relation> hasSourceTableColumnRef
             ) {
                 uniqueFieldsMapping.put(hasSourceTableColumnRef.getSourceTableColumnRef(application, relation),
-                        new RelationPath(relation.getSourceEndPoint()
-                                .getName(), null));
+                        new SimpleRelationPath(relation.getSourceEndPoint().getName()));
             }
 
         }

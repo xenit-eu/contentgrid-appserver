@@ -38,7 +38,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
@@ -276,15 +276,15 @@ class JOOQThunkExpressionResolverTest {
                     .build())
             .sortableField(SortableField.builder()
                     .name(SortableName.of("invoice_num"))
-                    .propertyPath(PropertyPath.of(INVOICE_NUMBER.getName()))
+                    .propertyPath(PropertyPath.toAttribute(INVOICE_NUMBER.getName()))
                     .build())
             .sortableField(SortableField.builder()
                     .name(SortableName.of("amount"))
-                    .propertyPath(PropertyPath.of(INVOICE_AMOUNT.getName()))
+                    .propertyPath(PropertyPath.toAttribute(INVOICE_AMOUNT.getName()))
                     .build())
             .sortableField(SortableField.builder()
                     .name(SortableName.of("content_length"))
-                    .propertyPath(PropertyPath.of(INVOICE_CONTENT.getName(), AttributeName.of("length")))
+                    .propertyPath(PropertyPath.toAttribute(INVOICE_CONTENT.getName(), AttributeName.of("length")))
                     .build())
             .build();
 

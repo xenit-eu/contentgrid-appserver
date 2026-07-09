@@ -19,6 +19,8 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidPropertyPathException;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.ConfigurableRelationEndPointTranslations;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint.RelationEndPointTranslations;
@@ -39,13 +41,13 @@ import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFil
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.values.PropertyName;
-import com.contentgrid.appserver.application.model.values.PropertyPath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.SortableName;
@@ -361,18 +363,24 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             SearchFilter jsonFilter
     ) throws InvalidJsonException {
         var type = jsonFilter.getType();
-        List<PropertyName> attrPath = jsonFilter.getAttributePath().stream()
-                .map(PropertyPathElement::toPropertyName)
-                .toList();
-        var propertyPath = PropertyPath.of(attrPath);
+        var propertyPath = fromJsonPropertyPath(jsonFilter.getAttributePath(), PropertyPath.ResolvesToAttribute.class);
         var filterName = FilterName.of(jsonFilter.getName());
 
         return type.equals(FTS_TYPE) ? fromJsonFullTextSearchFilter(jsonFilter, propertyPath, filterName)
                 : fromJsonAttributeSearchFilter(jsonFilter, type, propertyPath, filterName);
     }
 
+    private <T extends PropertyPath> T fromJsonPropertyPath(List<PropertyPathElement> propertyPath, Class<T> targetType) throws InvalidJsonException {
+        var path = PropertyPath.of(propertyPath.stream().map(PropertyPathElement::toPropertyName).toList());
+        try {
+            return path.as(targetType);
+        } catch (com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException e) {
+            throw new InvalidPropertyPathException(e.getMessage(), e);
+        }
+    }
+
     private FullTextSearchAttributeSearchFilter fromJsonFullTextSearchFilter(
-            SearchFilter jsonFilter, PropertyPath propertyPath, FilterName filterName) throws InvalidJsonException {
+            SearchFilter jsonFilter, ResolvesToAttribute propertyPath, FilterName filterName) throws InvalidJsonException {
         Locale locale = Objects.requireNonNull(jsonFilter.getLocale(), "Full-text search filters require a locale to be set.");
 
         return SEARCH_FILTER_TRANSLATIONS.mapInto(jsonFilter, FullTextSearchAttributeSearchFilter.builder())
@@ -384,7 +392,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private com.contentgrid.appserver.application.model.searchfilters.SearchFilter fromJsonAttributeSearchFilter(
-            SearchFilter jsonFilter, String type, PropertyPath propertyPath, FilterName filterName) throws InvalidJsonException {
+            SearchFilter jsonFilter, String type, PropertyPath.ResolvesToAttribute propertyPath, FilterName filterName) throws InvalidJsonException {
         var operation = switch (type) {
             case "prefix" -> Operation.PREFIX;
             case "exact" -> Operation.EXACT;
@@ -418,11 +426,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return Collections.unmodifiableList(result);
     }
 
-    private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField) {
-        List<PropertyName> attrPath = jsonSortableField.getAttributePath().stream()
-                .map(PropertyPathElement::toPropertyName)
-                .toList();
-        var propertyPath = PropertyPath.of(attrPath);
+    private com.contentgrid.appserver.application.model.sortable.SortableField fromJsonSortableField(SortableField jsonSortableField)
+            throws InvalidJsonException {
+        var propertyPath = fromJsonPropertyPath(jsonSortableField.getAttributePath(), AttributePath.class);
         var sortableName = SortableName.of(jsonSortableField.getName());
 
         return com.contentgrid.appserver.application.model.sortable.SortableField.builder()

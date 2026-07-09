@@ -18,8 +18,8 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
-import com.contentgrid.appserver.application.model.values.AttributePath;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.rest.profile.assembler.hal.ProfileEntityRepresentationModelAssembler.Context;
 import com.contentgrid.appserver.rest.profile.assembler.hal.ProfileSearchParamRepresentationModel.ProfileSearchParamType;
 import java.util.Optional;

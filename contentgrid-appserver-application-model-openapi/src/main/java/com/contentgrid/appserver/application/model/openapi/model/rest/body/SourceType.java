@@ -2,10 +2,10 @@ package com.contentgrid.appserver.application.model.openapi.model.rest.body;
 
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import com.contentgrid.appserver.application.model.values.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
-import com.contentgrid.appserver.application.model.values.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import lombok.NonNull;
 import lombok.Value;
 
