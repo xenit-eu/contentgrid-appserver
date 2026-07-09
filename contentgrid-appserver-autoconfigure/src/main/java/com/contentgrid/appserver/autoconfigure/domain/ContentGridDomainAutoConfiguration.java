@@ -1,6 +1,8 @@
 package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.ContentApi;
@@ -16,9 +18,11 @@ import com.contentgrid.appserver.domain.paging.cursor.RequestIntegrityCheckCurso
 import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.LinkUriProvider;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.time.Clock;
 import java.util.function.Function;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -57,8 +61,8 @@ public class ContentGridDomainAutoConfiguration {
 
     @Bean
     DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStoreResolver contentStoreResolver,
-            DomainEventDispatcher dispatcher, Function<Application, LinkUriProvider> linkUriProviderFactory, CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, linkUriProviderFactory, cursorCodec, clock);
+            DomainEventDispatcher dispatcher, ObjectProvider<Function<Application, LinkUriProvider>> linkUriProviderFactory, CursorCodec cursorCodec, Clock clock) {
+        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, linkUriProviderFactory.getIfUnique(() -> app -> new NoneLinkUriProvider()), cursorCodec, clock);
     }
 
     @Bean
@@ -76,5 +80,23 @@ public class ContentGridDomainAutoConfiguration {
     @ConditionalOnBean(BlueprintArtifact.class)
     AutomationsModelResolver blueprintArtifactAutomationsResolver(BlueprintArtifact blueprintArtifact) {
         return new CachingAutomationsModelResolver(new BlueprintArtifactAutomationsModelResolver(blueprintArtifact));
+    }
+
+    private static class NoneLinkUriProvider implements LinkUriProvider {
+
+        @Override
+        public String createEntityLink(EntityIdentity entityIdentity) {
+            return null;
+        }
+
+        @Override
+        public String createAttributeLink(EntityIdentity entityIdentity, AttributeName attributeName) {
+            return null;
+        }
+
+        @Override
+        public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
+            return null;
+        }
     }
 }
