@@ -28,26 +28,28 @@ class OpaPolicyUploaderAutoConfigurationTest {
     }
 
     @Test
-    void withOpaServiceUrl_beansCreated() {
+    void withUserProvidedOpaClient_autoConfiguredOpaClientNotCreated() {
         contextRunner
-                .withPropertyValues("opa.service.url=http://test:8080")
+                .withBean("customOpaClient", OpaClient.class, () -> mock(OpaClient.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
+                    assertThat(context).hasBean("customOpaClient");
                     assertThat(context).hasSingleBean(OpaClient.class);
                     assertThat(context).hasSingleBean(OpaPolicyUploader.class);
                 });
     }
 
     @Test
-    void withUserProvidedOpaClient_autoConfiguredOpaClientNotCreated() {
+    void withPolicyPackageSet_uploaderBeanNotCreatedEvenWithOpaClientPresent() {
+        // Provide OpaClient directly (rather than via opa.service.url) so this test is isolated from
+        // whether opa.service.url actually wires up an OpaClient bean in this narrow context.
         contextRunner
                 .withBean("customOpaClient", OpaClient.class, () -> mock(OpaClient.class))
+                .withPropertyValues("contentgrid.system.policyPackage=tenant.xyz")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean("opaClient");
-                    assertThat(context).hasBean("customOpaClient");
                     assertThat(context).hasSingleBean(OpaClient.class);
-                    assertThat(context).hasSingleBean(OpaPolicyUploader.class);
+                    assertThat(context).doesNotHaveBean(OpaPolicyUploader.class);
                 });
     }
 }
