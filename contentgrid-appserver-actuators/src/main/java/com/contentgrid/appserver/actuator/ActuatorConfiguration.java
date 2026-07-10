@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.actuator;
 
+import com.contentgrid.appserver.actuator.policy.OnPolicyPackageCondition;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
@@ -7,9 +8,9 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -17,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 public class ActuatorConfiguration {
 
     @Bean
-    @ConditionalOnExpression("T(org.springframework.util.StringUtils).hasText('${contentgrid.system.policyPackage:}')")
+    @Conditional(OnPolicyPackageCondition.class)
     PolicyActuator policyActuator(BlueprintArtifact blueprintArtifact, ContentgridApplicationProperties properties) {
         return new PolicyActuator(blueprintArtifact, properties.getSystem().getPolicyPackage());
     }
