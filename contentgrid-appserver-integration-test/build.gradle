@@ -19,6 +19,9 @@ dependencies {
     testImplementation project(':contentgrid-appserver-domain')
     // should not be used for most integration tests, but relevant for encryption compatibility
     testImplementation project(':contentgrid-appserver-contentstore-impl-encryption')
+    // Needed for AppserverOpaInputProvider/ActorConverter/UserGrantedAuthorityConverter in the OPA
+    // residual-authorization integration test; spring-boot-starter only exposes this as testFixturesImplementation
+    testImplementation project(':contentgrid-appserver-autoconfigure')
     // should not be used for most integration tests, only for testing data migrations
     testImplementation 'org.jooq:jooq'
     testImplementation testFixtures(project(':contentgrid-appserver-rest'))
@@ -33,6 +36,9 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'com.adobe.testing:s3mock-testcontainers'
+    // Needed to define an OpaInputProvider bean (mirroring contentgrid-appserver-app's ContentgridApp) so
+    // the OPA residual-authorization integration test gets the appserver input shape rather than thunx's default
+    testImplementation 'com.contentgrid.thunx:thunx-pdp-opa'
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 
 }
