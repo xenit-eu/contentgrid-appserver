@@ -23,7 +23,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 /**
- * Security configuration for the "Model B" token contract: the appserver never talks to an end-user or
+ * Security configuration for the opa sidecar configuration: the appserver never talks to an end-user or
  * extension identity provider directly. All authentication happens in the ContentGrid gateway, which
  * validates the original tokens and mints a single gateway-signed JWT that is forwarded to the appserver.
  * <p>
@@ -66,7 +66,7 @@ public class DefaultSecurityAutoConfiguration {
             ActorConverter userActorConverter
     ) {
         if (sidecarFeature.isActive()) {
-            var authorizationManager = resolveAuthorizationManager(policyAuthorizationManager, sidecarFeature);
+            var authorizationManager = policyAuthorizationManager.getIfAvailable();
             if (authorizationManager != null) {
                 http.authorizeHttpRequests(authorize -> authorize.anyRequest().access(authorizationManager));
             } else {
@@ -78,6 +78,13 @@ public class DefaultSecurityAutoConfiguration {
                         jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter(userActorConverter))));
             }
         } else {
+            if (policyAuthorizationManager.getIfAvailable() != null) {
+                log.warn("contentgrid.thunx.abac.source=opa and opa.service.url are configured, but "
+                        + "contentgrid.system.policyPackage is also set (centralized/Solon mode, where this app "
+                        + "never uploads its policy to that OPA) - ignoring the policy-based AuthorizationManager "
+                        + "and falling back to authenticated()-only authorization.");
+            }
+
             http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
 
             if (jwtDecoder.getIfAvailable() != null) {
@@ -85,30 +92,6 @@ public class DefaultSecurityAutoConfiguration {
             }
         }
         return http.build();
-    }
-
-    /**
-     * A policy-based {@link AuthorizationManager} only makes sense to enforce if the OPA it queries actually
-     * has this app's policy loaded, which only happens when the sidecar-upload flow is active. If
-     * {@code contentgrid.system.policyPackage} is set (centralized/Solon mode, where this app exposes its
-     * policy via {@code /actuator/policy} instead of pushing it), the manager is ignored in favor of the
-     * plain {@code authenticated()} fallback below, even if it was otherwise wired up.
-     */
-    private static AuthorizationManager<RequestAuthorizationContext> resolveAuthorizationManager(
-            ObjectProvider<AuthorizationManager<RequestAuthorizationContext>> policyAuthorizationManager,
-            OpaSidecarFeature sidecarFeature) {
-        var authorizationManager = policyAuthorizationManager.getIfAvailable();
-        if (authorizationManager == null) {
-            return null;
-        }
-        if (!sidecarFeature.isActive()) {
-            log.warn("contentgrid.thunx.abac.source=opa and opa.service.url are configured, but "
-                    + "contentgrid.system.policyPackage is also set (centralized/Solon mode, where this app "
-                    + "never uploads its policy to that OPA) - ignoring the policy-based AuthorizationManager "
-                    + "and falling back to authenticated()-only authorization.");
-            return null;
-        }
-        return authorizationManager;
     }
 
     private static JwtAuthenticationConverter jwtAuthenticationConverter(ActorConverter actorConverter) {
