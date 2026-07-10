@@ -2,7 +2,6 @@ package com.contentgrid.appserver.autoconfigure.security.authority;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,9 +15,14 @@ public class UserGrantedAuthorityConverter implements Converter<Jwt, Collection<
 
     @Override
     public Collection<GrantedAuthority> convert(Jwt source) {
-        return Optional.ofNullable(actorConverter.convert(source))
-                .map(PrincipalAuthenticationDetailsGrantedAuthority::new)
-                .map(List::<GrantedAuthority>of)
-                .orElseGet(List::of);
+        var actor = actorConverter.convert(source);
+        if (actor == null) {
+            return List.of();
+        }
+        if (actor.parent() != null) {
+            var principal = new Actor(actor.type(), actor.claims());
+            return List.of(new DelegatedAuthenticationDetailsGrantedAuthority(principal, actor.parent()));
+        }
+        return List.of(new PrincipalAuthenticationDetailsGrantedAuthority(actor));
     }
 }

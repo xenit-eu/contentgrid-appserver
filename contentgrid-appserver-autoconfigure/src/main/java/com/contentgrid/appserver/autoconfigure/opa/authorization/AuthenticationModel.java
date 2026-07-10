@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
 
 @Value
 @Builder
@@ -21,11 +22,15 @@ public class AuthenticationModel {
 
     PrincipalModel principal;
 
+    ActorModel actor;
+
     public enum AuthenticationKind {
         @JsonProperty("anonymous")
         ANONYMOUS,
         @JsonProperty("user")
         USER,
+        @JsonProperty("delegated")
+        DELEGATED,
         @JsonProperty("system")
         SYSTEM
     }
@@ -33,6 +38,13 @@ public class AuthenticationModel {
     @JsonProperty("authenticated")
     public boolean isAuthenticated() {
         return kind != AuthenticationKind.ANONYMOUS;
+    }
+
+    @Value
+    public static class ActorModel {
+
+        ActorKind kind;
+        String sub;
     }
 
     @Value
@@ -74,17 +86,32 @@ public class AuthenticationModel {
                     .build();
         }
 
-        var principal = maybeDetails.get().getPrincipal();
+        var details = maybeDetails.get();
         return AuthenticationModel.builder()
-                .kind(toAuthenticationKind(principal))
-                .principal(new PrincipalModel(ActorKind.fromType(principal.getType()), principal.getClaims()))
+                .kind(toAuthenticationKind(details))
+                .principal(toPrincipal(details.principal()))
+                .actor(toActor(details.actor()))
                 .build();
     }
 
-    private static AuthenticationKind toAuthenticationKind(Actor principal) {
-        return switch (principal.getType()) {
+    private static AuthenticationKind toAuthenticationKind(AuthenticationDetails details) {
+        if (details.actor() != null) {
+            return AuthenticationKind.DELEGATED;
+        }
+        return switch (details.principal().type()) {
             case USER -> AuthenticationKind.USER;
             case EXTENSION -> AuthenticationKind.SYSTEM;
         };
+    }
+
+    private static PrincipalModel toPrincipal(Actor principal) {
+        return new PrincipalModel(ActorKind.fromType(principal.type()), principal.claims());
+    }
+
+    private static ActorModel toActor(Actor actor) {
+        if (actor == null) {
+            return null;
+        }
+        return new ActorModel(ActorKind.fromType(actor.type()), (String) actor.claims().get(JwtClaimNames.SUB));
     }
 }
