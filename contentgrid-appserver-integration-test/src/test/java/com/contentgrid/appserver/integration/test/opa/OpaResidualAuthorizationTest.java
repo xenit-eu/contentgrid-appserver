@@ -99,7 +99,7 @@ class OpaResidualAuthorizationTest {
             """;
 
     @Container
-    static GenericContainer<?> opa = new GenericContainer<>("openpolicyagent/opa:1.9.0-static")
+    static GenericContainer<?> opa = new GenericContainer<>("openpolicyagent/opa:1.15.2-static")
             .withCommand("run", "--server", "--log-format=json-pretty", "--set=decision_logs.console=true",
                     "--addr", "0.0.0.0:8181")
             .withExposedPorts(8181)
