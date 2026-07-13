@@ -32,14 +32,16 @@ import org.springframework.util.SystemPropertyUtils;
 /**
  * Uploads the app's Rego policy to the OPA sidecar on startup.
  * <p>
- * Reaching OPA with the policy is a hard requirement: authorization would otherwise run against a sidecar
- * that has no policy loaded. The sidecar may still be booting when {@link ApplicationReadyEvent} fires, so
- * upload failures are retried with capped exponential backoff. While a retry is pending,
- * {@link ReadinessState#REFUSING_TRAFFIC} is published so the pod's readiness probe
- * ({@code /actuator/health/readiness}) stays DOWN and no traffic is routed to it; once the upload succeeds,
- * {@link ReadinessState#ACCEPTING_TRAFFIC} is published. If retries are exhausted,
- * {@link LivenessState#BROKEN} is published instead, so the pod's liveness probe fails and Kubernetes
- * restarts it.
+ * Reaching OPA with the policy is a hard requirement: an OPA queried for a policy it never received returns
+ * an undefined decision (HTTP 200, no {@code result} field, no indication that no policy was ever loaded).
+ * So {@link ReadinessState#REFUSING_TRAFFIC} is published as the very first thing this listener does - before
+ * the policy is even read - so the pod's readiness probe ({@code /actuator/health/readiness}) stays DOWN and
+ * no traffic is routed to it until a policy is confirmed uploaded.
+ * <p>
+ * The OPA sidecar may still be booting when {@link ApplicationReadyEvent} fires, so upload failures are
+ * retried with capped exponential backoff; once the upload succeeds, {@link ReadinessState#ACCEPTING_TRAFFIC}
+ * is published. When retries are exhausted or there are issues with the policy file,
+ * {@link LivenessState#BROKEN} is published instead.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -70,11 +72,14 @@ public class OpaPolicyUploader implements ApplicationListener<ApplicationReadyEv
                     policyPackage);
             return;
         }
+        var eventPublisher = event.getApplicationContext();
+        log.info("Starting OPA policy upload!");
+        AvailabilityChangeEvent.publish(eventPublisher, this, ReadinessState.REFUSING_TRAFFIC);
         try {
-            log.info("Starting OPA policy upload!");
             var maybePolicyItem = blueprintArtifact.load(PATH);
             if (maybePolicyItem.isEmpty()) {
-                log.warn("No rego policy found at {} in {}", PATH, blueprintArtifact.getReference());
+                log.error("No rego policy found at {} in {}", PATH, blueprintArtifact.getReference());
+                AvailabilityChangeEvent.publish(eventPublisher, this, LivenessState.BROKEN);
                 return;
             }
             String regoContent;
@@ -86,6 +91,7 @@ public class OpaPolicyUploader implements ApplicationListener<ApplicationReadyEv
             uploadWithRetry(event.getApplicationContext(), regoContent);
         } catch (BlueprintArtifactException | BlueprintArtifactItemUnreadableException | IOException e) {
             log.error("Failed to read policy from blueprint artifact", e);
+            AvailabilityChangeEvent.publish(eventPublisher, this, LivenessState.BROKEN);
         }
     }
 
@@ -97,8 +103,6 @@ public class OpaPolicyUploader implements ApplicationListener<ApplicationReadyEv
      * either succeeds or is given up on.
      */
     private void uploadWithRetry(ApplicationEventPublisher eventPublisher, String regoContent) {
-        AvailabilityChangeEvent.publish(eventPublisher, this, ReadinessState.REFUSING_TRAFFIC);
-
         var retryPolicy = RetryPolicy.builder()
                 .includes(ExecutionException.class)
                 .maxRetries(retryProperties.maxRetries())
