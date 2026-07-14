@@ -26,6 +26,7 @@ import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryM
 import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ContentAttributeModificationValidator;
+import com.contentgrid.appserver.domain.data.validation.NulByteValidator;
 import com.contentgrid.appserver.domain.data.validation.RegexPatternConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
@@ -108,6 +109,12 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         new RegexPatternConstraintValidator()
                                 ),
                                 new RelationRequiredValidationDataMapper()
+                        )
+                ))
+                .andThen(new OptionalFlatMapAdaptingMapper<>(
+                        AttributeAndRelationMapper.from(
+                                new AttributeValidationDataMapper(new NulByteValidator()),
+                                (relation, value) -> Optional.of(value)
                         )
                 ))
                 .andThen(new OptionalFlatMapAdaptingMapper<>(

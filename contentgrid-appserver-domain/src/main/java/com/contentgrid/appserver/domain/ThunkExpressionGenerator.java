@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
+import com.contentgrid.appserver.domain.data.validation.NulByteValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
@@ -100,7 +101,12 @@ public class ThunkExpressionGenerator {
             case LONG -> Scalar.of(Long.parseLong(value));
             case DOUBLE -> Scalar.of(new BigDecimal(value));
             case BOOLEAN -> Scalar.of(Boolean.parseBoolean(value));
-            case TEXT -> Scalar.of(value);
+            case TEXT -> {
+                if (value.indexOf('\u0000') >= 0) {
+                    throw new IllegalArgumentException(NulByteValidator.ERROR_MESSAGE);
+                }
+                yield Scalar.of(value);
+            }
             case DATE -> Scalar.of(LocalDate.parse(value));
             case DATETIME -> Scalar.of(Instant.parse(value));
             case UUID -> Scalar.of(java.util.UUID.fromString(value));
