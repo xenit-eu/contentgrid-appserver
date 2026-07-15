@@ -2,7 +2,6 @@ package com.contentgrid.appserver.rest;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.domain.LinkUriProvider;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;

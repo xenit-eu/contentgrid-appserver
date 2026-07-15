@@ -37,10 +37,4 @@ public class ContentGridCurieConfiguration {
         return curieProvider.build();
     }
 
-    @Bean
-    RepresentationModelProcessor<CollectionModel<?>> contentGridSpringDataEmbeddedCuriesResourceProcessor(
-            LinkRelationProvider linkRelationProvider, CurieProvider curieProvider
-    ) {
-        return new SpringDataEmbeddedCuriesResourceProcessor(linkRelationProvider, curieProvider);
-    }
 }
