@@ -348,6 +348,26 @@ class EntityRestControllerTest {
                             ));
         }
 
+        @Test
+        void testFailToCreateEntityWithNulByteInTextField() throws Exception {
+            Map<String, Object> product = new HashMap<>();
+            product.put("name", "Test\u0000Product");
+            product.put("price", 29.99);
+
+            mockMvc.perform(post("/products")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(product)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type/format")
+                                    .withTitle("Invalid format")
+                                    .withDetail("Expected value of type string, but the format is incorrect: Text must not contain the NUL character (0x00)")
+                                    .withField("field", "name")
+                                    .withField("expected_type", "string")
+                                    .withField("format_error", "Text must not contain the NUL character (0x00)")
+                            ));
+        }
+
         @ParameterizedTest
         @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
         void failToCreateEntityWithDoubleForLong(MediaTypeConfiguration mediaTypeConfiguration) throws Exception {
@@ -1049,6 +1069,21 @@ class EntityRestControllerTest {
                                     .formatted(queryParam, type.getHumanDescription()))
                             .withField("query_parameter", queryParam)
                             .withField("expected_type", type.getTechnicalName())
+                    );
+        }
+
+        @Test
+        void testListEntityInstances_withNulByteInTextFilter() throws Exception {
+            mockMvc.perform(get("/persons").param("vat", "a\u0000b"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-query-parameter/filter/format")
+                            .withTitle("Filter query parameter has an invalid format")
+                            .withDetail("Filter query parameter 'vat' can not be converted to string")
+                            .withField("query_parameter", "vat")
+                            .withField("expected_type", "string")
+                            .withField("format_error", "Text must not contain the NUL character (0x00)")
                     );
         }
 

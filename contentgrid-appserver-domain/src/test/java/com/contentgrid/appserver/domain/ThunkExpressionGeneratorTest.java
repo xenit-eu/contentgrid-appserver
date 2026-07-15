@@ -691,6 +691,20 @@ class ThunkExpressionGeneratorTest {
         assertEquals(Type.DOUBLE, exception.getType());
     }
 
+    @Test
+    void textValueWithNulByteShouldThrowException() {
+        Map<String, List<String>> params = new HashMap<>();
+        params.put("description", List.of("foo\u0000bar"));
+
+        InvalidFilterParameterException exception = assertThrows(
+                InvalidFilterParameterException.class,
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params)
+        );
+
+        assertEquals("description", exception.getFilterName().getValue());
+        assertEquals(Type.TEXT, exception.getType());
+    }
+
     @ParameterizedTest
     @CsvSource({"not a date", "2025-01-01T01:01:01.234Z"})
     void invalidLocalDateValueShouldThrowException(String value) {
