@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.hal.serializer;
 
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.hateoas.mediatype.hal.HalConfiguration.RenderSingleLi
  * Marks a link relation as always rendering as a single link or always as a list of links
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode
 public class RenderAsLinkRelation implements LinkRelation {
     @Delegate
     @NonNull

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import lombok.AccessLevel;
 import lombok.NonNull;
@@ -16,6 +17,7 @@ import org.springframework.hateoas.Links;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.mediatype.hal.CurieProvider;
 import org.springframework.hateoas.mediatype.hal.HalConfiguration.RenderSingleLinks;
+import org.springframework.hateoas.mediatype.hal.HalLinkRelation;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.BeanProperty;
@@ -114,18 +116,31 @@ public class HalModule extends SimpleModule {
     }
 
     private static class HalLinksCollection {
+        private static final Map<LinkRelation, MergeLink> OVERRIDES = Map.of(
+                HalLinkRelation.CURIES, MergeLink.MERGE_ARRAY // Special case: `curies` is always an array
+        );
+
         private final Map<String, Object> sortedLinks = new LinkedHashMap<>();
 
         public void add(Link link) {
-            var merge = switch(link.getRel()) {
-                case RenderAsLinkRelation renderAsLinkRelation when renderAsLinkRelation.getRenderSingleLinks() == RenderSingleLinks.AS_SINGLE -> MergeLink.MERGE_SINGLE;
-                case RenderAsLinkRelation renderAsLinkRelation when renderAsLinkRelation.getRenderSingleLinks() == RenderSingleLinks.AS_ARRAY -> MergeLink.MERGE_ARRAY;
-                default -> MergeLink.MERGE_DEFAULT;
-            };
+            var merge = getMergeStrategy(link.getRel());
 
             sortedLinks.compute(link.getRel().value(), (_key, existingValue) -> merge.merge(existingValue, link));
-
         }
+
+        private MergeLink getMergeStrategy(LinkRelation relation) {
+            return OVERRIDES.entrySet()
+                    .stream()
+                    .filter(e -> e.getKey().isSameAs(relation))
+                    .findFirst()
+                    .map(Entry::getValue)
+                    .orElseGet(() -> switch(relation) {
+                        case RenderAsLinkRelation renderAsLinkRelation when renderAsLinkRelation.getRenderSingleLinks() == RenderSingleLinks.AS_SINGLE -> MergeLink.MERGE_SINGLE;
+                        case RenderAsLinkRelation renderAsLinkRelation when renderAsLinkRelation.getRenderSingleLinks() == RenderSingleLinks.AS_ARRAY -> MergeLink.MERGE_ARRAY;
+                        default -> MergeLink.MERGE_DEFAULT;
+                    });
+        }
+
     }
 
     @RequiredArgsConstructor
