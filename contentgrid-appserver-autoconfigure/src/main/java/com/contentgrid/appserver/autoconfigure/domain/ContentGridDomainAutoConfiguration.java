@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
+import com.contentgrid.appserver.domain.ConfigurationProperties;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
@@ -20,10 +21,13 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.LinkUriProvider;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import java.net.URI;
 import java.time.Clock;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -60,9 +64,23 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    DatamodelApiImpl datamodelApi(QueryEngine queryEngine, ContentStoreResolver contentStoreResolver,
-            DomainEventDispatcher dispatcher, ObjectProvider<Function<Application, LinkUriProvider>> linkUriProviderFactory, CursorCodec cursorCodec, Clock clock) {
-        return new DatamodelApiImpl(queryEngine, contentStoreResolver, dispatcher, linkUriProviderFactory.getIfUnique(() -> app -> new NoneLinkUriProvider()), cursorCodec, clock);
+    DatamodelApiImpl datamodelApi(
+            QueryEngine queryEngine,
+            ContentStoreResolver contentStoreResolver,
+            DomainEventDispatcher dispatcher,
+            ObjectProvider<Function<Application, LinkUriProvider>> linkUriProviderFactory,
+            Function<Application, ConfigurationProperties> configurationPropertiesFactory,
+            CursorCodec cursorCodec,
+            Clock clock) {
+        return new DatamodelApiImpl(
+                queryEngine,
+                contentStoreResolver,
+                dispatcher,
+                linkUriProviderFactory.getIfUnique(() -> app -> new NoneLinkUriProvider()),
+                configurationPropertiesFactory,
+                cursorCodec,
+                clock
+        );
     }
 
     @Bean
@@ -80,6 +98,32 @@ public class ContentGridDomainAutoConfiguration {
     @ConditionalOnBean(BlueprintArtifact.class)
     AutomationsModelResolver blueprintArtifactAutomationsResolver(BlueprintArtifact blueprintArtifact) {
         return new CachingAutomationsModelResolver(new BlueprintArtifactAutomationsModelResolver(blueprintArtifact));
+    }
+
+    @Bean
+    Function<Application, ConfigurationProperties> contentGridConfigurationPropertiesFactory(
+            @Value("${contentgrid.system.application-id:-}") String applicationId,
+            ContentgridAutomationProperties automationProperties
+    ) {
+        return app -> new ConfigurationProperties() {
+            @Override
+            public String getApplicationId() {
+                return applicationId;
+            }
+
+            @Override
+            public Optional<URI> getAutomationSystemBaseUrl(String automationSystemId, String basePathName) {
+                return automationProperties.getRegistration(automationSystemId)
+                        .flatMap(reg -> reg.getBasePath(basePathName));
+            }
+        };
+
+    }
+
+    @Bean
+    @org.springframework.boot.context.properties.ConfigurationProperties(prefix = "contentgrid.automation")
+    ContentgridAutomationProperties contentgridAutomationProperties() {
+        return new ContentgridAutomationProperties();
     }
 
     private static class NoneLinkUriProvider implements LinkUriProvider {

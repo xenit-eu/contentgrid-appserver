@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
@@ -158,6 +159,21 @@ class DatamodelApiImplTest {
         }
     };
 
+    private final ConfigurationProperties configurationProperties = new ConfigurationProperties() {
+        @Override
+        public String getApplicationId() {
+            return "my-application-id";
+        }
+
+        @Override
+        public Optional<URI> getAutomationSystemBaseUrl(String automationSystemId, String basePathName) {
+            if (automationSystemId.equals("my-automation") && basePathName.equals("api")) {
+                return Optional.of(URI.create("https://automation.example/my-automation"));
+            }
+            return Optional.empty();
+        }
+    };
+
     private static final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
 
     private static CompositeAttributeData getAuditMetadataData(boolean create) {
@@ -189,6 +205,7 @@ class DatamodelApiImplTest {
                 application -> contentStore,
                 domainEventDispatcher,
                 application -> linkUriProvider,
+                application -> configurationProperties,
                 codec,
                 clock
         );
@@ -1777,6 +1794,27 @@ class DatamodelApiImplTest {
                 .fallbackTemplate(template("https://people.example/info?me=%{owner.link}&relation=%{owner.name}"))
                 .build();
 
+        // References an automation system and base path name that are registered in the configuration
+        private static final EntityLink AUTOMATION_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "automation"))
+                .fallbackTemplate(automationTemplate("my-automation", "api",
+                        "/documents/%{entity.id}?app=%{application.id}"))
+                .build();
+
+        // References an automation system that is not registered in the configuration
+        private static final EntityLink UNKNOWN_AUTOMATION_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "unknown-automation"))
+                .fallbackTemplate(automationTemplate("unknown-automation", "api",
+                        "/documents/%{entity.id}"))
+                .build();
+
+        // References a registered automation system, but with a base path name that is not registered
+        private static final EntityLink UNKNOWN_BASE_PATH_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "unknown-base-path"))
+                .fallbackTemplate(automationTemplate("my-automation", "unknown",
+                        "/documents/%{entity.id}"))
+                .build();
+
         private static final Entity DOCUMENT = Entity.builder()
                 .name(EntityName.of("document"))
                 .table(TableName.of("document"))
@@ -1789,6 +1827,9 @@ class DatamodelApiImplTest {
                 .link(PREVIEW_LINK)
                 .link(ATTACHMENT_SCAN_LINK)
                 .link(AUTHOR_LINK)
+                .link(AUTOMATION_LINK)
+                .link(UNKNOWN_AUTOMATION_LINK)
+                .link(UNKNOWN_BASE_PATH_LINK)
                 .build();
 
         private static final ManyToOneRelation DOCUMENT_AUTHOR = ManyToOneRelation.builder()
@@ -1812,6 +1853,16 @@ class DatamodelApiImplTest {
 
         private static UriTemplateDefinition template(String template) {
             return new SimpleUriTemplateDefinition(
+                    new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
+                            .parseUnchecked(template)
+            );
+        }
+
+        private static UriTemplateDefinition automationTemplate(String automationSystem, String basePathName,
+                String template) {
+            return new AutomationUriTemplateDefinition(
+                    automationSystem,
+                    basePathName,
                     new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
                             .parseUnchecked(template)
             );
@@ -1864,6 +1915,15 @@ class DatamodelApiImplTest {
                             null,
                             "https://people.example/info?me=" + encodedUriProviderLink(entityId, "/author")
                                     + "&relation=author"
+                    ),
+                    // The registered automation base url is prepended to the expanded template.
+                    // UNKNOWN_AUTOMATION_LINK and UNKNOWN_BASE_PATH_LINK reference an unregistered
+                    // automation system or base path name, so they are not rendered.
+                    new EntityLinkData(
+                            AUTOMATION_LINK.getIdentity(),
+                            null,
+                            "https://automation.example/my-automation/documents/" + entityId.getValue()
+                                    + "?app=my-application-id"
                     )
             );
         }
@@ -1884,7 +1944,8 @@ class DatamodelApiImplTest {
                     .containsExactlyInAnyOrder(
                             PREVIEW_LINK.getIdentity(),
                             ATTACHMENT_SCAN_LINK.getIdentity(),
-                            AUTHOR_LINK.getIdentity()
+                            AUTHOR_LINK.getIdentity(),
+                            AUTOMATION_LINK.getIdentity()
                     );
         }
 
@@ -1908,7 +1969,8 @@ class DatamodelApiImplTest {
                             CATEGORY_LINK.getIdentity(),
                             PREVIEW_LINK.getIdentity(),
                             ATTACHMENT_SCAN_LINK.getIdentity(),
-                            AUTHOR_LINK.getIdentity()
+                            AUTHOR_LINK.getIdentity(),
+                            AUTOMATION_LINK.getIdentity()
                     );
         }
     }

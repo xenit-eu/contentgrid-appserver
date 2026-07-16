@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
@@ -72,6 +73,7 @@ import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.hateoas.uritemplate.ParameterReplacer;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.net.URI;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,6 +98,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final ContentStoreResolver contentStoreResolver;
     private final DomainEventDispatcher domainEventDispatcher;
     private final Function<Application, LinkUriProvider> linkUriProviderFactory;
+    private final Function<Application, ConfigurationProperties> configurationPropertiesFactory;
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
@@ -158,6 +161,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 entity.getAttributes(),
                 entity.getLinks(),
                 linkUriProviderFactory.apply(application),
+                configurationPropertiesFactory.apply(application),
                 new AttributeDataToDataEntryMapper()
         );
     }
@@ -464,6 +468,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         private final List<Attribute> attributes;
         private final Collection<EntityLink> links;
         private final LinkUriProvider linkUriProvider;
+        private final ConfigurationProperties configurationProperties;
         private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
 
         public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
@@ -519,9 +524,9 @@ public class DatamodelApiImpl implements DatamodelApi {
                     return Optional.empty();
                 }
             }
-            return entityLink.getFallbackTemplate().map(template -> {
+            return entityLink.getFallbackTemplate().flatMap(template -> {
                 var linkHref = template.getTemplate().expand(substitutionVariable -> switch (substitutionVariable) {
-                    case APPLICATION_ID -> throw new UnsupportedOperationException("application id not supported");
+                    case APPLICATION_ID -> configurationProperties.getApplicationId();
                     case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
                     case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
                     case ENTITY_NAME -> entityData.getName().getValue();
@@ -546,12 +551,31 @@ public class DatamodelApiImpl implements DatamodelApi {
                         default -> throw new IllegalStateException("Can not create a link to owner property path '%s'".formatted(owner));
                     }).orElseThrow();
                 });
+                if (template instanceof AutomationUriTemplateDefinition automationUriTemplateDefinition) {
+                    var maybeBasePath = configurationProperties.getAutomationSystemBaseUrl(
+                            automationUriTemplateDefinition.getAutomationSystem(),
+                            automationUriTemplateDefinition.getBasePathName()
+                    ).map(URI::toASCIIString);
 
-                return new EntityLinkData(
+                    if (maybeBasePath.isEmpty()) {
+                        // If the automation is not registered, omit the link
+                        log.warn(
+                                "Automation system '{}' base path '{}' is not registered: link {} omitted",
+                                automationUriTemplateDefinition.getAutomationSystem(),
+                                automationUriTemplateDefinition.getBasePathName(),
+                                entityLink.getIdentity()
+                        );
+                        return Optional.empty();
+                    }
+
+                    linkHref = maybeBasePath.get() + linkHref;
+                }
+
+                return Optional.of(new EntityLinkData(
                         entityLink.getIdentity(),
                         entityLink.getProfile().orElse(null),
                         linkHref
-                );
+                ));
             });
         }
     }
