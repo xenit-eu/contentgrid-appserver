@@ -39,10 +39,13 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPublishUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPublishPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
         run: ./gradlew publish
+      - name: Set up QEMU for cross-architecture image builds
+        if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
       - name: Publish to ghcr.io
         if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
         env:
           ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_URL: ghcr.io
           ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_USERNAME: ${{ github.actor }}
           ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew bootBuildImage --publishImage
+        run: ./gradlew bootBuildLinuxAmd64Image --publishImage bootBuildLinuxArm64Image --publishImage
