@@ -15,7 +15,8 @@ public class S3BlueprintArtifactReferenceResolver implements BlueprintArtifactRe
     public BlueprintArtifact resolve(BlueprintArtifactReference reference) {
         var parts = reference.toString().split(":");
         if (parts.length == 2 && S3BlueprintArtifact.SCHEME.equals(parts[0])) {
-            var path = parts[1];
+            // Accept both the bare form (s3:bucket/key) and the standard URI form (s3://bucket/key).
+            var path = parts[1].startsWith("//") ? parts[1].substring(2) : parts[1];
             var slashIndex = path.indexOf('/');
             if (slashIndex > 0) {
                 var bucketName = path.substring(0, slashIndex);

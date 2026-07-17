@@ -24,6 +24,15 @@ class S3BlueprintArtifactReferenceResolverTest {
     }
 
     @Test
+    void resolve_s3UriReference_returnsS3BlueprintArtifact() {
+        // Standard S3 URI form (s3://bucket/key) normalizes to the bare reference.
+        var ref = BlueprintArtifactReference.of(S3BlueprintArtifact.SCHEME + "://my-bucket/path/to/blueprint-artifact.zip");
+        var expectedReference = BlueprintArtifactReference.of(S3BlueprintArtifact.SCHEME + ":my-bucket/path/to/blueprint-artifact.zip");
+        assertThat(resolver.resolve(ref)).isInstanceOfSatisfying(S3BlueprintArtifact.class,
+                blueprintArtifact -> assertThat(blueprintArtifact.getReference()).isEqualTo(expectedReference));
+    }
+
+    @Test
     void resolve_unsupportedScheme_returnsNull() {
         var ref = BlueprintArtifactReference.of("file:/some/path");
         assertThat(resolver.resolve(ref)).isNull();
