@@ -527,14 +527,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                     case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
                     case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
                     case ENTITY_NAME -> entityData.getName().getValue();
-                    case OWNER_NAME -> entityLink.getOwner().map(owner -> {
-                        var name = owner.getFirst();
-                        while(owner != null) {
-                            name = owner.getFirst();
-                            owner = owner.getRest();
-                        }
-                        return name.getValue();
-                    }).orElseThrow();
+                    case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
                     case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
                         try {
                             return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue(), null);
