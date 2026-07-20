@@ -14,8 +14,9 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 
 /**
- * Tests PolicyActuator with an empty contentgrid.system.policyPackage (new sidecar arch).
- * The policy is pushed to OPA directly; the actuator endpoint returns 404.
+ * Tests that the PolicyActuator bean (and its endpoint) is not registered at all when
+ * contentgrid.system.policyPackage is empty (OPA sidecar arch): the policy is pushed to OPA directly instead,
+ * so there's nothing for /actuator/policy to expose.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
