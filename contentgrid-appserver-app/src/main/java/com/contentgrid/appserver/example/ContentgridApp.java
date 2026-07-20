@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.example;
 
-import com.contentgrid.appserver.autoconfigure.opa.authorization.AppserverOpaInputProvider;
+import com.contentgrid.appserver.security.opa.authorization.AppserverOpaInputProvider;
 import com.contentgrid.thunx.pdp.opa.OpaInputProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;

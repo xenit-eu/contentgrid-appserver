@@ -6,9 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.autoconfigure.opa.authorization.AppserverOpaInputProvider;
-import com.contentgrid.appserver.autoconfigure.security.authority.ActorConverter;
-import com.contentgrid.appserver.autoconfigure.security.authority.UserGrantedAuthorityConverter;
+import com.contentgrid.appserver.security.opa.authorization.AppserverOpaInputProvider;
+import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
+import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.thunx.pdp.opa.OpaInputProvider;
@@ -19,6 +19,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -133,9 +134,6 @@ class OpaResidualAuthorizationTest {
     @Autowired
     private InvoicingApi invoicingApi;
 
-    @Autowired
-    private ActorConverter userActorConverter;
-
     @BeforeEach
     void uploadPolicy() throws Exception {
         var client = HttpClient.newHttpClient();
@@ -157,9 +155,19 @@ class OpaResidualAuthorizationTest {
     }
 
     private JwtRequestPostProcessor authenticatedAs(String subject) {
+        // Shaped like the gateway-minted sidecar JWT: the appserver only transcribes the contentgrid:auth:*
+        // claims, so the test token must carry them (see GatewayAuthClaimNames).
         return jwt()
-                .jwt(builder -> builder.subject(subject).issuer(JWT_ISSUER))
-                .authorities(new UserGrantedAuthorityConverter(userActorConverter));
+                .jwt(builder -> builder
+                        .subject(subject)
+                        .issuer(JWT_ISSUER)
+                        .claim(GatewayAuthClaimNames.AUTH_KIND, GatewayAuthClaimNames.AUTH_KIND_USER)
+                        .claim(GatewayAuthClaimNames.AUTH_PRINCIPAL, Map.of(
+                                GatewayAuthClaimNames.KIND, GatewayAuthClaimNames.KIND_USER,
+                                "iss", JWT_ISSUER,
+                                "sub", subject
+                        )))
+                .authorities(new GatewayJwtAuthenticationDetailsConverter());
     }
 
     private UUID createCustomer(String vat, long totalSpend) throws Exception {

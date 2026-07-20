@@ -28,6 +28,7 @@ dependencies {
     compileOnly project(':contentgrid-appserver-query-engine-api')
     compileOnly project(':contentgrid-appserver-query-engine-impl-jooq')
     compileOnly project(':contentgrid-appserver-rest')
+    compileOnly project(':contentgrid-appserver-security')
     compileOnly project(':contentgrid-appserver-webjars')
 
     compileOnly 'com.contentgrid.thunx:thunx-spring-security'
@@ -71,6 +72,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
+    testImplementation project(':contentgrid-appserver-security')
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
     testImplementation project(':contentgrid-appserver-spring-boot-starter')
     testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {

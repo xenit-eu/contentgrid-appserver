@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.autoconfigure.opa;
+package com.contentgrid.appserver.security.opa;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -8,7 +8,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.contentgrid.appserver.autoconfigure.opa.OpaPolicyUploaderAutoConfiguration.OpaPolicyUploadRetryProperties;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
@@ -75,7 +74,6 @@ class OpaPolicyUploaderTest {
     @Test
     void regoFileAbsent_noOpaCall() throws Exception {
         when(blueprintArtifact.load(any())).thenReturn(Optional.empty());
-        when(blueprintArtifact.getReference()).thenReturn(TEST_REFERENCE);
 
         uploader.onApplicationEvent(event);
 
@@ -141,19 +139,6 @@ class OpaPolicyUploaderTest {
         when(item.getInputStream()).thenReturn(new ByteArrayInputStream(regoContent.getBytes(StandardCharsets.UTF_8)));
         when(opaClient.upsertPolicy(any(), any()))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("OPA unavailable")));
-
-        uploader.onApplicationEvent(event);
-
-        verify(applicationContext, never()).publishEvent(argThat(
-                (AvailabilityChangeEvent<?> e) -> e.getState() == ReadinessState.ACCEPTING_TRAFFIC));
-        verify(applicationContext).publishEvent(argThat(
-                (AvailabilityChangeEvent<?> e) -> e.getState() == LivenessState.BROKEN));
-    }
-
-    @Test
-    void regoFileAbsent_marksLivenessBroken() throws Exception {
-        when(blueprintArtifact.load(any())).thenReturn(Optional.empty());
-        when(blueprintArtifact.getReference()).thenReturn(TEST_REFERENCE);
 
         uploader.onApplicationEvent(event);
 

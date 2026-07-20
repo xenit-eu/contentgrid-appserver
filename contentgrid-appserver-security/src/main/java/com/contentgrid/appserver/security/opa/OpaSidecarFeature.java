@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.autoconfigure.opa;
+package com.contentgrid.appserver.security.opa;
 
 /**
  * Whether this deployment is in "OPA sidecar" mode: the app owns and uploads its own rego policy directly to

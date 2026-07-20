@@ -1,7 +1,6 @@
-package com.contentgrid.appserver.autoconfigure.opa;
+package com.contentgrid.appserver.security.opa;
 
 import com.contentgrid.appserver.actuator.policy.PolicyVariables;
-import com.contentgrid.appserver.autoconfigure.opa.OpaPolicyUploaderAutoConfiguration.OpaPolicyUploadRetryProperties;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemUnreadableException;
@@ -34,14 +33,9 @@ import org.springframework.util.SystemPropertyUtils;
  * <p>
  * Reaching OPA with the policy is a hard requirement: an OPA queried for a policy it never received returns
  * an undefined decision (HTTP 200, no {@code result} field, no indication that no policy was ever loaded).
- * So {@link ReadinessState#REFUSING_TRAFFIC} is published as the very first thing this listener does - before
- * the policy is even read - so the pod's readiness probe ({@code /actuator/health/readiness}) stays DOWN and
+ * So {@link ReadinessState#REFUSING_TRAFFIC} is published as the very first thing this listener does, before
+ * the policy is even read. That way, the pod's readiness probe ({@code /actuator/health/readiness}) stays DOWN and
  * no traffic is routed to it until a policy is confirmed uploaded.
- * <p>
- * The OPA sidecar may still be booting when {@link ApplicationReadyEvent} fires, so upload failures are
- * retried with capped exponential backoff; once the upload succeeds, {@link ReadinessState#ACCEPTING_TRAFFIC}
- * is published. When retries are exhausted or there are issues with the policy file,
- * {@link LivenessState#BROKEN} is published instead.
  */
 @Slf4j
 @RequiredArgsConstructor

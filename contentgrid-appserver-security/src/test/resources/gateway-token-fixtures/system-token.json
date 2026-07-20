@@ -1,0 +1,14 @@
+{
+  "iss": "https://extensions.invalid/authentication/system",
+  "aud": "contentgrid:app:0195e232-30d1-7000-8000-000000000001:0195e232-30d1-7000-8000-000000000002",
+  "sub": "extension123",
+  "iat": 1751000000,
+  "exp": 1751000300,
+  "re-iat": 1751000000,
+  "contentgrid:auth:kind": "system",
+  "contentgrid:auth:principal": {
+    "kind": "extension",
+    "iss": "https://extensions.invalid/authentication/system",
+    "sub": "extension123"
+  }
+}

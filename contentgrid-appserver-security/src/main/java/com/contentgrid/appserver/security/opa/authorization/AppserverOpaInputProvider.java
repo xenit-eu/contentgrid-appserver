@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.autoconfigure.opa.authorization;
+package com.contentgrid.appserver.security.opa.authorization;
 
 import com.contentgrid.thunx.pdp.opa.OpaInputProvider;
 import jakarta.servlet.http.HttpServletRequest;

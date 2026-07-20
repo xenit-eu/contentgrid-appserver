@@ -44,15 +44,14 @@ public @interface WithMockJwt {
             Jwt.Builder builder = Jwt.withTokenValue("token")
                     .header("alg", "none")
                     .subject(annotation.subject())
-                    .issuer(annotation.issuer())
-                    .claim("scope", "read");
+                    .issuer(annotation.issuer());
 
             if (StringUtils.hasLength(annotation.name())) {
                 builder.claim("name", annotation.name());
             }
             Jwt jwt = builder.build();
 
-            List<GrantedAuthority> grantedAuthorities = List.of(new SimpleGrantedAuthority("SCOPE_read"));
+            List<GrantedAuthority> grantedAuthorities = List.of();
             Authentication authentication = new JwtAuthenticationToken(jwt, grantedAuthorities);
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(authentication);

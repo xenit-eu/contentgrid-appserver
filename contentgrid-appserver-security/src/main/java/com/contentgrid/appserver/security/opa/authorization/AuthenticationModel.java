@@ -1,14 +1,11 @@
-package com.contentgrid.appserver.autoconfigure.opa.authorization;
+package com.contentgrid.appserver.security.opa.authorization;
 
-import com.contentgrid.appserver.autoconfigure.security.authority.Actor;
-import com.contentgrid.appserver.autoconfigure.security.authority.Actor.ActorType;
-import com.contentgrid.appserver.autoconfigure.security.authority.AuthenticationDetails;
+import com.contentgrid.appserver.security.authority.Actor.ActorType;
+import com.contentgrid.appserver.security.authority.AuthenticationDetails;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.springframework.security.core.Authentication;
@@ -40,21 +37,11 @@ public class AuthenticationModel {
         return kind != AuthenticationKind.ANONYMOUS;
     }
 
-    @Value
-    public static class ActorModel {
+    public record ActorModel(ActorKind kind, String sub) {}
 
-        ActorKind kind;
-        String sub;
-    }
-
-    @Value
-    public static class PrincipalModel {
-
-        ActorKind kind;
-
-        @Getter(onMethod_ = {@JsonAnyGetter, @JsonIgnore})
-        Map<String, Object> claims;
-    }
+    // @JsonAnyGetter inlines the claims map into the principal object itself: rego reads
+    // input.auth.principal.sub, not input.auth.principal.claims.sub (pinned by GatewayTokenFixtureContractTest).
+    public record PrincipalModel(ActorKind kind, @JsonAnyGetter Map<String, Object> claims) {}
 
     @RequiredArgsConstructor
     public enum ActorKind {
@@ -74,44 +61,53 @@ public class AuthenticationModel {
         }
     }
 
-    public static AuthenticationModel from(Authentication authentication) {
-        var maybeDetails = authentication.getAuthorities()
+    public static AuthenticationModel from(Authentication authenticationContext) {
+        var maybeAuthenticationDetails = authenticationContext.getAuthorities()
                 .stream()
                 .filter(AuthenticationDetails.class::isInstance)
                 .map(AuthenticationDetails.class::cast)
                 .findFirst();
-        if (maybeDetails.isEmpty()) {
+        if (maybeAuthenticationDetails.isEmpty()) {
             return AuthenticationModel.builder()
                     .kind(AuthenticationKind.ANONYMOUS)
                     .build();
         }
 
-        var details = maybeDetails.get();
+        var authenticationDetails = maybeAuthenticationDetails.get();
+
         return AuthenticationModel.builder()
-                .kind(toAuthenticationKind(details))
-                .principal(toPrincipal(details.principal()))
-                .actor(toActor(details.actor()))
+                .kind(createAuthenticationKind(authenticationDetails))
+                .principal(createPrincipal(authenticationDetails))
+                .actor(createActor(authenticationDetails))
                 .build();
     }
 
-    private static AuthenticationKind toAuthenticationKind(AuthenticationDetails details) {
-        if (details.actor() != null) {
+    private static AuthenticationKind createAuthenticationKind(AuthenticationDetails authenticationDetails) {
+        if (authenticationDetails.getActor() != null) {
             return AuthenticationKind.DELEGATED;
         }
-        return switch (details.principal().type()) {
+        return switch (authenticationDetails.getPrincipal().type()) {
             case USER -> AuthenticationKind.USER;
             case EXTENSION -> AuthenticationKind.SYSTEM;
         };
     }
 
-    private static PrincipalModel toPrincipal(Actor principal) {
-        return new PrincipalModel(ActorKind.fromType(principal.type()), principal.claims());
+    private static PrincipalModel createPrincipal(AuthenticationDetails authenticationDetails) {
+        return new PrincipalModel(
+                ActorKind.fromType(authenticationDetails.getPrincipal().type()),
+                authenticationDetails.getPrincipal().claims().getClaims()
+        );
     }
 
-    private static ActorModel toActor(Actor actor) {
+    private static ActorModel createActor(AuthenticationDetails authenticationDetails) {
+        var actor = authenticationDetails.getActor();
         if (actor == null) {
             return null;
         }
-        return new ActorModel(ActorKind.fromType(actor.type()), (String) actor.claims().get(JwtClaimNames.SUB));
+        return new ActorModel(
+                ActorKind.fromType(actor.type()),
+                actor.claims().getClaimAsString(JwtClaimNames.SUB)
+        );
     }
+
 }

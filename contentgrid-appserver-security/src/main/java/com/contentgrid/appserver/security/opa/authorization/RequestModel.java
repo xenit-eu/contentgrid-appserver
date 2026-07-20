@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.autoconfigure.opa.authorization;
+package com.contentgrid.appserver.security.opa.authorization;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;

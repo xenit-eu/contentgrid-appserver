@@ -2,6 +2,7 @@ package com.contentgrid.appserver.autoconfigure.opa;
 
 import com.contentgrid.appserver.actuator.policy.OnMissingPolicyPackageCondition;
 import com.contentgrid.appserver.actuator.policy.OnPolicyPackageCondition;
+import com.contentgrid.appserver.security.opa.OpaSidecarFeature;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

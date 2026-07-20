@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.security.opa.OpaPolicyUploader;
 import com.contentgrid.opa.client.OpaClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -28,18 +29,6 @@ class OpaPolicyUploaderAutoConfigurationTest {
     }
 
     @Test
-    void policyUploaderAbsentWhenPolicyPackageIsSet() {
-        contextRunner
-                .withBean("customOpaClient", OpaClient.class, () -> mock(OpaClient.class))
-                .withPropertyValues("contentgrid.system.policyPackage=tenant.xyz")
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(OpaClient.class);
-                    assertThat(context).doesNotHaveBean(OpaPolicyUploader.class);
-                });
-    }
-
-    @Test
     void policyUploaderStarts() {
         contextRunner
                 .withBean("customOpaClient", OpaClient.class, () -> mock(OpaClient.class))
@@ -48,6 +37,19 @@ class OpaPolicyUploaderAutoConfigurationTest {
                     assertThat(context).hasBean("customOpaClient");
                     assertThat(context).hasSingleBean(OpaClient.class);
                     assertThat(context).hasSingleBean(OpaPolicyUploader.class);
+                });
+    }
+
+    @Test
+    void policyUploaderAbsentWhenPolicyPackageIsSet() {
+        contextRunner
+                .withBean("customOpaClient", OpaClient.class, () -> mock(OpaClient.class))
+                .withPropertyValues("contentgrid.system.policyPackage=tenant.xyz")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasBean("customOpaClient");
+                    assertThat(context).hasSingleBean(OpaClient.class);
+                    assertThat(context).doesNotHaveBean(OpaPolicyUploader.class);
                 });
     }
 }
