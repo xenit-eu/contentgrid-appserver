@@ -30,6 +30,7 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
@@ -669,8 +670,12 @@ class EntityRestControllerTest {
                             """.replace("${ENTITY_ID}", id)));
         }
 
-        @Test
-        void getEntityWithEntityLinks() throws Exception {
+        @ParameterizedTest
+        @ValueSource(strings = {
+                MediaTypes.HAL_JSON_VALUE,
+                MediaTypes.HAL_FORMS_JSON_VALUE,
+        })
+        void getEntityWithEntityLinks(String mediaType) throws Exception {
             var vat = UUID.randomUUID().toString();
             var personUrl = mockMvc.perform(post("/persons")
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -681,7 +686,7 @@ class EntityRestControllerTest {
 
             var encodedPersonUrl = URLEncoder.encode(personUrl, StandardCharsets.UTF_8);
 
-            mockMvc.perform(get(personUrl).accept(MediaTypes.HAL_JSON))
+            mockMvc.perform(get(personUrl).accept(mediaType))
                     .andExpect(status().isOk())
                     // A named link always renders as an array, with name and profile attributes
                     .andExpect(jsonPath("$._links['https://vat.example/rel/lookup'][0].href",
@@ -694,13 +699,6 @@ class EntityRestControllerTest {
                             is("https://people.example/preview?src=" + encodedPersonUrl)))
                     .andExpect(jsonPath("$._links['https://people.example/rel/preview'].name").doesNotExist())
                     .andExpect(jsonPath("$._links['https://people.example/rel/preview'].profile").doesNotExist());
-
-            // Entity links render the same way in application/prs.hal-forms+json
-            mockMvc.perform(get(personUrl).accept(MediaTypes.HAL_FORMS_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._links['https://vat.example/rel/lookup'][0].name", is("vat")))
-                    .andExpect(jsonPath("$._links['https://people.example/rel/preview'].href",
-                            is("https://people.example/preview?src=" + encodedPersonUrl)));
         }
 
         @Test
