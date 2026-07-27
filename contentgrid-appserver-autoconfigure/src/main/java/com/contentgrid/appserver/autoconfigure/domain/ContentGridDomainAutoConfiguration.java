@@ -5,6 +5,8 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
 import com.contentgrid.appserver.domain.ConfigurationProperties;
+import com.contentgrid.appserver.domain.ConfigurationPropertiesFactory;
+import com.contentgrid.appserver.domain.LinkUriProviderFactory;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.ContentApi;
 import com.contentgrid.appserver.domain.ContentApiImpl;
@@ -68,8 +70,8 @@ public class ContentGridDomainAutoConfiguration {
             QueryEngine queryEngine,
             ContentStoreResolver contentStoreResolver,
             DomainEventDispatcher dispatcher,
-            ObjectProvider<Function<Application, LinkUriProvider>> linkUriProviderFactory,
-            Function<Application, ConfigurationProperties> configurationPropertiesFactory,
+            ObjectProvider<LinkUriProviderFactory> linkUriProviderFactory,
+            ConfigurationPropertiesFactory configurationPropertiesFactory,
             CursorCodec cursorCodec,
             Clock clock) {
         return new DatamodelApiImpl(
@@ -101,7 +103,7 @@ public class ContentGridDomainAutoConfiguration {
     }
 
     @Bean
-    Function<Application, ConfigurationProperties> contentGridConfigurationPropertiesFactory(
+    ConfigurationPropertiesFactory contentGridConfigurationPropertiesFactory(
             @Value("${contentgrid.system.application-id:-}") String applicationId,
             ContentgridAutomationProperties automationProperties
     ) {

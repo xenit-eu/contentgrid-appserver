@@ -94,8 +94,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
     private final ContentStoreResolver contentStoreResolver;
     private final DomainEventDispatcher domainEventDispatcher;
-    private final Function<Application, LinkUriProvider> linkUriProviderFactory;
-    private final Function<Application, ConfigurationProperties> configurationPropertiesFactory;
+    private final LinkUriProviderFactory linkUriProviderFactory;
+    private final ConfigurationPropertiesFactory configurationPropertiesFactory;
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
@@ -157,8 +157,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         return new ResponseOutputDataMapper(
                 entity.getAttributes(),
                 entity.getLinks(),
-                linkUriProviderFactory.apply(application),
-                configurationPropertiesFactory.apply(application),
+                linkUriProviderFactory.createLinkUriProvider(application),
+                configurationPropertiesFactory.createConfigurationProperties(application),
                 new AttributeDataToDataEntryMapper()
         );
     }

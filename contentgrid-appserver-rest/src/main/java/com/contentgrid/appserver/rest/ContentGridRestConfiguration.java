@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.domain.LinkUriProvider;
+import com.contentgrid.appserver.domain.LinkUriProviderFactory;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
@@ -133,7 +134,7 @@ public class ContentGridRestConfiguration {
     }
 
     @Bean
-    Function<Application, LinkUriProvider> defaultLinkUriProviderFactory(MethodLinkBuilderFactory<?> linkBuilderFactory) {
+    LinkUriProviderFactory defaultLinkUriProviderFactory(MethodLinkBuilderFactory<?> linkBuilderFactory) {
         return application -> new DomainLinkUriProvider(new LinkFactoryProvider(
                 application,
                 UserLocales.defaults(),
