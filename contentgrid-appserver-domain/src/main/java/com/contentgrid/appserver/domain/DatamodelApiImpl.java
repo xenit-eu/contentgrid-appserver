@@ -505,6 +505,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         }
 
         private Optional<EntityLinkData> createLink(EntityData entityData, EntityLink entityLink) {
+            // TODO: Handle links with storage (ACC-3004), and return link to the stored data instead of fallback template
             // Whether the link references the %{owner.value} variable
             var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
             if(hasOwnerValueVariable) {
