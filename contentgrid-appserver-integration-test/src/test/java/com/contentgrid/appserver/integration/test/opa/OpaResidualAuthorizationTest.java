@@ -118,10 +118,6 @@ class OpaResidualAuthorizationTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class OpaTestConfiguration {
 
-        // Defined here rather than relying on autoconfiguration, mirroring how contentgrid-appserver-app's
-        // ContentgridApp wires it: this is an application-level bean, not autoconfigured by thunx or by
-        // contentgrid-appserver-autoconfigure, so without it thunx's default ServletOpaInputProvider (a
-        // different input shape) would be used and the policy above would never match.
         @Bean
         OpaInputProvider<Authentication, HttpServletRequest> appserverOpaInputProvider() {
             return new AppserverOpaInputProvider();
@@ -136,17 +132,19 @@ class OpaResidualAuthorizationTest {
 
     @BeforeEach
     void uploadPolicy() throws Exception {
-        var client = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .uri(URI.create("http://%s:%d/v1/policies/appserver".formatted(opa.getHost(), opa.getMappedPort(8181))))
-                .header("Content-Type", "text/plain")
-                .PUT(BodyPublishers.ofString(POLICY))
-                .build();
-        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException(
-                    "Failed to upload OPA policy: HTTP %d - %s".formatted(response.statusCode(), response.body()));
+        try (var client = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://%s:%d/v1/policies/appserver".formatted(opa.getHost(), opa.getMappedPort(8181))))
+                    .header("Content-Type", "text/plain")
+                    .PUT(BodyPublishers.ofString(POLICY))
+                    .build();
+            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException(
+                        "Failed to upload OPA policy: HTTP %d - %s".formatted(response.statusCode(), response.body()));
+            }
         }
+
     }
 
     @AfterEach
@@ -155,8 +153,6 @@ class OpaResidualAuthorizationTest {
     }
 
     private JwtRequestPostProcessor authenticatedAs(String subject) {
-        // Shaped like the gateway-minted sidecar JWT: the appserver only transcribes the contentgrid:auth:*
-        // claims, so the test token must carry them (see GatewayAuthClaimNames).
         return jwt()
                 .jwt(builder -> builder
                         .subject(subject)

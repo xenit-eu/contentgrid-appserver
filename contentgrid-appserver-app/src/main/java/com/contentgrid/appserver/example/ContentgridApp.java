@@ -19,8 +19,8 @@ public class ContentgridApp {
 
     // Defined here (a bean of the application itself) rather than in an autoconfiguration class,
     // so it always wins over thunx-autoconfigure's WebMvcAbacAutoConfiguration default
-    // ServletOpaInputProvider bean without relying on autoconfiguration ordering - mirroring how
-    // contentgrid-gateway's GatewayApplication overrides thunx's DefaultOpaInputProvider.
+    // ServletOpaInputProvider bean without relying on autoconfiguration ordering. This is also how
+    // the contentgrid-gateway's GatewayApplication overrides thunx's DefaultOpaInputProvider.
     @Bean
     OpaInputProvider<Authentication, HttpServletRequest> appserverOpaInputProvider() {
         return new AppserverOpaInputProvider();

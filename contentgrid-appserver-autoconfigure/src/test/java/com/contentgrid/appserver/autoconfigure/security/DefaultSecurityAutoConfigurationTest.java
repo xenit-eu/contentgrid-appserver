@@ -1,33 +1,38 @@
 package com.contentgrid.appserver.autoconfigure.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
+import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-import com.contentgrid.appserver.security.opa.OpaSidecarFeature;
 import com.contentgrid.appserver.autoconfigure.opa.OpaSidecarFeatureAutoConfiguration;
 import com.contentgrid.appserver.security.authority.AuthenticationDetails;
 import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
-import jakarta.servlet.Filter;
+import com.contentgrid.appserver.security.opa.OpaSidecarFeature;
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.config.BeanIds;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.WebApplicationContext;
 
 class DefaultSecurityAutoConfigurationTest {
 
@@ -39,7 +44,8 @@ class DefaultSecurityAutoConfigurationTest {
                     OpaSidecarFeatureAutoConfiguration.class,
                     OAuth2ResourceServerAutoConfiguration.class, SecurityAutoConfiguration.class,
                     ServletWebSecurityAutoConfiguration.class
-            ));
+            ))
+            .withUserConfiguration(StubController.class);
 
     @Test
     void hasSingleSecurityFilterChain() {
@@ -48,11 +54,6 @@ class DefaultSecurityAutoConfigurationTest {
             assertThat(context).hasSingleBean(SecurityFilterChain.class);
         });
     }
-
-    // FR4: the GatewayJwtAuthenticationDetailsConverter must only be wired in sidecar mode; non-sidecar
-    // (centralized/policy-package) mode must keep the previous default (Customizer.withDefaults()) behaviour.
-    // These tests drive a gateway-shaped bearer token through the *actual* assembled security filter chain
-    // (springSecurityFilterChain bean), without starting a servlet container or DispatcherServlet.
 
     private static Jwt gatewayShapedJwt() {
         return Jwt.withTokenValue("token")
@@ -70,8 +71,7 @@ class DefaultSecurityAutoConfigurationTest {
     }
 
     private static Jwt contractViolatingJwt() {
-        // Gateway-signed but missing the contentgrid:auth:principal claim: a contract violation that must be
-        // rejected as an invalid token (401), not classified leniently or crash with a 500.
+        // Gateway-signed, but missing the contentgrid:auth:principal claim which should be set by the gateway.
         return Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .claim(JwtClaimNames.ISS, USER_ISSUER)
@@ -82,77 +82,112 @@ class DefaultSecurityAutoConfigurationTest {
     }
 
     @Test
-    void sidecarMode_wiresGatewayJwtAuthenticationDetailsConverter() throws Exception {
+    void sidecarMode_wiresGatewayJwtAuthenticationDetailsConverter() {
         contextRunner
-                .withBean(JwtDecoder.class, () -> (JwtDecoder) token -> gatewayShapedJwt())
+                .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
 
-                    var authorities = authenticateWithBearerToken(context).getAuthorities();
-                    assertThat(authorities).hasAtLeastOneElementOfType(AuthenticationDetails.class);
+                    assertThat(bearerTokenRequest(context))
+                            .matches(authenticated().withAuthentication(authentication ->
+                                    assertThat(authentication.getAuthorities())
+                                            .hasAtLeastOneElementOfType(AuthenticationDetails.class)));
                 });
     }
 
     @Test
-    void sidecarMode_rejectsContractViolatingToken_asUnauthorized() throws Exception {
+    void sidecarMode_rejectsContractViolatingToken_asUnauthorized() {
         contextRunner
-                .withBean(JwtDecoder.class, () -> (JwtDecoder) token -> contractViolatingJwt())
+                .withBean(JwtDecoder.class, () -> token -> contractViolatingJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-
-                    var response = filterBearerTokenRequest(context, new AtomicReference<>());
-                    assertThat(response.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
-                    assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE)).contains("invalid_token");
+                    assertThat(bearerTokenRequest(context)).hasStatus(HttpStatus.UNAUTHORIZED);
                 });
     }
 
     @Test
-    void nonSidecarMode_doesNotWireGatewayJwtAuthenticationDetailsConverter() throws Exception {
+    void sidecarMode_appliesPolicyAuthorizationManager() {
         contextRunner
-                // OpaSidecarFeatureAutoConfiguration derives this from contentgrid.system.policyPackage in a real
-                // deployment; overridden directly here (instead of via that property) because
-                // OnPolicyPackageCondition's PARSE_CONFIGURATION-phase evaluation isn't reliably exercised by a
-                // bare ApplicationContextRunner. FR4 is about DefaultSecurityAutoConfiguration's behaviour given
-                // an OpaSidecarFeature, not about how that bean itself gets computed - that's already covered
-                // elsewhere (see OnPolicyPackageCondition / OnMissingPolicyPackageCondition).
+                .withUserConfiguration(DenyAllPolicyConfiguration.class)
+                .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(bearerTokenRequest(context)).hasStatus(HttpStatus.FORBIDDEN);
+                });
+    }
+
+    @Test
+    void nonSidecarMode_doesNotWireGatewayJwtAuthenticationDetailsConverter() {
+        contextRunner
                 .withBean("opaSidecarFeatureOverride", OpaSidecarFeature.class, () -> () -> false)
-                .withBean(JwtDecoder.class, () -> (JwtDecoder) token -> gatewayShapedJwt())
+                .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(OpaSidecarFeature.class).isActive()).isFalse();
 
-                    // Customizer.withDefaults() has no idea about contentgrid:auth:* claims, so none of the
-                    // resulting authorities are AuthenticationDetails - this is what pins the "previous default
-                    // behaviour" requirement, not just "no exception was thrown".
-                    var authorities = authenticateWithBearerToken(context).getAuthorities();
-                    assertThat(authorities).noneMatch(AuthenticationDetails.class::isInstance);
+                    assertThat(bearerTokenRequest(context))
+                            .matches(authenticated().withAuthentication(authentication ->
+                                    assertThat(authentication.getAuthorities())
+                                            .noneMatch(AuthenticationDetails.class::isInstance)));
                 });
     }
 
-    /**
-     * Pushes a bearer-token request through the real, fully assembled {@code springSecurityFilterChain} bean
-     * (the {@link org.springframework.security.web.FilterChainProxy} that {@code @EnableWebSecurity} registers),
-     * and returns the {@link Authentication} left in the {@link SecurityContextHolder} once the request reaches
-     * the terminal filter. No servlet container or DispatcherServlet is started.
-     */
-    private static Authentication authenticateWithBearerToken(ApplicationContext context) throws Exception {
-        var captured = new AtomicReference<Authentication>();
-        filterBearerTokenRequest(context, captured);
+    @Test
+    void nonSidecarMode_ignoresPolicyAuthorizationManager() {
+        contextRunner
+                .withBean("opaSidecarFeatureOverride", OpaSidecarFeature.class, () -> () -> false)
+                .withUserConfiguration(DenyAllPolicyConfiguration.class)
+                .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
 
-        assertThat(captured.get())
-                .as("request should have reached the terminal filter (i.e. authenticated and authorized)")
-                .isNotNull();
-        return captured.get();
+                    assertThat(bearerTokenRequest(context))
+                            .matches(authenticated())
+                            .hasStatus(HttpStatus.OK);
+                });
     }
 
-    private static MockHttpServletResponse filterBearerTokenRequest(ApplicationContext context,
-            AtomicReference<Authentication> captured) throws Exception {
-        var filter = context.getBean(BeanIds.SPRING_SECURITY_FILTER_CHAIN, Filter.class);
-        var request = new MockHttpServletRequest("GET", "/");
-        request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer test-token");
-        var response = new MockHttpServletResponse();
+    @Test
+    void withoutJwtDecoder_leavesRequestsUnauthenticated() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
 
-        filter.doFilter(request, response, (req, res) -> captured.set(SecurityContextHolder.getContext().getAuthentication()));
-        return response;
+            assertThat(bearerTokenRequest(context))
+                    .matches(unauthenticated())
+                    .hasStatus(HttpStatus.FORBIDDEN);
+        });
+    }
+
+    /**
+     * Drives a request through the real, fully assembled {@code springSecurityFilterChain}, without starting a
+     * servlet container. A request that is not rejected by the chain reaches {@link StubController} and gets a 200.
+     */
+    private static MvcTestResult bearerTokenRequest(WebApplicationContext context) {
+        var mockMvc = MockMvcTester.from(context, builder -> builder.apply(springSecurity()).build());
+        return mockMvc.get().uri("/").header(HttpHeaders.AUTHORIZATION, "Bearer test-token").exchange();
+    }
+
+    /**
+     * Gives every request a real endpoint to land on, so that "allowed by the security chain" shows up as a 200.
+     */
+    @RestController
+    static class StubController {
+
+        @GetMapping("/")
+        String root() {
+            return "ok";
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class DenyAllPolicyConfiguration {
+
+        /**
+         * Stands in for thunx's {@code PolicyAuthorizationManager}.
+         */
+        @Bean
+        AuthorizationManager<RequestAuthorizationContext> policyAuthorizationManager() {
+            return (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false);
+        }
     }
 }

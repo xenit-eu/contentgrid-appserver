@@ -12,7 +12,7 @@ abstract class AbstractAuthenticationDetailsGrantedAuthority implements Authenti
     private final Actor principal;
 
     protected AbstractAuthenticationDetailsGrantedAuthority(@NonNull Actor principal) {
-        if(principal.parent() != null) {
+        if (principal.parent() != null) {
             throw new IllegalArgumentException("Principal actor can not have a parent");
         }
         this.principal = principal;

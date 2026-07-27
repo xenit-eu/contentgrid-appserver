@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 
 /**
- * Registered a bean unconditionally for checking at runtime if the opa sidecar feature is active.
+ * Bean for checking at runtime if the opa sidecar feature is active.
  */
 @AutoConfiguration
 public class OpaSidecarFeatureAutoConfiguration {

@@ -2,9 +2,9 @@ package com.contentgrid.appserver.security.opa;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,7 +63,7 @@ class OpaPolicyUploaderTest {
 
         uploader.onApplicationEvent(event);
 
-        verify(opaClient).upsertPolicy(eq("appserver"), eq(regoContent));
+        verify(opaClient).upsertPolicy("appserver", regoContent);
         InOrder inOrder = Mockito.inOrder(applicationContext);
         inOrder.verify(applicationContext).publishEvent(argThat(
                 (AvailabilityChangeEvent<?> e) -> e.getState() == ReadinessState.REFUSING_TRAFFIC));
@@ -142,6 +142,7 @@ class OpaPolicyUploaderTest {
 
         uploader.onApplicationEvent(event);
 
+        verify(opaClient, times(6)).upsertPolicy(any(), any());
         verify(applicationContext, never()).publishEvent(argThat(
                 (AvailabilityChangeEvent<?> e) -> e.getState() == ReadinessState.ACCEPTING_TRAFFIC));
         verify(applicationContext).publishEvent(argThat(
@@ -169,6 +170,6 @@ class OpaPolicyUploaderTest {
 
         uploader.onApplicationEvent(event);
 
-        verify(opaClient).upsertPolicy(eq("appserver"), eq("package contentgrid.appserver\n"));
+        verify(opaClient).upsertPolicy("appserver", "package contentgrid.appserver\n");
     }
 }

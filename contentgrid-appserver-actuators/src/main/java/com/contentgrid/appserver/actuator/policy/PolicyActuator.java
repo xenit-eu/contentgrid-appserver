@@ -18,6 +18,7 @@ import org.springframework.util.SystemPropertyUtils;
 @WebEndpoint(id = "policy")
 @RequiredArgsConstructor
 public class PolicyActuator {
+
     private static final Path PATH = Path.of("rego", "policy.rego");
     private static final PropertyPlaceholderHelper PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper(
             SystemPropertyUtils.PLACEHOLDER_PREFIX,

@@ -136,7 +136,6 @@ class GatewayJwtAuthenticationDetailsConverterTest {
 
     // A gateway-signed token that violates the minting contract must be rejected as an invalid token (401),
     // never classified leniently or crash with an unhandled exception (500).
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("rejectedTokens")
     void rejectsMalformedTokens(String description, Map<String, Object> claims, String expectedMessageFragment) {

@@ -14,7 +14,5 @@ public class OnMissingPolicyPackageCondition extends NoneNestedConditions {
     }
 
     @Conditional(OnPolicyPackageCondition.class)
-    static class PolicyPackageIsSet {
-
-    }
+    static class PolicyPackageIsSet {}
 }
