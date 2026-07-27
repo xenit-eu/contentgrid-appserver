@@ -1,5 +1,9 @@
 package com.contentgrid.appserver.rest;
 
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.domain.LinkUriProvider;
+import com.contentgrid.appserver.domain.LinkUriProviderFactory;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.registry.DefaultApplicationNameExtractor;
@@ -20,6 +24,8 @@ import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationM
 import com.contentgrid.appserver.rest.filter.SingleRangeRequestServletFilter;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.hal.links.ContentGridLinksConfiguration;
+import com.contentgrid.appserver.rest.hal.links.DomainLinkUriProvider;
+import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.ContentGridHandlerMappingConfiguration;
 import com.contentgrid.appserver.rest.metadata.RootRestController;
 import com.contentgrid.appserver.rest.problem.ContentgridProblemDetailConfiguration;
@@ -32,6 +38,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -41,6 +48,7 @@ import org.springframework.hateoas.config.EnableHypermediaSupport;
 import org.springframework.hateoas.config.EnableHypermediaSupport.HypermediaType;
 import org.springframework.hateoas.mediatype.MediaTypeConfigurationCustomizer;
 import org.springframework.hateoas.mediatype.hal.HalConfiguration;
+import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -123,5 +131,14 @@ public class ContentGridRestConfiguration {
     @Bean
     MediaTypeConfigurationCustomizer<HalConfiguration> applicationJsonHalConfigurationCustomizer() {
         return halConfiguration -> halConfiguration.withMediaType(MediaType.APPLICATION_JSON);
+    }
+
+    @Bean
+    LinkUriProviderFactory defaultLinkUriProviderFactory(MethodLinkBuilderFactory<?> linkBuilderFactory) {
+        return application -> new DomainLinkUriProvider(new LinkFactoryProvider(
+                application,
+                UserLocales.defaults(),
+                linkBuilderFactory
+        ));
     }
 }

@@ -71,6 +71,7 @@ class ContentApiImplTest {
                 .thenReturn(Optional.of(new InternalEntityInstance(
                         EntityIdentity.forEntity(PRODUCT.getName(), entityId),
                         new LinkedHashMap<>(),
+                        List.of(),
                         List.of(
                                 createContentData("content.bin")
                         )
@@ -111,6 +112,7 @@ class ContentApiImplTest {
                 .thenReturn(Optional.of(new InternalEntityInstance(
                         EntityIdentity.forEntity(PRODUCT.getName(), entityId),
                         new LinkedHashMap<>(),
+                        List.of(),
                         List.of(
                                 createContentData(null)
                         )
@@ -138,6 +140,7 @@ class ContentApiImplTest {
                         EntityIdentity.forEntity(PRODUCT.getName(), entityId)
                                 .withVersion(ENTITY_VERSION),
                         new LinkedHashMap<>(),
+                        List.of(),
                         List.of(
                                 createContentData(hasContent?"content-id":null)
                         )
@@ -180,6 +183,7 @@ class ContentApiImplTest {
                             originalData.getIdentity()
                                     .withVersion(Version.exactly("new-version")),
                             new LinkedHashMap<>(),
+                            List.of(),
                             List.of(
                                     createContentData("new-content-id")
                             )
@@ -235,6 +239,7 @@ class ContentApiImplTest {
                             originalData.getIdentity()
                                     .withVersion(Version.exactly("new-version")),
                             new LinkedHashMap<>(),
+                            List.of(),
                             List.of(
                                     createContentData(null)
                             )

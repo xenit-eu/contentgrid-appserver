@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.automations;
 
+import com.contentgrid.appserver.rest.hal.serializer.RenderAsLinkRelation;
 import lombok.experimental.UtilityClass;
 import org.springframework.hateoas.LinkRelation;
 import org.springframework.hateoas.UriTemplate;
@@ -12,7 +13,7 @@ class AutomationLinkRelations {
 
     public static final LinkRelation ANNOTATION = HalLinkRelation.curied(CURIE, "annotation");
     public static final String ANNOTATION_STRING = CURIE+":annotation";
-    public static final LinkRelation TARGET_ENTITY = HalLinkRelation.curied(CURIE, "target-entity");
-    public static final LinkRelation REGISTRATIONS = HalLinkRelation.curied(CURIE, "registrations");
+    public static final LinkRelation TARGET_ENTITY = RenderAsLinkRelation.single(HalLinkRelation.curied(CURIE, "target-entity"));
+    public static final LinkRelation REGISTRATIONS = RenderAsLinkRelation.single(HalLinkRelation.curied(CURIE, "registrations"));
 
 }

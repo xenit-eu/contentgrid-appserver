@@ -2,12 +2,12 @@ package com.contentgrid.appserver.rest.hal.links;
 
 import com.contentgrid.appserver.rest.hal.links.curie.ContentGridCurieConfiguration;
 import com.contentgrid.appserver.rest.hal.links.curie.CurieProviderCustomizer;
+import com.contentgrid.appserver.rest.hal.serializer.HalModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.mediatype.MediaTypeConfigurationCustomizer;
 import org.springframework.hateoas.mediatype.hal.HalConfiguration;
-import org.springframework.hateoas.mediatype.hal.HalConfiguration.RenderSingleLinks;
 
 @Configuration
 @Import(ContentGridCurieConfiguration.class)
@@ -19,11 +19,9 @@ public class ContentGridLinksConfiguration {
     }
 
     @Bean
-    MediaTypeConfigurationCustomizer<HalConfiguration> contentGridLinksMediaTypeConfigurationCustomizer() {
+    MediaTypeConfigurationCustomizer<HalConfiguration> contentGridHalModuleMediaTypeConfigurationCustomizer() {
         return halConfiguration -> halConfiguration
-                .withRenderSingleLinksFor(ContentGridLinkRelations.CONTENT, RenderSingleLinks.AS_ARRAY)
-                .withRenderSingleLinksFor(ContentGridLinkRelations.RELATION, RenderSingleLinks.AS_ARRAY)
-                .withRenderSingleLinksFor(ContentGridLinkRelations.ENTITY, RenderSingleLinks.AS_ARRAY);
+                .withMapperBuilderCustomizer(builder -> builder.addModule(new HalModule()));
     }
 
 }

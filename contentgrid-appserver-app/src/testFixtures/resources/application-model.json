@@ -292,6 +292,24 @@
             }
           ]
         }
+      ],
+      "links": [
+        {
+          "rel": "https://calendar.example/cal",
+          "name": "birth_date",
+          "owner": [{"type":  "attr", "name":  "birth_date"}],
+          "fallbackTemplate": {
+            "template": "https://calendar.example/cal?date=%{owner.value}"
+          }
+        },
+        {
+          "rel": "https://calendar.example/related",
+          "name": "friends",
+          "owner": [{"type":  "rel", "name":  "friends"}],
+          "fallbackTemplate": {
+            "template": "https://calendar.example/people?me=%{entity.link}&meType=%{entity.name}&related=%{owner.link}&relatedType=%{owner.name}"
+          }
+        }
       ]
     },
     {

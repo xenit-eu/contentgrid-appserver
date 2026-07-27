@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -17,6 +16,8 @@ import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
 import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
+import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -31,18 +32,22 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
+import lombok.EqualsAndHashCode.Exclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -90,6 +95,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
      * @param primaryKey the primary key attribute (defaults to UUID "id" if null)
      * @param searchFilters list of search filters for this entity
      * @param sortableFields list of fields by which this entity can be sorted
+     * @param links list of links for this entity
      * @throws DuplicateElementException if duplicate attributes, search filters, or sortable fields are found
      * @throws InvalidArgumentModelException if a sortable field doesn't reference an attribute on this entity
      * @throws InvalidAttributeTypeException if primary key has an invalid type
@@ -104,7 +110,8 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
             @Singular Collection<Attribute> attributes,
             SimpleAttribute primaryKey,
             @Singular Collection<SearchFilter> searchFilters,
-            @Singular Collection<SortableField> sortableFields
+            @Singular Collection<SortableField> sortableFields,
+            @Singular Collection<EntityLink> links
     ) {
         this.name = name;
         this.pathSegment = pathSegment;
@@ -198,6 +205,8 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
+
+        this.links.addAll(links);
     }
 
     /**
@@ -255,7 +264,13 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
     Map<PathSegmentName, ContentAttribute> contentAttributes = new LinkedHashMap<>();
 
     /**
-     * @deprecated use {@link #getTranslations(com.contentgrid.appserver.application.model.i18n.UserLocales)} instead
+     * The links available on the entity
+     */
+    @NonNull
+    Collection<EntityLink> links = new ArrayList<>();
+
+    /**
+     * @deprecated use {@link #getTranslations(UserLocales)} instead
      */
     @Deprecated(forRemoval = true)
     public String getDescription() {
@@ -368,7 +383,8 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                         searchFilters.values().stream(),
                         additionalFilters.stream()
                 ).toList(),
-                sortableFields.values()
+                sortableFields.values(),
+                links
         );
     }
 

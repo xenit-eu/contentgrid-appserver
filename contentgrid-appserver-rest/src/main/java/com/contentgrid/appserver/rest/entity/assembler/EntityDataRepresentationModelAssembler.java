@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.entity.assembler;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
@@ -14,6 +15,7 @@ import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
 import com.contentgrid.appserver.rest.hal.links.ContentGridLinkRelations;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider.CollectionParameters;
+import com.contentgrid.appserver.rest.hal.serializer.RenderAsLinkRelation;
 import com.contentgrid.hateoas.spring.pagination.SlicedResourcesAssembler;
 import com.contentgrid.hateoas.spring.server.RepresentationModelContextAssembler;
 import java.util.Collection;
@@ -63,6 +65,21 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             var contentTemplates = context.templateGenerator().generateContentTemplates(entity, content);
             model.add(contentLink).addTemplates(contentTemplates);
         }
+
+        for (var entityDataLink : entityData.getLinks()) {
+            var link = Link.of(entityDataLink.getHref(), entityDataLink.getIdentity().rel().toASCIIString());
+            if(entityDataLink.getIdentity() instanceof NamedLink namedLink) {
+                link = link
+                        // Always render named links as an array of links
+                        .withRel(RenderAsLinkRelation.array(link.getRel()))
+                        .withName(namedLink.name());
+            }
+            if(entityDataLink.getProfile() != null) {
+                link = link.withProfile(entityDataLink.getProfile().toASCIIString());
+            }
+            model.add(link);
+        }
+
         return model.addTemplate(context.templateGenerator().generateUpdateTemplate(entity.getName()))
                 .addTemplate(getDeleteTemplate());
     }

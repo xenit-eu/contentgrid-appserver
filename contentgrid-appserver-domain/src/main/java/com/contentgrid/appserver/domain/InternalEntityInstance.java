@@ -3,8 +3,10 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -17,6 +19,7 @@ import lombok.Value;
 class InternalEntityInstance implements EntityInstance {
     EntityIdentity identity;
     SequencedMap<String, PlainDataEntry> data;
+    Collection<EntityLinkData> links;
     @Getter(value = AccessLevel.NONE)
     List<AttributeData> attributeData;
 

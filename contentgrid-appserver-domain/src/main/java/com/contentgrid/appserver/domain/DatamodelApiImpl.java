@@ -3,11 +3,19 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
@@ -62,13 +70,18 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.net.URI;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -81,6 +94,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final QueryEngine queryEngine;
     private final ContentStoreResolver contentStoreResolver;
     private final DomainEventDispatcher domainEventDispatcher;
+    private final LinkUriProviderFactory linkUriProviderFactory;
+    private final ConfigurationPropertiesFactory configurationPropertiesFactory;
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
@@ -141,6 +156,9 @@ public class DatamodelApiImpl implements DatamodelApi {
         var entity = application.getRequiredEntityByName(entityName);
         return new ResponseOutputDataMapper(
                 entity.getAttributes(),
+                entity.getLinks(),
+                linkUriProviderFactory.createLinkUriProvider(application),
+                configurationPropertiesFactory.createConfigurationProperties(application),
                 new AttributeDataToDataEntryMapper()
         );
     }
@@ -445,6 +463,9 @@ public class DatamodelApiImpl implements DatamodelApi {
     @RequiredArgsConstructor
     private static class ResponseOutputDataMapper {
         private final List<Attribute> attributes;
+        private final Collection<EntityLink> links;
+        private final LinkUriProvider linkUriProvider;
+        private final ConfigurationProperties configurationProperties;
         private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
 
         public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
@@ -468,11 +489,85 @@ public class DatamodelApiImpl implements DatamodelApi {
                 }
             }
 
+            var linkData = new ArrayList<EntityLinkData>(links.size());
+
+            for (var entityLink : links) {
+                createLink(entityData, entityLink)
+                        .ifPresent(linkData::add);
+            }
+
             return new InternalEntityInstance(
                     entityData.getIdentity(),
                     Collections.unmodifiableSequencedMap(data),
+                    linkData,
                     entityData.getAttributes()
             );
+        }
+
+        private Optional<EntityLinkData> createLink(EntityData entityData, EntityLink entityLink) {
+            // TODO: Handle links with storage (ACC-3004), and return link to the stored data instead of fallback template
+            // Whether the link references the %{owner.value} variable
+            var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
+            if(hasOwnerValueVariable) {
+                // Whether the owner has data stored
+                var ownerHasData = entityLink.getOwner().map(owner -> {
+                    try {
+                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue() != null;
+                    } catch (InvalidPropertyPathException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }).orElse(true);
+                if(!ownerHasData) {
+                    // If the owner value is referenced and it doesn't have data; don't render the link
+                    return Optional.empty();
+                }
+            }
+            return entityLink.getFallbackTemplate().flatMap(template -> {
+                var linkHref = template.getTemplate().expand(substitutionVariable -> switch (substitutionVariable) {
+                    case APPLICATION_ID -> configurationProperties.getApplicationId();
+                    case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
+                    case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
+                    case ENTITY_NAME -> entityData.getName().getValue();
+                    case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
+                    case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
+                        try {
+                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue(), null);
+                        } catch (InvalidPropertyPathException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }).orElseThrow();
+                    case OWNER_LINK -> entityLink.getOwner().map(owner -> switch (owner) {
+                        case SimpleAttributePath simpleAttributePath -> linkUriProvider.createAttributeLink(entityData.getIdentity(), simpleAttributePath.getFirst());
+                        case SimpleRelationPath simpleRelationPath -> linkUriProvider.createRelationLink(entityData.getIdentity(), simpleRelationPath.getFirst());
+                        default -> throw new IllegalStateException("Can not create a link to owner property path '%s'".formatted(owner));
+                    }).orElseThrow();
+                });
+                if (template instanceof AutomationUriTemplateDefinition automationUriTemplateDefinition) {
+                    var maybeBasePath = configurationProperties.getAutomationSystemBaseUrl(
+                            automationUriTemplateDefinition.getAutomationSystem(),
+                            automationUriTemplateDefinition.getBasePathName()
+                    ).map(URI::toASCIIString);
+
+                    if (maybeBasePath.isEmpty()) {
+                        // If the automation is not registered, omit the link
+                        log.warn(
+                                "Automation system '{}' base path '{}' is not registered: link {} omitted",
+                                automationUriTemplateDefinition.getAutomationSystem(),
+                                automationUriTemplateDefinition.getBasePathName(),
+                                entityLink.getIdentity()
+                        );
+                        return Optional.empty();
+                    }
+
+                    linkHref = maybeBasePath.get() + linkHref;
+                }
+
+                return Optional.of(new EntityLinkData(
+                        entityLink.getIdentity(),
+                        entityLink.getProfile().orElse(null),
+                        linkHref
+                ));
+            });
         }
     }
 

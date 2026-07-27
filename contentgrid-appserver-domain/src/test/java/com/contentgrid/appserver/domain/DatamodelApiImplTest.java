@@ -9,10 +9,32 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
+import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
+import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SortableName;
+import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.contentstore.api.ContentAccessor;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -26,6 +48,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
+import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
@@ -61,17 +84,22 @@ import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.hateoas.pagination.api.Pagination;
+import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +139,41 @@ class DatamodelApiImplTest {
 
     private DatamodelApi datamodelApi;
 
+    private final LinkUriProvider linkUriProvider = new LinkUriProvider() {
+        @Override
+        public String createEntityLink(EntityIdentity entityIdentity) {
+            return "http://localhost/%s/%s".formatted(
+                    entityIdentity.getEntityName().getValue(),
+                    entityIdentity.getEntityId().getValue()
+            );
+        }
+
+        @Override
+        public String createAttributeLink(EntityIdentity entityIdentity, AttributeName attributeName) {
+            return createEntityLink(entityIdentity) + "/" + attributeName.getValue();
+        }
+
+        @Override
+        public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
+            return createEntityLink(entityIdentity) + "/" + relationName.getValue();
+        }
+    };
+
+    private final ConfigurationProperties configurationProperties = new ConfigurationProperties() {
+        @Override
+        public String getApplicationId() {
+            return "my-application-id";
+        }
+
+        @Override
+        public Optional<URI> getAutomationSystemBaseUrl(String automationSystemId, String basePathName) {
+            if (automationSystemId.equals("my-automation") && basePathName.equals("api")) {
+                return Optional.of(URI.create("https://automation.example/my-automation"));
+            }
+            return Optional.empty();
+        }
+    };
+
     private static final Clock clock = Clock.fixed(Instant.ofEpochSecond(440991035), ZoneOffset.UTC);
 
     private static CompositeAttributeData getAuditMetadataData(boolean create) {
@@ -141,6 +204,8 @@ class DatamodelApiImplTest {
                 queryEngine,
                 application -> contentStore,
                 domainEventDispatcher,
+                application -> linkUriProvider,
+                application -> configurationProperties,
                 codec,
                 clock
         );
@@ -379,7 +444,10 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
-                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
+                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId)
+                            // The vat attribute is referenced by the owner of PERSON_VAT_LINK
+                            .attribute(new SimpleAttributeData<>(PERSON_VAT.getName(), "XXXX"))
+                            .build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                             "name", "Test person",
                             "vat", "XXXX",
@@ -412,7 +480,10 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
-                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId).build());
+                    .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId)
+                            // The vat attribute is referenced by the owner of PERSON_VAT_LINK
+                            .attribute(new SimpleAttributeData<>(PERSON_VAT.getName(), "XXXX"))
+                            .build());
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                     "name", "test",
                     "vat", "123456"
@@ -488,6 +559,7 @@ class DatamodelApiImplTest {
             var existing = new InternalEntityInstance(
                     EntityIdentity.forEntity(INVOICE.getName(), entityId),
                     new LinkedHashMap<>(),
+                    List.of(),
                     List.of());
 
             var result = datamodelApi.update(APPLICATION, existing, MapRequestInputData.fromMap(Map.of(
@@ -531,6 +603,7 @@ class DatamodelApiImplTest {
             var existing = new InternalEntityInstance(
                     EntityIdentity.forEntity(INVOICE.getName(), entityId),
                     new LinkedHashMap<>(),
+                    List.of(),
                     List.of());
 
             var result = datamodelApi.updatePartial(APPLICATION, existing, MapRequestInputData.fromMap(Map.of(
@@ -1663,6 +1736,242 @@ class DatamodelApiImplTest {
             var hex = Integer.toHexString(i);
             var val = "00000000-0000-0000-0000-0000" + "0".repeat(8 - hex.length()) + hex;
             return EntityId.of(UUID.fromString(val));
+        }
+    }
+
+    @Nested
+    class EntityLinks {
+
+        private static final SimpleAttribute DOCUMENT_ID = SimpleAttribute.builder()
+                .name(AttributeName.of("id"))
+                .column(ColumnName.of("id"))
+                .type(Type.UUID)
+                .flag(ReadOnlyFlag.INSTANCE)
+                .build();
+
+        private static final SimpleAttribute DOCUMENT_CATEGORY = SimpleAttribute.builder()
+                .name(AttributeName.of("category"))
+                .column(ColumnName.of("category"))
+                .type(Type.TEXT)
+                .build();
+
+        private static final ContentAttribute DOCUMENT_ATTACHMENT = ContentAttribute.builder()
+                .name(AttributeName.of("attachment"))
+                .pathSegment(PathSegmentName.of("attachment"))
+                .linkName(LinkName.of("attachment"))
+                .idColumn(ColumnName.of("attachment__id"))
+                .filenameColumn(ColumnName.of("attachment__filename"))
+                .mimetypeColumn(ColumnName.of("attachment__mimetype"))
+                .lengthColumn(ColumnName.of("attachment__length"))
+                .build();
+
+        // Uses all entity substitution variables and the owner value of an attribute
+        private static final EntityLink CATEGORY_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/category"), "category"))
+                .profile(URI.create("https://links.example/profile/category"))
+                .owner(new SimpleAttributePath(DOCUMENT_CATEGORY.getName()))
+                .fallbackTemplate(template(
+                        "https://categories.example/%{entity.name}?name=%{owner.name}&value=%{owner.value}&id=%{entity.id}"))
+                .build();
+
+        // Uses only the entity link, without an owner
+        private static final EntityLink PREVIEW_LINK = EntityLink.builder()
+                .identity(new UnnamedLink(URI.create("https://links.example/rel/preview")))
+                .fallbackTemplate(template("https://preview.example/render?src=%{entity.link}"))
+                .build();
+
+        // Uses the owner link of a content attribute
+        private static final EntityLink ATTACHMENT_SCAN_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/scan"), "attachment"))
+                .owner(new SimpleAttributePath(DOCUMENT_ATTACHMENT.getName()))
+                .fallbackTemplate(template("https://scanner.example/scan?content=%{owner.link}"))
+                .build();
+
+        // Uses the owner link and name of a relation
+        private static final EntityLink AUTHOR_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/author-info"), "author"))
+                .owner(new SimpleRelationPath(RelationName.of("author")))
+                .fallbackTemplate(template("https://people.example/info?me=%{owner.link}&relation=%{owner.name}"))
+                .build();
+
+        // References an automation system and base path name that are registered in the configuration
+        private static final EntityLink AUTOMATION_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "automation"))
+                .fallbackTemplate(automationTemplate("my-automation", "api",
+                        "/documents/%{entity.id}?app=%{application.id}"))
+                .build();
+
+        // References an automation system that is not registered in the configuration
+        private static final EntityLink UNKNOWN_AUTOMATION_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "unknown-automation"))
+                .fallbackTemplate(automationTemplate("unknown-automation", "api",
+                        "/documents/%{entity.id}"))
+                .build();
+
+        // References a registered automation system, but with a base path name that is not registered
+        private static final EntityLink UNKNOWN_BASE_PATH_LINK = EntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "unknown-base-path"))
+                .fallbackTemplate(automationTemplate("my-automation", "unknown",
+                        "/documents/%{entity.id}"))
+                .build();
+
+        private static final Entity DOCUMENT = Entity.builder()
+                .name(EntityName.of("document"))
+                .table(TableName.of("document"))
+                .pathSegment(PathSegmentName.of("documents"))
+                .linkName(LinkName.of("document"))
+                .primaryKey(DOCUMENT_ID)
+                .attribute(DOCUMENT_CATEGORY)
+                .attribute(DOCUMENT_ATTACHMENT)
+                .link(CATEGORY_LINK)
+                .link(PREVIEW_LINK)
+                .link(ATTACHMENT_SCAN_LINK)
+                .link(AUTHOR_LINK)
+                .link(AUTOMATION_LINK)
+                .link(UNKNOWN_AUTOMATION_LINK)
+                .link(UNKNOWN_BASE_PATH_LINK)
+                .build();
+
+        private static final ManyToOneRelation DOCUMENT_AUTHOR = ManyToOneRelation.builder()
+                .sourceEndPoint(RelationEndPoint.builder()
+                        .entity(DOCUMENT.getName())
+                        .name(RelationName.of("author"))
+                        .pathSegment(PathSegmentName.of("author"))
+                        .linkName(LinkName.of("author"))
+                        .build())
+                .targetEndPoint(RelationEndPoint.builder()
+                        .entity(DOCUMENT.getName())
+                        .build())
+                .targetReference(ColumnName.of("author_id"))
+                .build();
+
+        private static final Application DOCUMENT_APPLICATION = Application.builder()
+                .name(ApplicationName.of("document-application"))
+                .entity(DOCUMENT)
+                .relation(DOCUMENT_AUTHOR)
+                .build();
+
+        private static UriTemplateDefinition template(String template) {
+            return new SimpleUriTemplateDefinition(
+                    new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
+                            .parseUnchecked(template)
+            );
+        }
+
+        private static UriTemplateDefinition automationTemplate(String automationSystem, String basePathName,
+                String template) {
+            return new AutomationUriTemplateDefinition(
+                    automationSystem,
+                    basePathName,
+                    new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
+                            .parseUnchecked(template)
+            );
+        }
+
+        private void setupDocumentQuery(String categoryValue) {
+            Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
+                var request = args.getArgument(1, EntityRequest.class);
+                return Optional.of(new EntityData(
+                        EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
+                        List.of(new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), categoryValue))
+                ));
+            });
+        }
+
+        private String encodedUriProviderLink(EntityId entityId, String suffix) {
+            return URLEncoder.encode(
+                    "http://localhost/document/" + entityId.getValue() + suffix,
+                    StandardCharsets.UTF_8
+            );
+        }
+
+        @Test
+        void findById_expandsEntityLinks() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentQuery("contracts");
+
+            var result = datamodelApi.findById(DOCUMENT_APPLICATION,
+                            EntityRequest.forEntity(DOCUMENT.getName(), entityId), AuthorizationContext.allowAll())
+                    .orElseThrow();
+
+            assertThat(result.getLinks()).containsExactlyInAnyOrder(
+                    new EntityLinkData(
+                            CATEGORY_LINK.getIdentity(),
+                            URI.create("https://links.example/profile/category"),
+                            "https://categories.example/document?name=category&value=contracts&id=" + entityId.getValue()
+                    ),
+                    new EntityLinkData(
+                            PREVIEW_LINK.getIdentity(),
+                            null,
+                            "https://preview.example/render?src=" + encodedUriProviderLink(entityId, "")
+                    ),
+                    new EntityLinkData(
+                            ATTACHMENT_SCAN_LINK.getIdentity(),
+                            null,
+                            "https://scanner.example/scan?content=" + encodedUriProviderLink(entityId, "/attachment")
+                    ),
+                    new EntityLinkData(
+                            AUTHOR_LINK.getIdentity(),
+                            null,
+                            "https://people.example/info?me=" + encodedUriProviderLink(entityId, "/author")
+                                    + "&relation=author"
+                    ),
+                    // The registered automation base url is prepended to the expanded template.
+                    // UNKNOWN_AUTOMATION_LINK and UNKNOWN_BASE_PATH_LINK reference an unregistered
+                    // automation system or base path name, so they are not rendered.
+                    new EntityLinkData(
+                            AUTOMATION_LINK.getIdentity(),
+                            null,
+                            "https://automation.example/my-automation/documents/" + entityId.getValue()
+                                    + "?app=my-application-id"
+                    )
+            );
+        }
+
+        @Test
+        void findById_omitsLinkReferencingOwnerValueWithoutData() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentQuery(null);
+
+            var result = datamodelApi.findById(DOCUMENT_APPLICATION,
+                            EntityRequest.forEntity(DOCUMENT.getName(), entityId), AuthorizationContext.allowAll())
+                    .orElseThrow();
+
+            // The category link references %{owner.value}, which has no data, so it is not rendered.
+            // Links that don't use %{owner.value} are still rendered
+            assertThat(result.getLinks())
+                    .extracting(EntityLinkData::getIdentity)
+                    .containsExactlyInAnyOrder(
+                            PREVIEW_LINK.getIdentity(),
+                            ATTACHMENT_SCAN_LINK.getIdentity(),
+                            AUTHOR_LINK.getIdentity(),
+                            AUTOMATION_LINK.getIdentity()
+                    );
+        }
+
+        @Test
+        void create_expandsEntityLinks() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.create(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                    .thenReturn(EntityData.builder()
+                            .name(DOCUMENT.getName())
+                            .id(entityId)
+                            .attribute(new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), "contracts"))
+                            .build());
+
+            var result = datamodelApi.create(DOCUMENT_APPLICATION, DOCUMENT.getName(),
+                    MapRequestInputData.fromMap(Map.of("category", "contracts")),
+                    AuthorizationContext.allowAll());
+
+            assertThat(result.getLinks())
+                    .extracting(EntityLinkData::getIdentity)
+                    .containsExactlyInAnyOrder(
+                            CATEGORY_LINK.getIdentity(),
+                            PREVIEW_LINK.getIdentity(),
+                            ATTACHMENT_SCAN_LINK.getIdentity(),
+                            AUTHOR_LINK.getIdentity(),
+                            AUTOMATION_LINK.getIdentity()
+                    );
         }
     }
 
