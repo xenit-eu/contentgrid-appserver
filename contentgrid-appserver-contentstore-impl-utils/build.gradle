@@ -13,5 +13,7 @@ dependencies {
     testFixturesImplementation 'org.junit.jupiter:junit-jupiter'
     testFixturesImplementation 'com.adobe.testing:s3mock-testcontainers'
     testFixturesImplementation project(':contentgrid-appserver-contentstore-impl-fs')
+    testFixturesApi 'software.amazon.awssdk:s3'
+    testFixturesImplementation 'software.amazon.awssdk:apache5-client'
 }
 

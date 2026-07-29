@@ -35,7 +35,8 @@ dependencies {
     compileOnly 'com.contentgrid.thunx:thunx-pdp-opa'
 
     compileOnly 'io.minio:minio'
-    compileOnly 'com.squareup.okhttp3:okhttp'
+    compileOnly 'software.amazon.awssdk:s3'
+    compileOnly 'software.amazon.awssdk:apache5-client'
     compileOnly 'com.zaxxer:HikariCP'
     compileOnly 'org.flywaydb:flyway-core'
     compileOnly 'org.jooq:jooq'
@@ -91,6 +92,8 @@ dependencies {
 
 
     testImplementation 'io.minio:minio'
+    testImplementation 'software.amazon.awssdk:s3'
+    testImplementation 'software.amazon.awssdk:apache5-client'
     testImplementation 'org.springframework.hateoas:spring-hateoas'
 }
 
