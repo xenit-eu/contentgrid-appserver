@@ -21,8 +21,6 @@ dependencies {
 
         api 'com.fasterxml.uuid:java-uuid-generator:5.2.0'
 
-        api 'io.minio:minio:8.6.0'
-
         api 'com.adobe.testing:s3mock-testcontainers:5.1.0'
 
         api 'com.networknt:json-schema-validator:1.5.9'

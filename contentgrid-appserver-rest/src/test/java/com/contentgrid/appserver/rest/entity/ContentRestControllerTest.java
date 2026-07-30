@@ -961,8 +961,7 @@ class ContentRestControllerTest {
         void upload_contentStoreWriteFails_returnsServerError(HttpMethod method) throws Exception {
             String invoiceId = createInvoice(null);
 
-            // Simulate S3 broken pipe: CompletionException wrapping IOException,
-            // exactly as MinioAsyncClient.putObject().join() would throw
+            // Simulate an S3 broken pipe failure while writing content
             Mockito.doThrow(new UnwritableContentException(ContentReference.UNKNOWN, new java.io.IOException("Broken pipe")))
                     .when(contentStoreSpy).writeContent(Mockito.any());
 
