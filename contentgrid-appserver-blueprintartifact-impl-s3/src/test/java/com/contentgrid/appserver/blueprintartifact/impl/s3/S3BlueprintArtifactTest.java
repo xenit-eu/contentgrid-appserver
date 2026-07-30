@@ -4,17 +4,17 @@ import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.ZipUtils;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
+import com.contentgrid.appserver.contentstore.impl.utils.testing.S3TestClients;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioAsyncClient;
-import io.minio.PutObjectArgs;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Testcontainers
 class S3BlueprintArtifactTest extends AbstractBlueprintArtifactTest {
@@ -29,23 +29,18 @@ class S3BlueprintArtifactTest extends AbstractBlueprintArtifactTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        var client = MinioAsyncClient.builder()
-                .endpoint(S3_MOCK.getHttpEndpoint())
-                .credentials("test", "test")
-                .build();
+        var client = S3TestClients.s3Client(S3_MOCK.getHttpEndpoint());
 
-        client.makeBucket(MakeBucketArgs.builder()
+        client.createBucket(CreateBucketRequest.builder()
                 .bucket(BUCKET_NAME)
-                .build())
-                .join();
+                .build());
 
         var zipBytes = createZip();
-        client.putObject(PutObjectArgs.builder()
-                .bucket(BUCKET_NAME)
-                .object(OBJECT_KEY)
-                .stream(new ByteArrayInputStream(zipBytes), zipBytes.length, -1)
-                .build())
-                .join();
+        client.putObject(PutObjectRequest.builder()
+                        .bucket(BUCKET_NAME)
+                        .key(OBJECT_KEY)
+                        .build(),
+                RequestBody.fromBytes(zipBytes));
 
         blueprintArtifact = new S3BlueprintArtifact(client, BUCKET_NAME, OBJECT_KEY);
     }

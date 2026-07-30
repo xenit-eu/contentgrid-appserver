@@ -3,13 +3,13 @@ package com.contentgrid.appserver.blueprintartifact.impl.s3;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
-import io.minio.MinioAsyncClient;
 import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.services.s3.S3Client;
 
 @RequiredArgsConstructor
 public class S3BlueprintArtifactReferenceResolver implements BlueprintArtifactReferenceResolver {
 
-    private final MinioAsyncClient client;
+    private final S3Client client;
 
     @Override
     public BlueprintArtifact resolve(BlueprintArtifactReference reference) {

@@ -1,13 +1,13 @@
 package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
 import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration.BlueprintArtifactProperties;
+import com.contentgrid.appserver.autoconfigure.s3.S3ClientFactory;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.FilesystemBlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
-import io.minio.MinioAsyncClient;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +21,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import software.amazon.awssdk.http.apache5.Apache5HttpClient;
+import software.amazon.awssdk.services.s3.S3Client;
 
 @AutoConfiguration
 @RequiredArgsConstructor
@@ -62,17 +64,12 @@ public class BlueprintArtifactAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnClass({S3BlueprintArtifactReferenceResolver.class, MinioAsyncClient.class})
+    @ConditionalOnClass({S3BlueprintArtifactReferenceResolver.class, S3Client.class})
     @ConditionalOnProperty("contentgrid.appserver.blueprint-artifact.s3.endpoint")
     BlueprintArtifactReferenceResolver s3BlueprintArtifactReferenceResolver(BlueprintArtifactProperties properties) {
         var s3 = properties.s3();
-        var clientBuilder = MinioAsyncClient.builder().endpoint(s3.endpoint());
-        if (s3.accessKey() != null && s3.secretKey() != null) {
-            clientBuilder.credentials(s3.accessKey(), s3.secretKey());
-        }
-        if (s3.region() != null) {
-            clientBuilder.region(s3.region());
-        }
-        return new S3BlueprintArtifactReferenceResolver(clientBuilder.build());
+        var client = S3ClientFactory.createS3Client(s3.endpoint(), s3.accessKey(), s3.secretKey(), s3.region(),
+                Apache5HttpClient.builder());
+        return new S3BlueprintArtifactReferenceResolver(client);
     }
 }

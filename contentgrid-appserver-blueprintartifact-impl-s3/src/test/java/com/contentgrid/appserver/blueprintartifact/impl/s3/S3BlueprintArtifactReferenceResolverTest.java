@@ -2,19 +2,15 @@ package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.appserver.contentstore.impl.utils.testing.S3TestClients;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
-import io.minio.MinioAsyncClient;
 import org.junit.jupiter.api.Test;
 
 class S3BlueprintArtifactReferenceResolverTest {
 
     // No actual S3 calls are made: S3Artifact downloads lazily, so a dummy endpoint is fine.
-    private final MinioAsyncClient client = MinioAsyncClient.builder()
-            .endpoint("http://localhost:9000")
-            .credentials("test", "test")
-            .build();
-
-    private final S3BlueprintArtifactReferenceResolver resolver = new S3BlueprintArtifactReferenceResolver(client);
+    private final S3BlueprintArtifactReferenceResolver resolver = new S3BlueprintArtifactReferenceResolver(
+            S3TestClients.s3Client("http://localhost:9000"));
 
     @Test
     void resolve_s3Reference_returnsS3BlueprintArtifact() {
