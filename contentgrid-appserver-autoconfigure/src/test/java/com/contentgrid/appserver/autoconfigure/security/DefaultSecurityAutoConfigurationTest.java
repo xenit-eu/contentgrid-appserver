@@ -133,17 +133,17 @@ class DefaultSecurityAutoConfigurationTest {
     }
 
     @Test
-    void nonSidecarMode_ignoresPolicyAuthorizationManager() {
+    void nonSidecarMode_withPolicyAuthorizationManager_failsFast() {
         contextRunner
                 .withBean("opaSidecarFeatureOverride", OpaSidecarFeature.class, () -> () -> false)
                 .withUserConfiguration(DenyAllPolicyConfiguration.class)
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
                 .run(context -> {
-                    assertThat(context).hasNotFailed();
-
-                    assertThat(bearerTokenRequest(context))
-                            .matches(authenticated())
-                            .hasStatus(HttpStatus.OK);
+                    assertThat(context).hasFailed();
+                    assertThat(context).getFailure()
+                            .rootCause()
+                            .isInstanceOf(IllegalStateException.class)
+                            .hasMessageContaining("contentgrid.system.policyPackage");
                 });
     }
 

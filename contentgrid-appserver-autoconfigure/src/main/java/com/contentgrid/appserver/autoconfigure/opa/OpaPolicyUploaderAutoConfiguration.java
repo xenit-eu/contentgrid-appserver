@@ -6,7 +6,6 @@ import com.contentgrid.appserver.security.opa.OpaPolicyUploadRetryProperties;
 import com.contentgrid.appserver.security.opa.OpaPolicyUploader;
 import com.contentgrid.opa.client.OpaClient;
 import com.contentgrid.thunx.opa.autoconfigure.OpaProperties;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -25,8 +24,7 @@ public class OpaPolicyUploaderAutoConfiguration {
     public OpaPolicyUploader opaPolicyUploader(
             BlueprintArtifact blueprintArtifact,
             OpaClient opaClient,
-            @Value("${contentgrid.system.policyPackage:}") String policyPackage,
             OpaPolicyUploadRetryProperties retryProperties) {
-        return new OpaPolicyUploader(blueprintArtifact, opaClient, policyPackage, retryProperties);
+        return new OpaPolicyUploader(blueprintArtifact, opaClient, retryProperties);
     }
 }

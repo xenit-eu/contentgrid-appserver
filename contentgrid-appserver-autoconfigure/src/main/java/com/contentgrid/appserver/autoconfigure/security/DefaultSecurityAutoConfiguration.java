@@ -3,6 +3,7 @@ package com.contentgrid.appserver.autoconfigure.security;
 import com.contentgrid.appserver.security.opa.OpaSidecarFeature;
 import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -41,21 +42,13 @@ public class DefaultSecurityAutoConfiguration {
                 log.warn("No authorizationManager found, authorization by OPA will be skipped.");
                 http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
             }
-            var decoder = jwtDecoder.getIfAvailable();
-            if (decoder != null) {
+            if (jwtDecoder.getIfAvailable() != null) {
                 http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
                         jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
             } else {
                 log.warn("No jwtDecoder found, requests will be done anonymously.");
             }
         } else {
-            if (policyAuthorizationManager.getIfAvailable() != null) {
-                log.warn("contentgrid.thunx.abac.source=opa and opa.service.url are configured, but "
-                        + "contentgrid.system.policyPackage is also set (centralized/Solon mode, where this app "
-                        + "never uploads its policy to that OPA). The policy-based AuthorizationManager is ignored "
-                        + "and we fall back to authenticated()-only authorization.");
-            }
-
             http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
 
             if (jwtDecoder.getIfAvailable() != null) {
@@ -63,6 +56,30 @@ public class DefaultSecurityAutoConfiguration {
             }
         }
         return http.build();
+    }
+
+    /**
+     * Fails application startup outright if a policy {@link AuthorizationManager} bean exists (from
+     * {@code contentgrid.thunx.abac.source=opa} / {@code opa.service.url}) while {@code sidecarFeature} is
+     * inactive ({@code contentgrid.system.policyPackage} is set, i.e. centralized/Solon mode). That combination
+     * means the app would silently authorize every request with {@code authenticated()} only, ignoring the
+     * configured OPA policy manager, which is never what's intended.
+     */
+    @Bean
+    InitializingBean policyAuthorizationManagerConflictValidator(
+            OpaSidecarFeature sidecarFeature,
+            ObjectProvider<AuthorizationManager<RequestAuthorizationContext>> policyAuthorizationManager
+    ) {
+        return () -> {
+            if (!sidecarFeature.isActive() && policyAuthorizationManager.getIfAvailable() != null) {
+                throw new IllegalStateException(
+                        "A policy AuthorizationManager bean is present (from contentgrid.thunx.abac.source=opa / "
+                                + "opa.service.url), but contentgrid.system.policyPackage is also set, which puts "
+                                + "this app in centralized (Solon) mode without an OPA sidecar of its own. These "
+                                + "are mutually exclusive: unset contentgrid.system.policyPackage for sidecar mode, "
+                                + "or remove the OPA client configuration for centralized mode.");
+            }
+        };
     }
 
     private static JwtAuthenticationConverter jwtAuthenticationConverter() {

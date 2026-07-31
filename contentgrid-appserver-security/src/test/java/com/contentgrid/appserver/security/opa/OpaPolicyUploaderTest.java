@@ -46,7 +46,7 @@ class OpaPolicyUploaderTest {
     OpaClient opaClient = mock(OpaClient.class);
     ConfigurableApplicationContext applicationContext = mock(ConfigurableApplicationContext.class);
     ApplicationReadyEvent event = mock(ApplicationReadyEvent.class);
-    OpaPolicyUploader uploader = new OpaPolicyUploader(blueprintArtifact, opaClient, "", RETRY_PROPERTIES);
+    OpaPolicyUploader uploader = new OpaPolicyUploader(blueprintArtifact, opaClient, RETRY_PROPERTIES);
 
     @BeforeEach
     void setApplicationContext() {
@@ -147,17 +147,6 @@ class OpaPolicyUploaderTest {
                 (AvailabilityChangeEvent<?> e) -> e.getState() == ReadinessState.ACCEPTING_TRAFFIC));
         verify(applicationContext).publishEvent(argThat(
                 (AvailabilityChangeEvent<?> e) -> e.getState() == LivenessState.BROKEN));
-    }
-
-    @Test
-    void policyPackageSet_skipsUploadEntirely() throws Exception {
-        var uploaderWithPackage = new OpaPolicyUploader(blueprintArtifact, opaClient, "tenant.xyz", RETRY_PROPERTIES);
-
-        uploaderWithPackage.onApplicationEvent(event);
-
-        verify(opaClient, never()).upsertPolicy(any(), any());
-        verify(blueprintArtifact, never()).load(any());
-        verify(applicationContext, never()).publishEvent(any(AvailabilityChangeEvent.class));
     }
 
     @Test

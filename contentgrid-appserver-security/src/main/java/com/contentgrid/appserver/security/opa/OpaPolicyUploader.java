@@ -25,7 +25,6 @@ import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.core.retry.Retryable;
 import org.springframework.util.PropertyPlaceholderHelper;
-import org.springframework.util.StringUtils;
 import org.springframework.util.SystemPropertyUtils;
 
 /**
@@ -54,18 +53,10 @@ public class OpaPolicyUploader implements ApplicationListener<ApplicationReadyEv
 
     private final BlueprintArtifact blueprintArtifact;
     private final OpaClient opaClient;
-    private final String policyPackage;
     private final OpaPolicyUploadRetryProperties retryProperties;
 
     @Override
     public void onApplicationEvent(@NonNull ApplicationReadyEvent event) {
-        if (StringUtils.hasText(policyPackage)) {
-            log.warn("Skipping OPA policy upload because contentgrid.system.policyPackage ('{}') is set; this "
-                    + "deployment is expected to expose its policy via the /actuator/policy endpoint for "
-                    + "centralized pickup instead of pushing it directly to the OPA at opa.service.url.",
-                    policyPackage);
-            return;
-        }
         var eventPublisher = event.getApplicationContext();
         log.info("Starting OPA policy upload!");
         AvailabilityChangeEvent.publish(eventPublisher, this, ReadinessState.REFUSING_TRAFFIC);
