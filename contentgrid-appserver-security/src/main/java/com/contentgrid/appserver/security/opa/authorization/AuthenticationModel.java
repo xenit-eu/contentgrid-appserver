@@ -40,7 +40,7 @@ public class AuthenticationModel {
     public record ActorModel(ActorKind kind, String sub) {}
 
     // @JsonAnyGetter inlines the claims map into the principal object itself: rego reads
-    // input.auth.principal.sub, not input.auth.principal.claims.sub (pinned by GatewayTokenFixtureContractTest).
+    // input.auth.principal.sub, not input.auth.principal.claims.sub.
     public record PrincipalModel(ActorKind kind, @JsonAnyGetter Map<String, Object> claims) {}
 
     @RequiredArgsConstructor
