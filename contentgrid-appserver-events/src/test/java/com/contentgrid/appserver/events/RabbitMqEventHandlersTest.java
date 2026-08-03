@@ -30,11 +30,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = TestApplication.class, properties = {
         "contentgrid.events.rabbitmq.enabled=true",
+        "contentgrid.system.policyPackage=policy-package-123",
         "spring.rabbitmq.host=foo",
         "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
         "contentgrid.system.application-id="+RabbitMqEventHandlersTest.APP_ID,
         "contentgrid.events.webhook-config-url="+RabbitMqEventHandlersTest.CONFIG_URL
-
 })
 @AutoConfigureMockMvc
 class RabbitMqEventHandlersTest {

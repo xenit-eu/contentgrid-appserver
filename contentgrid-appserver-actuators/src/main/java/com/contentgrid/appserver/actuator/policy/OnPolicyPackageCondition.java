@@ -10,7 +10,10 @@ import org.springframework.util.StringUtils;
  * Matches when {@code contentgrid.system.policyPackage} has text. In that case, the app server exposes its policy via
  * {@code /actuator/policy} for centralized (Solon) pickup rather than running in OPA sidecar mode.
  * <p>
- * {@link OnMissingPolicyPackageCondition} is the inverse of this same check, for the OPA sidecar-upload path.
+ * {@link OnMissingPolicyPackageCondition} is the inverse of this same check, for the OPA sidecar-upload path
+ * <p>
+ * See also {@code com.contentgrid.appserver.autoconfigure.opa.OpaSidecarAbacSourceEnvironmentPostProcessor} which
+ * gates the other OPA sidecar branches.
  */
 public class OnPolicyPackageCondition extends SpringBootCondition {
 

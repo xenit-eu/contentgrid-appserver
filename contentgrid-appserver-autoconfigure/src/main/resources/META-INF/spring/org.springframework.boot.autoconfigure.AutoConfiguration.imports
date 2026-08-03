@@ -11,7 +11,6 @@ com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfigur
 com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfiguration
 com.contentgrid.appserver.autoconfigure.rest.ContentGridRestFormatterAutoConfiguration
 com.contentgrid.appserver.autoconfigure.actuator.ContentgridActuatorAutoConfiguration
-com.contentgrid.appserver.autoconfigure.opa.OpaSidecarFeatureAutoConfiguration
 com.contentgrid.appserver.autoconfigure.opa.OpaPolicyUploaderAutoConfiguration
 com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration
 com.contentgrid.appserver.autoconfigure.webjars.WebjarsRestAutoConfiguration

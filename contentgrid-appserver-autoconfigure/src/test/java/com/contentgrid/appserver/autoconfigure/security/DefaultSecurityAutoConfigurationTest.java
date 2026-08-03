@@ -5,10 +5,8 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-import com.contentgrid.appserver.autoconfigure.opa.OpaSidecarFeatureAutoConfiguration;
 import com.contentgrid.appserver.security.authority.AuthenticationDetails;
 import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
-import com.contentgrid.appserver.security.opa.OpaSidecarFeature;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -41,14 +39,13 @@ class DefaultSecurityAutoConfigurationTest {
     private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
                     DefaultSecurityAutoConfiguration.class,
-                    OpaSidecarFeatureAutoConfiguration.class,
                     OAuth2ResourceServerAutoConfiguration.class, SecurityAutoConfiguration.class,
                     ServletWebSecurityAutoConfiguration.class
             ))
             .withUserConfiguration(StubController.class);
 
     @Test
-    void hasSingleSecurityFilterChain() {
+    void hasSingleCentralizedOpaSecurityFilterChain() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(SecurityFilterChain.class);
@@ -84,6 +81,8 @@ class DefaultSecurityAutoConfigurationTest {
     @Test
     void sidecarMode_wiresGatewayJwtAuthenticationDetailsConverter() {
         contextRunner
+                .withBean(AuthorizationManager.class,
+                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -98,6 +97,8 @@ class DefaultSecurityAutoConfigurationTest {
     @Test
     void sidecarMode_rejectsContractViolatingToken_asUnauthorized() {
         contextRunner
+                .withBean(AuthorizationManager.class,
+                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
                 .withBean(JwtDecoder.class, () -> token -> contractViolatingJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -108,7 +109,8 @@ class DefaultSecurityAutoConfigurationTest {
     @Test
     void sidecarMode_appliesPolicyAuthorizationManager() {
         contextRunner
-                .withUserConfiguration(DenyAllPolicyConfiguration.class)
+                .withBean(AuthorizationManager.class,
+                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false))
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -119,11 +121,9 @@ class DefaultSecurityAutoConfigurationTest {
     @Test
     void nonSidecarMode_doesNotWireGatewayJwtAuthenticationDetailsConverter() {
         contextRunner
-                .withBean("opaSidecarFeatureOverride", OpaSidecarFeature.class, () -> () -> false)
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context.getBean(OpaSidecarFeature.class).isActive()).isFalse();
 
                     assertThat(bearerTokenRequest(context))
                             .matches(authenticated().withAuthentication(authentication ->
@@ -135,9 +135,11 @@ class DefaultSecurityAutoConfigurationTest {
     @Test
     void nonSidecarMode_withPolicyAuthorizationManager_failsFast() {
         contextRunner
-                .withBean("opaSidecarFeatureOverride", OpaSidecarFeature.class, () -> () -> false)
                 .withUserConfiguration(DenyAllPolicyConfiguration.class)
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
+                .withBean(AuthorizationManager.class,
+                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false))
+                .withPropertyValues("contentgrid.system.policyPackage=foobar")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context).getFailure()

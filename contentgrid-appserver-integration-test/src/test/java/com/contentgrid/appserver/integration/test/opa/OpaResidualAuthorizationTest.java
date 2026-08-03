@@ -47,15 +47,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Proves the full residual-policy chain end to end against a REAL OPA container:
- * <p>
- * authenticated REST request -&gt; {@code PolicyAuthorizationManager} queries the OPA sidecar with partial
- * evaluation ({@code unknowns: ["input.entity"]}) -&gt; OPA returns a RESIDUAL expression over
- * {@code input.entity.total_spend} -&gt; thunx converts it to a {@code ThunkExpression} -&gt; the JOOQ query
- * engine pushes it into the SQL {@code WHERE} clause -&gt; the REST list/item endpoints return only the rows
- * permitted by the policy.
- */
 @Testcontainers
 @SpringBootTest(properties = {
         "contentgrid.events.rabbitmq.enabled=false",
