@@ -68,8 +68,9 @@ public class BlueprintArtifactAutoConfiguration {
     @ConditionalOnProperty("contentgrid.appserver.blueprint-artifact.s3.endpoint")
     BlueprintArtifactReferenceResolver s3BlueprintArtifactReferenceResolver(BlueprintArtifactProperties properties) {
         var s3 = properties.s3();
+        // Connections may be re-used here, like the default minio client did before the AWS SDK switch
         var client = S3ClientFactory.createS3Client(s3.endpoint(), s3.accessKey(), s3.secretKey(), s3.region(),
-                Apache5HttpClient.builder());
+                Apache5HttpClient.builder(), true);
         return new S3BlueprintArtifactReferenceResolver(client);
     }
 }

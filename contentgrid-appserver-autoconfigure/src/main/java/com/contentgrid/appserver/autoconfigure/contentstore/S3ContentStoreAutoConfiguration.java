@@ -39,18 +39,23 @@ public class S3ContentStoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     S3Client s3Client(S3Properties properties) {
-        // connection-pool-size has no equivalent in the Apache http client: it was the maximum number of *idle*
-        // connections OkHttp kept around (0 by default: no connection reuse, cfr. ACC-2697). The same net effect
-        // is preserved by evicting idle connections after the keep-alive period.
-        var httpClientBuilder = Apache5HttpClient.builder()
-                .connectionMaxIdleTime(Duration.ofSeconds(properties.connectionPoolKeepAliveSeconds()));
+        // connection-pool-size 0 (the default) means connections must not be re-used at all (ACC-2696).
+        // The Apache http client has no equivalent of OkHttp's zero-size connection pool, so no-reuse is
+        // enforced with a `Connection: close` header on every request instead. With a pool, idle
+        // connections are kept around for the keep-alive period.
+        var reuseConnections = properties.connectionPoolSize() > 0;
+        var httpClientBuilder = Apache5HttpClient.builder();
+        if (reuseConnections) {
+            httpClientBuilder.connectionMaxIdleTime(Duration.ofSeconds(properties.connectionPoolKeepAliveSeconds()));
+        }
 
         return S3ClientFactory.createS3Client(
                 properties.url(),
                 properties.accessKey(),
                 properties.secretKey(),
                 properties.region(),
-                httpClientBuilder
+                httpClientBuilder,
+                reuseConnections
         );
     }
 

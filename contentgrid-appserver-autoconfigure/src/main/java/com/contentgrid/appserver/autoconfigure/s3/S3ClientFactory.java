@@ -39,8 +39,12 @@ public final class S3ClientFactory {
     private S3ClientFactory() {
     }
 
+    /**
+     * @param reuseConnections whether http connections may be re-used across requests. When {@code false},
+     * every request carries a {@code Connection: close} header, so a connection is never re-used.
+     */
     public static S3Client createS3Client(String endpoint, String accessKey, String secretKey, String region,
-            Apache5HttpClient.Builder httpClientBuilder) {
+            Apache5HttpClient.Builder httpClientBuilder, boolean reuseConnections) {
         var endpointUri = normalizeEndpoint(endpoint);
         return S3Client.builder()
                 .endpointOverride(endpointUri)
@@ -50,7 +54,12 @@ public final class S3ClientFactory {
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .httpClientBuilder(httpClientBuilder)
-                .overrideConfiguration(config -> config.defaultProfileFile(ProfileFile.aggregator().build()))
+                .overrideConfiguration(config -> {
+                    config.defaultProfileFile(ProfileFile.aggregator().build());
+                    if (!reuseConnections) {
+                        config.putHeader("Connection", "close");
+                    }
+                })
                 .build();
     }
 

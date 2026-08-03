@@ -46,7 +46,7 @@ class S3ClientFactoryTest {
     @Test
     void createS3Client_bareHostnameWithoutCredentialsOrRegion_builds() {
         try (var client = S3ClientFactory.createS3Client("minio.example.com", null, null, null,
-                Apache5HttpClient.builder())) {
+                Apache5HttpClient.builder(), false)) {
             assertThat(client).isNotNull();
         }
     }
