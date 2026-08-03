@@ -29,12 +29,6 @@ import org.springframework.util.SystemPropertyUtils;
 
 /**
  * Uploads the app's Rego policy to the OPA sidecar on startup.
- * <p>
- * Reaching OPA with the policy is a hard requirement: an OPA queried for a policy it never received returns
- * an undefined decision (HTTP 200, no {@code result} field, no indication that no policy was ever loaded).
- * So {@link ReadinessState#REFUSING_TRAFFIC} is published as the very first thing this listener does, before
- * the policy is even read. That way, the pod's readiness probe ({@code /actuator/health/readiness}) stays DOWN and
- * no traffic is routed to it until a policy is confirmed uploaded.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -55,6 +49,14 @@ public class OpaPolicyUploader implements ApplicationListener<ApplicationReadyEv
     private final OpaClient opaClient;
     private final OpaPolicyUploadRetryProperties retryProperties;
 
+
+    /**
+     * Reaching OPA with the policy is a hard requirement: an OPA queried for a policy it never received returns
+     * an undefined decision (HTTP 200, no {@code result} field, no indication that no policy was ever loaded).
+     * So {@link ReadinessState#REFUSING_TRAFFIC} is published as the very first thing this listener does, before
+     * the policy is even read. That way, the pod's readiness probe ({@code /actuator/health/readiness}) stays DOWN and
+     * no traffic is routed to it until a policy is confirmed uploaded.
+     */
     @Override
     public void onApplicationEvent(@NonNull ApplicationReadyEvent event) {
         var eventPublisher = event.getApplicationContext();
