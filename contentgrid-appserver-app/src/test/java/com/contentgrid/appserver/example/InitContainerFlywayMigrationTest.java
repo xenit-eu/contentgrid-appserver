@@ -53,28 +53,20 @@ class InitContainerFlywayMigrationTest {
                         """)) {
             assertThat(result.next()).as("`public` schema was recreated").isTrue();
             assertThat(result.getBoolean("owned_by_application_user")).isTrue();
-        }
 
-        // Tables go in public, views go in V1, V2, ...
-        try (var connection = dataSource.getConnection();
-                var statement = connection.createStatement();
-                var result = statement.executeQuery("""
-                        SELECT schemaname, tablename FROM pg_tables
-                        WHERE tablename = 'person'
-                        UNION ALL
-                        SELECT schemaname, viewname FROM pg_views
-                        WHERE viewname = 'person'
-                        """)) {
-            assertThat(collectSchemas(result))
-                    .as("tables belong in the base schema, `V1` only holds compatibility views")
-                    .containsExactlyInAnyOrder("public", "V1");
+            // Tables go in public, views go in V1, V2, ...
+            var metadata = connection.getMetaData();
+            var personAsTable = metadata.getTables(null, null, "person", new String[]{"TABLE"});
+            var personAsView = metadata.getTables(null, null, "person", new String[]{"VIEW"});
+            assertThat(collectSchemas(personAsTable)).containsExactly("public");
+            assertThat(collectSchemas(personAsView)).containsExactly("V1");
         }
     }
 
     private static List<String> collectSchemas(ResultSet result) throws SQLException {
         var schemas = new ArrayList<String>();
         while (result.next()) {
-            schemas.add(result.getString(1));
+            schemas.add(result.getString("TABLE_SCHEM"));
         }
         return schemas;
     }
