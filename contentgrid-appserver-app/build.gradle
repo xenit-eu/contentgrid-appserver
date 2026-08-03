@@ -11,10 +11,6 @@ dependencies {
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
 
-    // Used only for the appserverOpaInputProvider() bean
-    compileOnly 'com.contentgrid.thunx:thunx-pdp-opa'
-    compileOnly 'org.springframework.security:spring-security-core'
-
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
     testRuntimeOnly 'org.springframework:spring-webflux'
