@@ -2,6 +2,7 @@ package com.contentgrid.appserver.autoconfigure.query.engine;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.autoconfigure.database.ApplicationSchemaCreator;
 import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -61,6 +62,11 @@ public class JOOQQueryEngineAutoConfiguration {
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
+    TableCreator applicationSchemaCreator(DSLContextResolver dslContextResolver) {
+        return new ApplicationSchemaCreator(dslContextResolver);
+    }
+
+    @Bean
     TableCreator jooqTableCreator(DSLContextResolver dslContextResolver) {
         return new JOOQTableCreator(dslContextResolver);
     }

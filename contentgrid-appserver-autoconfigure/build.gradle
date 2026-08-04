@@ -8,6 +8,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
     implementation 'org.springframework.boot:spring-boot-http-converter'
     implementation 'org.springframework.boot:spring-boot-flyway'
+    implementation 'org.springframework.boot:spring-boot-jdbc'
     implementation 'org.springframework.boot:spring-boot-jooq'
     implementation 'org.springframework.boot:spring-boot-security'
     implementation 'com.contentgrid.thunx:thunx-autoconfigure'
@@ -33,6 +34,7 @@ dependencies {
 
     compileOnly 'io.minio:minio'
     compileOnly 'com.squareup.okhttp3:okhttp'
+    compileOnly 'com.zaxxer:HikariCP'
     compileOnly 'org.flywaydb:flyway-core'
     compileOnly 'org.jooq:jooq'
     compileOnly 'org.springframework:spring-tx'
