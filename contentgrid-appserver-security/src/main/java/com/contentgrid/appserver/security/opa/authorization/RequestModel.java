@@ -10,12 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
-import lombok.Builder;
 import lombok.Value;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 
 @Value
 public class RequestModel {
