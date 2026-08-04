@@ -6,6 +6,9 @@ spring:
     multipart:
       max-file-size: -1
       max-request-size: -1
+  flyway:
+    schemas: public
+    default-schema: public
 server:
   port: ${PORT:8080}
   tomcat:
