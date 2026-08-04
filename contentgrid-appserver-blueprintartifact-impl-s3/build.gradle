@@ -8,10 +8,7 @@ dependencies {
     implementation project(':contentgrid-appserver-domain-spi')
     implementation project(':contentgrid-appserver-blueprintartifact-impl-fs')
     implementation project(':contentgrid-appserver-blueprintartifact-impl-utils')
-    implementation('software.amazon.awssdk:s3') {
-        // Only the synchronous ApacheHttpClient is used; keep the Netty-based async client off the classpath
-        exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
-    }
+    implementation 'software.amazon.awssdk:s3'
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation testFixtures(project(':contentgrid-appserver-blueprintartifact-impl-utils'))

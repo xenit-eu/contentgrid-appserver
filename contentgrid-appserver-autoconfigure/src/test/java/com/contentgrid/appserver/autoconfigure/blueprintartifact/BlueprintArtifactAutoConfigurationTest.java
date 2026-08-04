@@ -7,6 +7,7 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
+import com.contentgrid.appserver.autoconfigure.s3.S3BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
 import java.nio.file.Path;
 import java.util.List;
@@ -27,7 +28,8 @@ class BlueprintArtifactAutoConfigurationTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withInitializer(ctx -> ctx.getBeanFactory().setConversionService(new ApplicationConversionService()))
             .withInitializer(ConditionEvaluationReportLoggingListener.forLogLevel(LogLevel.INFO))
-            .withConfiguration(AutoConfigurations.of(BlueprintArtifactAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(BlueprintArtifactAutoConfiguration.class,
+                    S3BlueprintArtifactAutoConfiguration.class));
 
     @Test
     void defaults() {
@@ -83,7 +85,11 @@ class BlueprintArtifactAutoConfigurationTest {
     @Test
     void withS3_minimalValues() {
         contextRunner
-                .withPropertyValues("contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000")
+                .withPropertyValues(
+                        "contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000",
+                        "contentgrid.appserver.blueprint-artifact.s3.access-key=myAccessKey",
+                        "contentgrid.appserver.blueprint-artifact.s3.secret-key=mySecretKey"
+                )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(S3BlueprintArtifactReferenceResolver.class);
@@ -97,7 +103,8 @@ class BlueprintArtifactAutoConfigurationTest {
                         "contentgrid.appserver.blueprint-artifact.s3.endpoint=http://localhost:9000",
                         "contentgrid.appserver.blueprint-artifact.s3.access-key=myAccessKey",
                         "contentgrid.appserver.blueprint-artifact.s3.secret-key=mySecretKey",
-                        "contentgrid.appserver.blueprint-artifact.s3.region=eu-west-1"
+                        "contentgrid.appserver.blueprint-artifact.s3.region=eu-west-1",
+                        "contentgrid.appserver.blueprint-artifact.s3.path-style-access=false"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -106,6 +113,7 @@ class BlueprintArtifactAutoConfigurationTest {
                     assertThat(properties.s3().accessKey()).isEqualTo("myAccessKey");
                     assertThat(properties.s3().secretKey()).isEqualTo("mySecretKey");
                     assertThat(properties.s3().region()).isEqualTo("eu-west-1");
+                    assertThat(properties.s3().pathStyleAccess()).isFalse();
                 });
     }
 

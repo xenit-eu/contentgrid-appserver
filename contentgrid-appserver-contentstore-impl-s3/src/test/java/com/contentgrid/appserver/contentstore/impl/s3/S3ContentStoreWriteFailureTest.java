@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.contentstore.impl.s3;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,12 +12,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
@@ -38,10 +41,12 @@ class S3ContentStoreWriteFailureTest {
     private static final S3MockContainer s3MockContainer = S3MockUtils.s3MockContainer();
 
     private S3Client client;
+    private S3AsyncClient asyncClient;
 
     @BeforeEach
     void setUp() {
         client = S3TestClients.s3Client(s3MockContainer.getHttpEndpoint());
+        asyncClient = S3TestClients.s3AsyncClient(s3MockContainer.getHttpEndpoint());
     }
 
     /**
@@ -50,7 +55,7 @@ class S3ContentStoreWriteFailureTest {
      */
     @Test
     void writeContent_whenS3OperationFails_shouldThrowUnwritableContentException() {
-        var store = new S3ContentStore(client, "non-existent-bucket-" + UUID.randomUUID());
+        var store = new S3ContentStore(client, asyncClient, "non-existent-bucket-" + UUID.randomUUID());
 
         assertThrows(UnwritableContentException.class, () -> store.writeContent(
                 new ByteArrayInputStream("test data".getBytes(StandardCharsets.UTF_8))));
@@ -66,7 +71,7 @@ class S3ContentStoreWriteFailureTest {
         var bucketName = "test-" + UUID.randomUUID();
         client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
 
-        var store = new S3ContentStore(client, bucketName);
+        var store = new S3ContentStore(client, asyncClient, bucketName);
 
         var brokenInputStream = new InputStream() {
             private int bytesRead = 0;
@@ -105,7 +110,7 @@ class S3ContentStoreWriteFailureTest {
         var bucketName = "test-" + UUID.randomUUID();
         client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
 
-        var store = new S3ContentStore(client, bucketName);
+        var store = new S3ContentStore(client, asyncClient, bucketName);
 
         var failAfter = 51L * 1024 * 1024; // one full part plus a bit, so the failure hits during part 2
         var brokenInputStream = new InputStream() {
@@ -134,9 +139,12 @@ class S3ContentStoreWriteFailureTest {
 
         assertThrows(UnwritableContentException.class, () -> store.writeContent(brokenInputStream));
 
-        // The failure aborted the multipart upload, so no orphaned upload is left behind
-        var uploads = client.listMultipartUploads(ListMultipartUploadsRequest.builder().bucket(bucketName).build());
-        assertTrue(uploads.uploads().isEmpty());
+        // The failure aborts the multipart upload asynchronously, so no orphaned upload may be left behind
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            var uploads = client.listMultipartUploads(
+                    ListMultipartUploadsRequest.builder().bucket(bucketName).build());
+            assertTrue(uploads.uploads().isEmpty());
+        });
     }
 
     /**
@@ -147,7 +155,7 @@ class S3ContentStoreWriteFailureTest {
         var bucketName = "test-" + UUID.randomUUID();
         client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
 
-        var store = new S3ContentStore(client, bucketName);
+        var store = new S3ContentStore(client, asyncClient, bucketName);
 
         // Write content, then delete the bucket to force the remove to fail
         var accessor = store.writeContent(

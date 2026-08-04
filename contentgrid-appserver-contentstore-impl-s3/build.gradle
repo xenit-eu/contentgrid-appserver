@@ -7,12 +7,10 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-contentstore-api')
     implementation project(':contentgrid-appserver-contentstore-impl-utils')
-    implementation('software.amazon.awssdk:s3') {
-        // Only the synchronous ApacheHttpClient is used; keep the Netty-based async client off the classpath
-        exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
-    }
+    implementation 'software.amazon.awssdk:s3'
 
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
+    testImplementation 'org.awaitility:awaitility'
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"
 

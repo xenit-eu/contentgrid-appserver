@@ -1,92 +1,114 @@
 package com.contentgrid.appserver.autoconfigure.s3;
 
 import java.net.URI;
-import java.util.Locale;
-import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
+import java.util.function.Consumer;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.apache5.Apache5HttpClient;
 import software.amazon.awssdk.profiles.ProfileFile;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
 
 /**
- * Creates {@link S3Client} instances configured the way the previously used minio client was, so that the
- * existing configuration properties keep their exact semantics after the switch to the AWS SDK:
+ * Creates S3 clients from the appserver configuration properties.
  * <ul>
- *     <li>An endpoint without scheme gets {@code https://} prepended, and a path in the endpoint is
- *     rejected.</li>
- *     <li>Path-style access is used unless the endpoint is an AWS endpoint (minio derived this the same way).
- *     The AWS SDK would otherwise default to virtual-host style, which most S3-compatible stores do not
- *     support.</li>
- *     <li>Without an access key + secret key pair, requests are sent unsigned (anonymous), like minio did.</li>
- *     <li>Without a region, {@code us-east-1} is used. minio would look up the bucket region with a
- *     GetBucketLocation call instead, but in ContentGrid deployments the region is always provided.</li>
- *     <li>Checksums are only calculated/validated where the S3 API requires them. The SDK defaults would send
- *     CRC checksums with aws-chunked encoding that S3-compatible stores (Dell ECS, older MinIO, ...)
- *     reject.</li>
- *     <li>The default profile file is replaced with an empty one, so the SDK never reads {@code ~/.aws/config}
- *     or {@code ~/.aws/credentials}. minio never read those files, and a broken file there (e.g. written by a
- *     newer aws CLI) would otherwise break client construction.</li>
+ *     <li>Path-style access is configurable: most S3-compatible stores only support path-style, while
+ *     others (like AWS itself) prefer virtual-host style.</li>
+ *     <li>Without a region, the region is set to {@code none}: S3-compatible stores don't require one, and
+ *     a placeholder is less confusing than silently signing for a real AWS region.</li>
+ *     <li>Checksums are only calculated/validated where the S3 API requires them, because S3-compatible
+ *     stores often reject the CRC trailers with aws-chunked encoding that the SDK sends by default.</li>
+ *     <li>The default profile file is replaced with an empty one, so the SDK never picks up AWS
+ *     configuration or credentials from the user account running the application. During local development
+ *     those may grant access to a real environment, which must never be reachable by accident.</li>
  * </ul>
- * Internal to the appserver auto-configuration; not intended as public API.
  */
-public final class S3ClientFactory {
+final class S3ClientFactory {
 
     private S3ClientFactory() {
     }
 
     /**
+     * Size of a part for multipart uploads: a trade-off between buffer memory usage, multipart overhead,
+     * and the S3 limit of 10000 parts per upload. With 50 MiB parts, objects can grow to slightly over
+     * 0.5 TB.
+     */
+    private static final long PART_SIZE = 50L * 1024 * 1024;
+
+    /**
      * @param reuseConnections whether http connections may be re-used across requests. When {@code false},
      * every request carries a {@code Connection: close} header, so a connection is never re-used.
      */
-    public static S3Client createS3Client(String endpoint, String accessKey, String secretKey, String region,
-            Apache5HttpClient.Builder httpClientBuilder, boolean reuseConnections) {
-        var endpointUri = normalizeEndpoint(endpoint);
+    static S3Client createS3Client(String endpoint, String accessKey, String secretKey, String region,
+            boolean pathStyleAccess, Apache5HttpClient.Builder httpClientBuilder, boolean reuseConnections) {
         return S3Client.builder()
-                .endpointOverride(endpointUri)
-                .forcePathStyle(!isAwsEndpoint(endpointUri))
-                .region(region != null ? Region.of(region) : Region.US_EAST_1)
+                .endpointOverride(endpointUri(endpoint))
+                .forcePathStyle(pathStyleAccess)
+                .region(regionOrNone(region))
                 .credentialsProvider(credentialsProvider(accessKey, secretKey))
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .httpClientBuilder(httpClientBuilder)
-                .overrideConfiguration(config -> {
-                    config.defaultProfileFile(ProfileFile.aggregator().build());
-                    if (!reuseConnections) {
-                        config.putHeader("Connection", "close");
-                    }
-                })
+                .overrideConfiguration(overrideConfiguration(reuseConnections))
                 .build();
     }
 
-    static URI normalizeEndpoint(String endpoint) {
-        if (endpoint == null || endpoint.isBlank()) {
-            throw new IllegalArgumentException("endpoint must not be empty");
+    /**
+     * Creates the client used for uploads: it transparently splits large uploads into multipart uploads,
+     * with parallel part uploads.
+     */
+    static S3AsyncClient createS3AsyncClient(String endpoint, String accessKey, String secretKey,
+            String region, boolean pathStyleAccess, boolean reuseConnections) {
+        return S3AsyncClient.builder()
+                .endpointOverride(endpointUri(endpoint))
+                .forcePathStyle(pathStyleAccess)
+                .region(regionOrNone(region))
+                .credentialsProvider(credentialsProvider(accessKey, secretKey))
+                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
+                .multipartEnabled(true)
+                .multipartConfiguration(MultipartConfiguration.builder()
+                        .thresholdInBytes(PART_SIZE)
+                        .minimumPartSizeInBytes(PART_SIZE)
+                        .build())
+                .overrideConfiguration(overrideConfiguration(reuseConnections))
+                .build();
+    }
+
+    private static URI endpointUri(String endpoint) {
+        if (endpoint == null) {
+            throw new IllegalArgumentException("endpoint is required");
         }
-        var uri = URI.create(endpoint.contains("://") ? endpoint : "https://" + endpoint);
-        if (uri.getPath() != null && !uri.getPath().isEmpty() && !uri.getPath().equals("/")) {
-            throw new IllegalArgumentException("no path allowed in endpoint '%s'".formatted(endpoint));
+        var uri = URI.create(endpoint);
+        if (!"http".equals(uri.getScheme()) && !"https".equals(uri.getScheme())) {
+            throw new IllegalArgumentException(
+                    "endpoint '%s' must include a scheme (http:// or https://)".formatted(endpoint));
         }
         return uri;
     }
 
-    static boolean isAwsEndpoint(URI endpoint) {
-        var host = endpoint.getHost();
-        if (host == null) {
-            return false;
-        }
-        var lowerCaseHost = host.toLowerCase(Locale.ROOT);
-        return lowerCaseHost.endsWith(".amazonaws.com") || lowerCaseHost.endsWith(".amazonaws.com.cn");
+    private static Region regionOrNone(String region) {
+        return Region.of(region != null ? region : "none");
     }
 
-    private static AwsCredentialsProvider credentialsProvider(String accessKey, String secretKey) {
-        if (accessKey != null && secretKey != null) {
-            return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+    private static StaticCredentialsProvider credentialsProvider(String accessKey, String secretKey) {
+        if (accessKey == null || secretKey == null) {
+            throw new IllegalArgumentException("access-key and secret-key are required");
         }
-        return AnonymousCredentialsProvider.create();
+        return StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+    }
+
+    private static Consumer<ClientOverrideConfiguration.Builder> overrideConfiguration(boolean reuseConnections) {
+        return config -> {
+            config.defaultProfileFile(ProfileFile.aggregator().build());
+            if (!reuseConnections) {
+                config.putHeader("Connection", "close");
+            }
+        };
     }
 }

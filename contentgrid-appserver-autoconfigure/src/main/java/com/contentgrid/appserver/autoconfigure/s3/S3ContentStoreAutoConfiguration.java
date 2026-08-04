@@ -1,7 +1,6 @@
-package com.contentgrid.appserver.autoconfigure.contentstore;
+package com.contentgrid.appserver.autoconfigure.s3;
 
-import com.contentgrid.appserver.autoconfigure.contentstore.S3ContentStoreAutoConfiguration.S3Properties;
-import com.contentgrid.appserver.autoconfigure.s3.S3ClientFactory;
+import com.contentgrid.appserver.autoconfigure.s3.S3ContentStoreAutoConfiguration.S3Properties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
@@ -17,6 +16,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 import software.amazon.awssdk.http.apache5.Apache5HttpClient;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 
 @AutoConfiguration
@@ -32,6 +32,7 @@ public class S3ContentStoreAutoConfiguration {
         String secretKey,
         @NonNull String bucket,
         String region,
+        @DefaultValue("true") boolean pathStyleAccess,
         @DefaultValue("0") int connectionPoolSize,
         @DefaultValue("1") int connectionPoolKeepAliveSeconds
     ) {}
@@ -39,14 +40,16 @@ public class S3ContentStoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     S3Client s3Client(S3Properties properties) {
-        // connection-pool-size 0 (the default) means connections must not be re-used at all (ACC-2696).
-        // The Apache http client has no equivalent of OkHttp's zero-size connection pool, so no-reuse is
-        // enforced with a `Connection: close` header on every request instead. With a pool, idle
-        // connections are kept around for the keep-alive period.
+        // connection-pool-size 0 (the default) means connections must not be re-used at all (ACC-2696):
+        // no-reuse is enforced with a `Connection: close` header on every request. With a pool, its size
+        // caps the number of pooled connections, and idle connections are kept around for the keep-alive
+        // period.
         var reuseConnections = properties.connectionPoolSize() > 0;
         var httpClientBuilder = Apache5HttpClient.builder();
         if (reuseConnections) {
-            httpClientBuilder.connectionMaxIdleTime(Duration.ofSeconds(properties.connectionPoolKeepAliveSeconds()));
+            httpClientBuilder
+                    .maxConnections(properties.connectionPoolSize())
+                    .connectionMaxIdleTime(Duration.ofSeconds(properties.connectionPoolKeepAliveSeconds()));
         }
 
         return S3ClientFactory.createS3Client(
@@ -54,15 +57,33 @@ public class S3ContentStoreAutoConfiguration {
                 properties.accessKey(),
                 properties.secretKey(),
                 properties.region(),
+                properties.pathStyleAccess(),
                 httpClientBuilder,
                 reuseConnections
         );
     }
 
     @Bean
-    @ConditionalOnBean(S3Client.class)
-    ContentStoreResolver s3ContentStoreResolver(S3Client s3Client, S3Properties properties) {
-        var contentStore = new S3ContentStore(s3Client, properties.bucket());
+    @ConditionalOnMissingBean
+    S3AsyncClient s3AsyncClient(S3Properties properties) {
+        // The connection-pool-tuning properties only govern the synchronous client; for this client only
+        // the no-reuse setting carries over.
+        var reuseConnections = properties.connectionPoolSize() > 0;
+        return S3ClientFactory.createS3AsyncClient(
+                properties.url(),
+                properties.accessKey(),
+                properties.secretKey(),
+                properties.region(),
+                properties.pathStyleAccess(),
+                reuseConnections
+        );
+    }
+
+    @Bean
+    @ConditionalOnBean({S3Client.class, S3AsyncClient.class})
+    ContentStoreResolver s3ContentStoreResolver(S3Client s3Client, S3AsyncClient s3AsyncClient,
+            S3Properties properties) {
+        var contentStore = new S3ContentStore(s3Client, s3AsyncClient, properties.bucket());
         return application -> contentStore;
     }
 

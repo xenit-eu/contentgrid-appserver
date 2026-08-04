@@ -4,6 +4,7 @@ import com.contentgrid.appserver.contentstore.impl.utils.testing.AbstractContent
 import java.util.UUID;
 import lombok.Getter;
 import org.junit.jupiter.api.BeforeEach;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 
@@ -13,6 +14,8 @@ abstract class AbstractS3ContentStoreTest extends AbstractContentStoreBehaviorTe
     private S3ContentStore contentStore;
 
     protected abstract S3Client createClient();
+
+    protected abstract S3AsyncClient createAsyncClient();
 
     @BeforeEach
     void createStore() {
@@ -24,6 +27,7 @@ abstract class AbstractS3ContentStoreTest extends AbstractContentStoreBehaviorTe
 
         contentStore = new S3ContentStore(
                 client,
+                createAsyncClient(),
                 bucketName
         );
     }
