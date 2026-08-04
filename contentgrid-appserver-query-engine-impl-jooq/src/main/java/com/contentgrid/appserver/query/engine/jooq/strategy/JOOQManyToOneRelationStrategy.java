@@ -13,7 +13,7 @@ final class JOOQManyToOneRelationStrategy extends JOOQXToOneRelationStrategy<Man
 
     @Override
     public Table<?> getTable(Application application, ManyToOneRelation relation) {
-        return JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
+        return JOOQUtils.resolveTable(application, application.getRelationSourceEntity(relation));
     }
 
     @Override

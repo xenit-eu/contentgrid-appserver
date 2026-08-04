@@ -1,15 +1,20 @@
 package com.contentgrid.appserver.query.engine.jooq.resolver;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.values.SchemaName;
-import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
-import org.jooq.conf.MappedSchema;
-import org.jooq.conf.RenderMapping;
-import org.jooq.conf.Settings;
-import org.jooq.impl.DSL;
 
+/**
+ * Resolves the jOOQ {@link DSLContext} to use for an {@link Application}.
+ * <p>
+ * The database schema configured via {@code ApplicationSettings.database.schema} is applied to generated
+ * SQL by explicitly schema-qualifying table references in {@code JOOQUtils.resolveTable(Application, ...)},
+ * <em>not</em> through a global jOOQ {@code RenderMapping}. A {@code RenderMapping} that maps the default
+ * schema also qualifies unbound, correlated alias.field references (e.g. inside the {@code _allow_read}
+ * {@code EXISTS} subquery built by {@code JOOQSymbolicReferenceResolver}), producing invalid SQL such as
+ * {@code "schema"."alias"."column"} which PostgreSQL rejects with
+ * {@code "invalid reference to FROM-clause entry for table ..."}.
+ */
 @RequiredArgsConstructor
 public class AutowiredDSLContextResolver implements DSLContextResolver {
 
@@ -17,28 +22,6 @@ public class AutowiredDSLContextResolver implements DSLContextResolver {
 
     @Override
     public DSLContext resolve(Application application) {
-        var maybeDatabaseSettings = application.getSettings().getDatabase();
-        if (maybeDatabaseSettings.isEmpty()) {
-            return dslContext;
-        }
-        var databaseSettings = maybeDatabaseSettings.get();
-
-        var derivedConfig = dslContext.configuration()
-                .deriveSettings(settings -> configureSchema(settings, databaseSettings.getSchema()));
-
-        return DSL.using(derivedConfig);
-    }
-
-    private Settings configureSchema(Settings settings, SchemaName schemaName) {
-        if (schemaName == null) {
-            return settings;
-        }
-        var renderMapping = settings.getRenderMapping() == null ? new RenderMapping() : settings.getRenderMapping();
-        var schemata = new ArrayList<>(renderMapping.getSchemata());
-
-        // Replace default/empty schema with the configured schema in generated sql
-        schemata.add(new MappedSchema().withInput("").withOutput(schemaName.getValue()));
-
-        return settings.withRenderMapping(renderMapping.withSchemata(schemata));
+        return dslContext;
     }
 }

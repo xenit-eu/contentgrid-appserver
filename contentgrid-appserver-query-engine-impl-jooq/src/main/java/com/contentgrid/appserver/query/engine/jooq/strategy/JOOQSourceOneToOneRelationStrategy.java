@@ -14,7 +14,7 @@ final class JOOQSourceOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
     @Override
     public Table<?> getTable(Application application, SourceOneToOneRelation relation) {
-        return JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
+        return JOOQUtils.resolveTable(application, application.getRelationSourceEntity(relation));
     }
 
     @Override

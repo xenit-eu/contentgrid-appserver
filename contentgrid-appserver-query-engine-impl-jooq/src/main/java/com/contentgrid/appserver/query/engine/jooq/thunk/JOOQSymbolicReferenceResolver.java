@@ -258,10 +258,10 @@ class JOOQSymbolicReferenceResolver {
         Condition where = null;
         for (var join : joins) {
             if (selectBuilder == null) {
-                selectBuilder = DSL.selectOne().from(JOOQUtils.resolveTable(join.getTargetTable(), join.getTargetAlias()));
+                selectBuilder = DSL.selectOne().from(JOOQUtils.resolveTable(application, join.getTargetTable(), join.getTargetAlias()));
                 where = join.getCondition();
             } else {
-                selectBuilder = selectBuilder.join(JOOQUtils.resolveTable(join.getTargetTable(), join.getTargetAlias()))
+                selectBuilder = selectBuilder.join(JOOQUtils.resolveTable(application, join.getTargetTable(), join.getTargetAlias()))
                         .on(join.getCondition());
             }
         }

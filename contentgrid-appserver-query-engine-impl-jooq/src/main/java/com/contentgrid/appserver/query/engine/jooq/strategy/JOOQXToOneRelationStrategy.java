@@ -40,7 +40,7 @@ public abstract sealed class JOOQXToOneRelationStrategy<R extends Relation> impl
         var table = getTable(application, relation);
         var foreignKey = getForeignKey(application, relation);
         var foreignEntity = getForeignEntity(application, relation);
-        var foreignTable = JOOQUtils.resolveTable(foreignEntity);
+        var foreignTable = JOOQUtils.resolveTable(application, foreignEntity);
         var foreignPrimaryKey = JOOQUtils.resolvePrimaryKey(foreignEntity);
 
         dslContext.alterTable(table)

@@ -119,7 +119,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
-        var table = JOOQUtils.resolveTable(entity, alias);
+        var table = JOOQUtils.resolveTable(application, entity, alias);
         var orderBy = sortData != null
                 ? sortData.getSortedFields().stream().map(field -> convert(entity, field)).toList()
                 : List.<OrderField<?>>of();
@@ -170,7 +170,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
-        var table = JOOQUtils.resolveTable(entity, alias);
+        var table = JOOQUtils.resolveTable(application, entity, alias);
         var primaryKey = JOOQUtils.resolvePrimaryKey(alias, entity);
 
         var fields = new ArrayList<>(Arrays.asList(JOOQUtils.resolveAttributeFields(entity)));
@@ -264,7 +264,7 @@ public class JOOQQueryEngine implements QueryEngine {
         EntityData insertedData;
         try {
             var insertedRecord = DslContextUtils.executeInSavepoint(dslContext, () -> dslContext
-                    .insertInto(JOOQUtils.resolveTable(entity))
+                    .insertInto(JOOQUtils.resolveTable(application, entity))
                     .set(createFields)
                     .returning(JOOQUtils.resolveAttributeFields(entity))
                     .fetchSingleMap());
@@ -341,7 +341,7 @@ public class JOOQQueryEngine implements QueryEngine {
             @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = application.getRequiredEntityByName(data.getName());
-        var table = JOOQUtils.resolveTable(entity);
+        var table = JOOQUtils.resolveTable(application, entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
         var id = data.getId();
 
@@ -524,7 +524,7 @@ public class JOOQQueryEngine implements QueryEngine {
                                             versionField,
                                             DSL.val(fieldName).as(identificationField)
                                     )
-                                    .from(JOOQUtils.resolveTable(entity))
+                                    .from(JOOQUtils.resolveTable(application, entity))
                                     .where(field.equal((Field)value))
                                     .and(primaryKeyField.notEqual(entityIdentity.getEntityId().getValue()))
                     );
@@ -604,7 +604,7 @@ public class JOOQQueryEngine implements QueryEngine {
                     var value = DSL.val(entityData.get(entry.getKey()), field.getDataType());
 
                     var targetEntity = application.getRelationTargetEntity(entry.getValue());
-                    var targetEntityTable = JOOQUtils.resolveTable(targetEntity);
+                    var targetEntityTable = JOOQUtils.resolveTable(application, targetEntity);
                     var targetEntityPk = JOOQUtils.resolvePrimaryKey(targetEntity);
 
                     return DSL.select(
@@ -657,7 +657,7 @@ public class JOOQQueryEngine implements QueryEngine {
             throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = application.getRequiredEntityByName(entityRequest.getEntityName());
-        var table = JOOQUtils.resolveTable(entity);
+        var table = JOOQUtils.resolveTable(application, entity);
         var primaryKey = JOOQUtils.resolvePrimaryKey(entity);
 
         assertPermission(application, entityRequest, permitDeletePredicate);
@@ -907,7 +907,7 @@ public class JOOQQueryEngine implements QueryEngine {
         var dslContext = resolver.resolve(application);
         var context = new JOOQContext(application, entity);
         var alias = context.getRootAlias();
-        var table = JOOQUtils.resolveTable(entity, alias);
+        var table = JOOQUtils.resolveTable(application, entity, alias);
 
         var condition = RESOLVER.resolveExpression(expression, context);
         return countStrategy.count(dslContext, DSL.selectFrom(table).where(condition));

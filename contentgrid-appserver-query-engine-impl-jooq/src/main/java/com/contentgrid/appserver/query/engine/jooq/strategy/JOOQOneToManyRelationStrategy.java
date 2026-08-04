@@ -29,7 +29,7 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
 
     @Override
     public Table<?> getTable(Application application, OneToManyRelation relation) {
-        return JOOQUtils.resolveTable(application.getRelationTargetEntity(relation));
+        return JOOQUtils.resolveTable(application, application.getRelationTargetEntity(relation));
     }
 
     @Override
@@ -47,7 +47,7 @@ final class JOOQOneToManyRelationStrategy extends JOOQXToManyRelationStrategy<On
     public void make(DSLContext dslContext, Application application, OneToManyRelation relation) {
         var targetTable = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
-        var sourceTable = JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
+        var sourceTable = JOOQUtils.resolveTable(application, application.getRelationSourceEntity(relation));
         var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
 
         dslContext.alterTable(targetTable)

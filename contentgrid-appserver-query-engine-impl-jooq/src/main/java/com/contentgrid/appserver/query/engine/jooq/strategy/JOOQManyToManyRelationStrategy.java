@@ -25,7 +25,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
 
     @Override
     public Table<?> getTable(Application application, ManyToManyRelation relation) {
-        return JOOQUtils.resolveTable(relation.getJoinTable());
+        return JOOQUtils.resolveTable(application, relation.getJoinTable());
     }
 
     @Override
@@ -45,8 +45,8 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
         var joinTable = getTable(application, relation);
         var sourceRef = getSourceRef(application, relation);
         var targetRef = getTargetRef(application, relation);
-        var sourceTable = JOOQUtils.resolveTable(application.getRelationSourceEntity(relation));
-        var targetTable = JOOQUtils.resolveTable(application.getRelationTargetEntity(relation));
+        var sourceTable = JOOQUtils.resolveTable(application, application.getRelationSourceEntity(relation));
+        var targetTable = JOOQUtils.resolveTable(application, application.getRelationTargetEntity(relation));
         var sourcePrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationSourceEntity(relation));
         var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(application.getRelationTargetEntity(relation));
 
@@ -86,7 +86,7 @@ final class JOOQManyToManyRelationStrategy extends JOOQXToManyRelationStrategy<M
                 throw ExceptionUtils.handleException(e, () -> {
                     var targetEntityName = relation.getTargetEndPoint().getEntity();
                     var targetEntity = application.getRequiredEntityByName(targetEntityName);
-                    var targetTableName = JOOQUtils.resolveTable(targetEntity);
+                    var targetTableName = JOOQUtils.resolveTable(application, targetEntity);
                     var targetPrimaryKey = JOOQUtils.resolvePrimaryKey(targetEntity);
 
                     var targetUuids = targetIdentities.stream().map(t -> t.getEntityId().getValue()).collect(Collectors.toSet());

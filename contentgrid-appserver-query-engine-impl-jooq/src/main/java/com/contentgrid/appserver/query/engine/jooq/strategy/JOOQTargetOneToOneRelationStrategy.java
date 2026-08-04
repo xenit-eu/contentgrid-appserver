@@ -29,7 +29,7 @@ final class JOOQTargetOneToOneRelationStrategy extends JOOQXToOneRelationStrateg
 
     @Override
     public Table<?> getTable(Application application, TargetOneToOneRelation relation) {
-        return JOOQUtils.resolveTable(application.getRelationTargetEntity(relation));
+        return JOOQUtils.resolveTable(application, application.getRelationTargetEntity(relation));
     }
 
     @Override

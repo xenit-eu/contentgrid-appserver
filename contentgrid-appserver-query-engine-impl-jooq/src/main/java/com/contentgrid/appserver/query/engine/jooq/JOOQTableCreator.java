@@ -30,7 +30,7 @@ public class JOOQTableCreator implements TableCreator {
         createSchema(dslContext, application);
 
         for (var entity : application.getEntities()) {
-            createTableForEntity(dslContext, entity);
+            createTableForEntity(dslContext, application, entity);
         }
         // Create relations after tables are created, so that each table referenced in the foreign key constraint exists
         for (var relation : application.getRelations()) {
@@ -59,8 +59,8 @@ public class JOOQTableCreator implements TableCreator {
         });
     }
 
-    private void createTableForEntity(DSLContext dslContext, Entity entity) {
-        var step = dslContext.createTableIfNotExists(entity.getTable().getValue())
+    private void createTableForEntity(DSLContext dslContext, Application application, Entity entity) {
+        var step = dslContext.createTableIfNotExists(JOOQUtils.resolveTable(application, entity))
                 .column(JOOQUtils.resolvePrimaryKey(entity))
                 .primaryKey(entity.getPrimaryKey().getColumn().getValue());
         for (var attribute : entity.getAttributes()) {
@@ -99,7 +99,7 @@ public class JOOQTableCreator implements TableCreator {
 
         // Drop entity tables after relations are dropped
         for (var entity : application.getEntities()) {
-            var table = JOOQUtils.resolveTable(entity);
+            var table = JOOQUtils.resolveTable(application, entity);
             dslContext.dropTableIfExists(table).execute();
         }
 

@@ -7,7 +7,9 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
+import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.jooq.strategy.HasSourceTableColumnRef;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
@@ -21,6 +23,7 @@ import org.jooq.Allow;
 import org.jooq.Condition;
 import org.jooq.DataType;
 import org.jooq.Field;
+import org.jooq.Name;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
@@ -42,6 +45,42 @@ public class JOOQUtils {
 
     public static Table<?> resolveTable(TableName tableName, TableName alias) {
         return DSL.table(DSL.name(tableName.getValue())).as(alias.getValue());
+    }
+
+    /**
+     * Resolve a table reference, schema-qualifying it with the application's configured database schema
+     * (see {@link DatabaseSettings#getSchema()}) when it is a non-{@link SchemaName#PUBLIC} schema.
+     * <p>
+     * Unlike a global jOOQ {@code RenderMapping} (which also qualifies unbound, correlated alias.field
+     * references and produces invalid SQL such as {@code "schema"."alias"."column"}), schema-qualifying
+     * only the table keeps {@code DSL.field(DSL.name(alias, column))} references unqualified, which is
+     * required for correlated subqueries (e.g. the {@code _allow_read} EXISTS built by
+     * {@code JOOQSymbolicReferenceResolver}).
+     */
+    public static Table<?> resolveTable(Application application, Entity entity) {
+        return resolveTable(application, entity.getTable());
+    }
+
+    public static Table<?> resolveTable(Application application, TableName tableName) {
+        return DSL.table(resolveTableName(application, tableName));
+    }
+
+    public static Table<?> resolveTable(Application application, Entity entity, TableName alias) {
+        return resolveTable(application, entity.getTable(), alias);
+    }
+
+    public static Table<?> resolveTable(Application application, TableName tableName, TableName alias) {
+        return DSL.table(resolveTableName(application, tableName)).as(alias.getValue());
+    }
+
+    private static Name resolveTableName(Application application, TableName tableName) {
+        var schema = application.getSettings().getDatabase()
+                .map(DatabaseSettings::getSchema)
+                .filter(schemaName -> !SchemaName.PUBLIC.equals(schemaName));
+        if (schema.isPresent()) {
+            return DSL.name(schema.get().getValue(), tableName.getValue());
+        }
+        return DSL.name(tableName.getValue());
     }
 
     public static Field<?> resolveField(TableName alias, SimpleAttribute attribute) {
