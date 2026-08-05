@@ -5,7 +5,6 @@ import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDeta
 import com.contentgrid.thunx.webmvc.autoconfigure.WebMvcAbacAutoConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -32,30 +31,36 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 public class DefaultSecurityAutoConfiguration {
 
     @Bean
-    @ConditionalOnBean(AuthorizationManager.class)
+    @ConditionalOnBean({AuthorizationManager.class, JwtDecoder.class})
     SecurityFilterChain opaSecurityFilterChain(
             HttpSecurity http,
-            ObjectProvider<JwtDecoder> jwtDecoder,
             AuthorizationManager<RequestAuthorizationContext> policyAuthorizationManager
     ) {
         http.authorizeHttpRequests(authorize -> authorize.anyRequest().access(policyAuthorizationManager));
-        if (jwtDecoder.getIfAvailable() != null) {
-            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
-                    jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
-        } else {
-            log.warn("No jwtDecoder found, requests will be done anonymously.");
-        }
+        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
+                jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
 
     @Bean
-    @ConditionalOnMissingBean(SecurityFilterChain.class)
-    SecurityFilterChain centralizedOpaSecurityFilterChain(HttpSecurity http, ObjectProvider<JwtDecoder> jwtDecoder) {
+    @ConditionalOnBean(JwtDecoder.class)
+    @ConditionalOnMissingBean
+    SecurityFilterChain centralizedOpaSecurityFilterChain(HttpSecurity http) {
         http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
+        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+        return http.build();
+    }
 
-        if (jwtDecoder.getIfAvailable() != null) {
-            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-        }
+    /**
+     * Last resort: reached only when neither {@link #opaSecurityFilterChain} nor
+     * {@link #centralizedOpaSecurityFilterChain} created a chain, which (given their conditions) only happens
+     * when no {@link JwtDecoder} is available. Without one there is no way to decode and verify the JWT, so
+     * this requires some non-anonymous authentication, for instance by {@link AnonymousHttpConfigurer}.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    SecurityFilterChain noJwtDecoderSecurityFilterChain(HttpSecurity http) {
+        http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
         return http.build();
     }
 

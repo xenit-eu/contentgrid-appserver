@@ -160,6 +160,20 @@ class DefaultSecurityAutoConfigurationTest {
         });
     }
 
+    @Test
+    void sidecarMode_withoutJwtDecoder_leavesRequestsUnauthenticated() {
+        contextRunner
+                .withBean(AuthorizationManager.class,
+                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+
+                    assertThat(bearerTokenRequest(context))
+                            .matches(unauthenticated())
+                            .hasStatus(HttpStatus.FORBIDDEN);
+                });
+    }
+
     /**
      * Drives a request through the real, fully assembled {@code springSecurityFilterChain}, without starting a
      * servlet container. A request that is not rejected by the chain reaches {@link StubController} and gets a 200.

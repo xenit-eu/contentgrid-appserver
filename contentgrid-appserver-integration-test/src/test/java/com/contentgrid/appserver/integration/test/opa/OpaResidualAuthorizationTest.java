@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.integration.test.opa;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,9 +18,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -40,7 +45,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         "contentgrid.thunx.abac.source=opa",
         "opa.query=data.contentgrid.appserver.allow == true",
 })
-@ContextConfiguration(classes = InvoicingApiApplication.class)
+@ContextConfiguration(classes = {InvoicingApiApplication.class, OpaResidualAuthorizationTest.NoOpJwtDecoderConfiguration.class})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class OpaResidualAuthorizationTest {
 
@@ -73,8 +78,8 @@ class OpaResidualAuthorizationTest {
         invoicingApi.deleteAll();
     }
 
-    private JwtRequestPostProcessor authenticatedAs(String subject) {
-        return jwt()
+    private JwtRequestPostProcessor jwtRequestProcessor(String subject) {
+        return SecurityMockMvcRequestPostProcessors.jwt()
                 .jwt(builder -> builder
                         .subject(subject)
                         .issuer(JWT_ISSUER)
@@ -89,7 +94,7 @@ class OpaResidualAuthorizationTest {
 
     private UUID createCustomer(String vat, long totalSpend) throws Exception {
         var response = mockMvc.perform(post("/customers")
-                        .with(authenticatedAs("creator"))
+                        .with(jwtRequestProcessor("creator"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -113,7 +118,7 @@ class OpaResidualAuthorizationTest {
         createCustomer(matchingVat, 50);
         createCustomer(nonMatchingVat, 500);
 
-        mockMvc.perform(get("/customers").with(authenticatedAs("reader")))
+        mockMvc.perform(get("/customers").with(jwtRequestProcessor("reader")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page.total_items_exact").value(1))
                 .andExpect(jsonPath("$._embedded.['item'].length()").value(1))
@@ -124,7 +129,7 @@ class OpaResidualAuthorizationTest {
     void getCustomerById_matchingResidualPredicate_returnsHttp200() throws Exception {
         var matchingId = createCustomer("BE0000000003", 100);
 
-        mockMvc.perform(get("/customers/{id}", matchingId).with(authenticatedAs("reader")))
+        mockMvc.perform(get("/customers/{id}", matchingId).with(jwtRequestProcessor("reader")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vat").value("BE0000000003"));
     }
@@ -137,7 +142,7 @@ class OpaResidualAuthorizationTest {
         // PermissionDeniedException (-> 403) rather than treating it as not-found when that column is false.
         var nonMatchingId = createCustomer("BE0000000004", 500);
 
-        mockMvc.perform(get("/customers/{id}", nonMatchingId).with(authenticatedAs("reader")))
+        mockMvc.perform(get("/customers/{id}", nonMatchingId).with(jwtRequestProcessor("reader")))
                 .andExpect(status().isForbidden());
     }
 
@@ -146,6 +151,23 @@ class OpaResidualAuthorizationTest {
         createCustomer("BE0000000005", 50);
 
         mockMvc.perform(get("/customers"))
-                .andExpect(status().is(403));
+                .andExpect(status().isUnauthorized());
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class NoOpJwtDecoderConfiguration {
+
+        /**
+         * Only needs to exist so {@link com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration#opaSecurityFilterChain(HttpSecurity, AuthorizationManager)}'s
+         * {@code @ConditionalOnBean(JwtDecoder.class)} activates. Every request here authenticates via
+         * {@code jwtRequestProcessor()}, which injects the {@code Authentication} directly,
+         * so this decoder is never actually invoked.
+         */
+        @Bean
+        JwtDecoder jwtDecoder() {
+            return token -> {
+                throw new UnsupportedOperationException("decode() should never be called in this test");
+            };
+        }
     }
 }
