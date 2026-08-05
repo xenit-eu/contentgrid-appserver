@@ -11,10 +11,10 @@ dependencies {
     api project(':contentgrid-appserver-query-engine-api')
     api project(':contentgrid-appserver-contentstore-api')
     api project(':contentgrid-appserver-rest')
-    api project(':contentgrid-appserver-security')
     api 'org.springframework.boot:spring-boot-starter-web'
 
     implementation project(':contentgrid-appserver-actuators')
+    implementation project(':contentgrid-appserver-security')
     implementation project(':contentgrid-appserver-domain-spi')
     implementation project(':contentgrid-appserver-events')
     implementation project(':contentgrid-appserver-query-engine-impl-jooq')
