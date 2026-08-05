@@ -34,6 +34,7 @@ dependencies {
     testImplementation 'org.springframework:spring-tx'
     testImplementation 'org.springframework:spring-webflux'
     testImplementation 'org.hamcrest:hamcrest'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'com.adobe.testing:s3mock-testcontainers'
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'

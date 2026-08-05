@@ -10,20 +10,20 @@ dependencies {
 
     // OpaInputProvider (implemented by AppserverOpaInputProvider) and OpaClient (constructor argument of
     // OpaPolicyUploader)
-    api 'com.contentgrid.thunx:thunx-pdp-opa'
+    implementation 'com.contentgrid.thunx:thunx-pdp-opa'
 
     // Authentication/GrantedAuthority (authority model), ClaimAccessor (Actor), Jwt
     // (GatewayJwtAuthenticationDetailsConverter)
-    api 'org.springframework.security:spring-security-core'
-    api 'org.springframework.security:spring-security-oauth2-core'
-    api 'org.springframework.security:spring-security-oauth2-jose'
+    implementation 'org.springframework.security:spring-security-core'
+    implementation 'org.springframework.security:spring-security-oauth2-core'
+    implementation 'org.springframework.security:spring-security-oauth2-jose'
 
     // ApplicationReadyEvent/availability events (OpaPolicyUploader) and
     // @ConfigurationProperties/@DefaultValue (OpaPolicyUploadRetryProperties)
-    api 'org.springframework.boot:spring-boot'
+    implementation 'org.springframework.boot:spring-boot'
 
     // HttpServletRequest in the OpaInputProvider type parameters (AppserverOpaInputProvider, RequestModel)
-    api 'jakarta.servlet:jakarta.servlet-api'
+    implementation 'jakarta.servlet:jakarta.servlet-api'
 
     // PolicyVariables used to substitute placeholders in the uploaded rego policy
     implementation project(':contentgrid-appserver-actuators')
