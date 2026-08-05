@@ -15,17 +15,17 @@ class OpaSidecarAbacSourceEnvironmentPostProcessorTest {
 
     static Stream<Arguments> scenarios() {
         return Stream.of(
-                Arguments.of("policyPackage blank defaults abac.source to opa", null, null, "opa"),
-                Arguments.of("policyPackage set defaults abac.source to none", "tenant.xyz", null, "none"),
-                Arguments.of("explicit abac.source wins over the sidecar default", null, "none", "none"),
-                Arguments.of("explicit abac.source wins over the centralized default", "tenant.xyz", "opa", "opa"),
-                Arguments.of("explicit non-opa abac.source is preserved verbatim", null, "header", "header")
+                Arguments.argumentSet("policyPackage blank defaults abac.source to opa", null, null, "opa"),
+                Arguments.argumentSet("policyPackage set defaults abac.source to none", "tenant.xyz", null, "none"),
+                Arguments.argumentSet("explicit abac.source wins over the sidecar default", null, "none", "none"),
+                Arguments.argumentSet("explicit abac.source wins over the centralized default", "tenant.xyz", "opa", "opa"),
+                Arguments.argumentSet("explicit non-opa abac.source is preserved verbatim", null, "header", "header")
         );
     }
 
-    @ParameterizedTest(name = "{0}")
+    @ParameterizedTest
     @MethodSource("scenarios")
-    void derivesAbacSourceFromPolicyPackage(String description, String policyPackage, String initialAbacSource,
+    void derivesAbacSourceFromPolicyPackage(String policyPackage, String initialAbacSource,
             String expectedAbacSource) {
         var environment = new MockEnvironment();
         if (policyPackage != null) {
