@@ -36,9 +36,6 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'com.adobe.testing:s3mock-testcontainers'
-    // Needed to define an OpaInputProvider bean (mirroring contentgrid-appserver-app's ContentgridApp) so
-    // the OPA residual-authorization integration test gets the appserver input shape rather than thunx's default
-    testImplementation 'com.contentgrid.thunx:thunx-pdp-opa'
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 
 }

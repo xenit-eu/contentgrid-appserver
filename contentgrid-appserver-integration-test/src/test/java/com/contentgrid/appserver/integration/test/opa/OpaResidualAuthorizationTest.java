@@ -6,35 +6,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.security.opa.authorization.AppserverOpaInputProvider;
 import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
 import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
-import com.contentgrid.thunx.pdp.opa.OpaInputProvider;
-import jakarta.servlet.http.HttpServletRequest;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -50,45 +37,16 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @SpringBootTest(properties = {
         "contentgrid.events.rabbitmq.enabled=false",
+        "contentgrid.thunx.abac.source=opa",
+        "opa.query=data.contentgrid.appserver.allow == true",
 })
-@ContextConfiguration(classes = {
-        InvoicingApiApplication.class,
-        OpaResidualAuthorizationTest.OpaTestConfiguration.class,
-})
+@ContextConfiguration(classes = InvoicingApiApplication.class)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 class OpaResidualAuthorizationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(OpaResidualAuthorizationTest.class);
 
     private static final String JWT_ISSUER = "https://tenant.example.com";
-
-    // Package MUST match the query below; rego.v1 is required so `if`/set-literal syntax is available on
-    // any OPA >= 0.59 (not just OPA >= 1.0).
-    private static final String POLICY = """
-            package contentgrid.appserver
-
-            import rego.v1
-
-            default allow := false
-
-            # Any authenticated user may create customers, so the test can seed data through the REST API.
-            # This rule never touches input.entity, so partial evaluation resolves it immediately - no residual.
-            allow if {
-                input.auth.authenticated == true
-                input.request.method == "POST"
-                input.request.path == ["customers"]
-            }
-
-            # Authenticated users may only see customers whose total_spend is at most 100.
-            # input.entity is the declared 'unknown' during partial evaluation, so this produces a residual
-            # expression (`entity.total_spend <= 100`) instead of resolving to a plain boolean.
-            allow if {
-                input.auth.authenticated == true
-                input.request.method == "GET"
-                input.request.path[0] == "customers"
-                input.entity.total_spend <= 100
-            }
-            """;
 
     @Container
     static GenericContainer<?> opa = new GenericContainer<>("openpolicyagent/opa:1.15.2-static")
@@ -100,19 +58,8 @@ class OpaResidualAuthorizationTest {
 
     @DynamicPropertySource
     static void opaProperties(DynamicPropertyRegistry registry) {
-        registry.add("contentgrid.thunx.abac.source", () -> "opa");
         registry.add("opa.service.url",
                 () -> "http://%s:%d".formatted(opa.getHost(), opa.getMappedPort(8181)));
-        registry.add("opa.query", () -> "data.contentgrid.appserver.allow == true");
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class OpaTestConfiguration {
-
-        @Bean
-        OpaInputProvider<Authentication, HttpServletRequest> appserverOpaInputProvider() {
-            return new AppserverOpaInputProvider();
-        }
     }
 
     @Autowired
@@ -120,23 +67,6 @@ class OpaResidualAuthorizationTest {
 
     @Autowired
     private InvoicingApi invoicingApi;
-
-    @BeforeEach
-    void uploadPolicy() throws Exception {
-        try (var client = HttpClient.newHttpClient()) {
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://%s:%d/v1/policies/appserver".formatted(opa.getHost(), opa.getMappedPort(8181))))
-                    .header("Content-Type", "text/plain")
-                    .PUT(BodyPublishers.ofString(POLICY))
-                    .build();
-            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new IllegalStateException(
-                        "Failed to upload OPA policy: HTTP %d - %s".formatted(response.statusCode(), response.body()));
-            }
-        }
-
-    }
 
     @AfterEach
     void cleanupTestData() {
