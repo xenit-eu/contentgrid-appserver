@@ -136,9 +136,9 @@ class GatewayJwtAuthenticationDetailsConverterTest {
 
     // A gateway-signed token that violates the minting contract must be rejected as an invalid token (401),
     // never classified leniently or crash with an unhandled exception (500).
-    @ParameterizedTest(name = "{0}")
+    @ParameterizedTest
     @MethodSource("rejectedTokens")
-    void rejectsMalformedTokens(String description, Map<String, Object> claims, String expectedMessageFragment) {
+    void rejectsMalformedTokens(Map<String, Object> claims, String expectedMessageFragment) {
         var token = jwt(claims);
 
         var thrown = assertThatThrownBy(() -> converter.convert(token))
@@ -151,7 +151,7 @@ class GatewayJwtAuthenticationDetailsConverterTest {
 
     static Stream<Arguments> rejectedTokens() {
         return Stream.of(
-                Arguments.of(
+                Arguments.argumentSet(
                         "missing principal claim",
                         Map.of(
                                 JwtClaimNames.ISS, "https://tenant.example.com",
@@ -159,7 +159,7 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                         ),
                         GatewayAuthClaimNames.AUTH_PRINCIPAL
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "principal claim is not an object",
                         Map.of(
                                 JwtClaimNames.SUB, "user-1",
@@ -167,7 +167,7 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                         ),
                         null
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "principal object missing kind",
                         Map.of(
                                 JwtClaimNames.SUB, "user-1",
@@ -177,7 +177,7 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                         ),
                         GatewayAuthClaimNames.KIND
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "actor object with unknown kind",
                         Map.of(
                                 JwtClaimNames.SUB, "user-1",
@@ -193,7 +193,7 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                         ),
                         "robot"
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "delegated kind without act claim",
                         Map.of(
                                 JwtClaimNames.SUB, "user-1",
@@ -205,7 +205,7 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                         ),
                         GatewayAuthClaimNames.AUTH_KIND
                 ),
-                Arguments.of(
+                Arguments.argumentSet(
                         "act claim on non-delegated token",
                         Map.of(
                                 JwtClaimNames.SUB, "user-1",
