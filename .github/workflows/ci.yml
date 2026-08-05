@@ -1,11 +1,16 @@
 name: build
+# Publishing is split into separate jobs so a failed publish can be retried
+# from the run page without re-running the other publish (e.g. "Re-run failed
+# jobs" or "Re-run job" on the failed job). A re-run keeps the original ref,
+# so versions are unchanged and an already-published version is never
+# re-published to Maven Central.
 on:
   push:
   pull_request:
 
 jobs:
-  build:
-    name: "build"
+  test:
+    name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -31,19 +36,46 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
         run: ./gradlew sonar -i
+
+  maven-publish:
+    name: maven-publish
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: liberica
+          java-version: 21
+          cache: gradle
       - name: Publish to maven central
-        if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
         env:
           SIGNING_PRIVATE_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_KEY }}
           SIGNING_PASSWORD: ${{ secrets.MAVEN_CENTRAL_GPG_PASSWORD }}
           ORG_GRADLE_PROJECT_mavenCentralPublishUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPublishPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
         run: ./gradlew publish
+
+  docker-publish:
+    name: docker-publish
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: liberica
+          java-version: 21
+          cache: gradle
       - name: Set up QEMU for cross-architecture image builds
-        if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
       - name: Publish to ghcr.io
-        if: ${{ github.ref == 'refs/heads/main' || startswith(github.ref, 'refs/tags/') }}
         env:
           ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_URL: ghcr.io
           ORG_GRADLE_PROJECT_DOCKER_PUBLISH_REGISTRY_USERNAME: ${{ github.actor }}
