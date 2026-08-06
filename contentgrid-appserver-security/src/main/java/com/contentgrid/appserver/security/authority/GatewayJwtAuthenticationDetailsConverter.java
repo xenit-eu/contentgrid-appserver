@@ -77,7 +77,7 @@ public class GatewayJwtAuthenticationDetailsConverter implements Converter<Jwt, 
             return switch (kindString) {
                 case GatewayAuthClaimNames.KIND_USER -> ActorType.USER;
                 case GatewayAuthClaimNames.KIND_EXTENSION -> ActorType.EXTENSION;
-                default -> throw new InvalidBearerTokenException("Unknown actor '%s' value '%s'".formatted(
+                default -> throw new InvalidBearerTokenException("Unknown actor type '%s' value '%s'".formatted(
                         GatewayAuthClaimNames.KIND, kindString));
             };
         }
