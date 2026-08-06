@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 
-// Duplicated from the gateway
 @Getter
 abstract class AbstractAuthenticationDetailsGrantedAuthority implements AuthenticationDetails, GrantedAuthority {
 
