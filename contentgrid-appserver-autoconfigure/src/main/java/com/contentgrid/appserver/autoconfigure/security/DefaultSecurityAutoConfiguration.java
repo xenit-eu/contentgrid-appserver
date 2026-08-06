@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -27,7 +26,6 @@ import org.springframework.security.web.access.intercept.RequestAuthorizationCon
 @AutoConfiguration(before = SecurityAutoConfiguration.class, after = WebMvcAbacAutoConfiguration.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(SecurityFilterChain.class)
-@EnableWebSecurity
 public class DefaultSecurityAutoConfiguration {
 
     @Bean
