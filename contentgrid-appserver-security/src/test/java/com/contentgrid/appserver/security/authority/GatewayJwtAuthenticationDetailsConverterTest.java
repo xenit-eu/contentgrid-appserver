@@ -220,6 +220,19 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                                 )
                         ),
                         GatewayAuthClaimNames.AUTH_KIND
+                ),
+                Arguments.argumentSet(
+                        "empty act claim",
+                        Map.of(
+                                JwtClaimNames.SUB, "user-1",
+                                GatewayAuthClaimNames.AUTH_KIND, GatewayAuthClaimNames.AUTH_KIND_USER,
+                                GatewayAuthClaimNames.AUTH_PRINCIPAL, Map.of(
+                                        GatewayAuthClaimNames.KIND, GatewayAuthClaimNames.KIND_USER,
+                                        JwtClaimNames.SUB, "user-1"
+                                ),
+                                GatewayAuthClaimNames.ACT, Map.of()
+                        ),
+                        GatewayAuthClaimNames.AUTH_KIND
                 )
         );
     }
