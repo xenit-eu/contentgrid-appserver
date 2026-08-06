@@ -7,19 +7,13 @@ import com.contentgrid.appserver.security.opa.authorization.AuthenticationModel.
 import com.contentgrid.appserver.security.authority.Actor;
 import com.contentgrid.appserver.security.authority.Actor.ActorType;
 import com.contentgrid.appserver.security.authority.DelegatedAuthenticationDetailsGrantedAuthority;
-import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
-import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import com.contentgrid.appserver.security.authority.PrincipalAuthenticationDetailsGrantedAuthority;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimNames;
 
 class AuthenticationModelTest {
 
@@ -27,35 +21,27 @@ class AuthenticationModelTest {
     private static final String EXTENSION_SYSTEM_ISSUER = "https://extensions.invalid/authentication/system";
 
     @Test
-    void fromGatewayMintedJwt() {
-        var jwtToken = Jwt.withTokenValue("token")
-                .header("alg", "none")
-                .claim(JwtClaimNames.ISS, USER_ISSUER)
-                .claim(JwtClaimNames.SUB, "04c2cbec-faad-4dc8-ba6f-edb3d5b902e9")
-                .claim(GatewayAuthClaimNames.AUTH_KIND, GatewayAuthClaimNames.AUTH_KIND_USER)
-                .claim(GatewayAuthClaimNames.AUTH_PRINCIPAL, Map.of(
-                        GatewayAuthClaimNames.KIND, GatewayAuthClaimNames.KIND_USER,
-                        "iss", USER_ISSUER,
-                        "sub", "04c2cbec-faad-4dc8-ba6f-edb3d5b902e9",
-                        "name", "Alice",
-                        "email", "alice@wonderland.example",
-                        "contentgrid:custom", List.of("blue", "green")
+    void fromUserAccessToken() {
+        var model = AuthenticationModel.from(new TestingAuthenticationToken(null, null, List.of(
+                new PrincipalAuthenticationDetailsGrantedAuthority(new Actor(
+                        ActorType.USER,
+                        () -> Map.of(
+                                "iss", USER_ISSUER,
+                                "sub", "04c2cbec-faad-4dc8-ba6f-edb3d5b902e9",
+                                "name", "Alice",
+                                "email", "alice@wonderland.example",
+                                "contentgrid:custom", List.of("blue", "green")
+                        ),
+                        null
                 ))
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(300))
-                .build();
-
-        var converter = new GatewayJwtAuthenticationDetailsConverter();
-
-        var auth = new TestingAuthenticationToken(jwtToken, null, new ArrayList<>(converter.convert(jwtToken)));
-
-        var model = AuthenticationModel.from(auth);
+        )));
 
         assertThat(model.isAuthenticated()).isTrue();
         assertThat(model.getKind()).isEqualTo(AuthenticationKind.USER);
         assertThat(model.getPrincipal().kind()).isEqualTo(ActorKind.USER);
-        assertThat(model.getPrincipal().claims()).containsAllEntriesOf(Map.of(
+        assertThat(model.getPrincipal().claims()).containsExactlyInAnyOrderEntriesOf(Map.of(
                 "iss", USER_ISSUER,
+                "name", "Alice",
                 "email", "alice@wonderland.example",
                 "sub", "04c2cbec-faad-4dc8-ba6f-edb3d5b902e9",
                 "contentgrid:custom", List.of("blue", "green")
