@@ -5,33 +5,20 @@ plugins {
 }
 
 dependencies {
-    // BlueprintArtifact is a constructor argument of OpaPolicyUploader
     api project(':contentgrid-appserver-domain-spi')
 
-    // OpaInputProvider (implemented by AppserverOpaInputProvider) and OpaClient (constructor argument of
-    // OpaPolicyUploader)
+    implementation project(':contentgrid-appserver-actuators')
+
     implementation 'com.contentgrid.thunx:thunx-pdp-opa'
 
-    // Authentication/GrantedAuthority (authority model), ClaimAccessor (Actor), Jwt
-    // (GatewayJwtAuthenticationDetailsConverter)
+    implementation 'org.springframework.boot:spring-boot'
     implementation 'org.springframework.security:spring-security-core'
     implementation 'org.springframework.security:spring-security-oauth2-core'
     implementation 'org.springframework.security:spring-security-oauth2-jose'
-
-    // ApplicationReadyEvent/availability events (OpaPolicyUploader) and
-    // @ConfigurationProperties/@DefaultValue (OpaPolicyUploadRetryProperties)
-    implementation 'org.springframework.boot:spring-boot'
-
-    // HttpServletRequest in the OpaInputProvider type parameters (AppserverOpaInputProvider, RequestModel)
-    implementation 'jakarta.servlet:jakarta.servlet-api'
-
-    // PolicyVariables used to substitute placeholders in the uploaded rego policy
-    implementation project(':contentgrid-appserver-actuators')
-
-    // InvalidBearerTokenException thrown on gateway-token contract violations
     implementation 'org.springframework.security:spring-security-oauth2-resource-server'
 
-    // Jackson annotations on the OPA input model (AuthenticationModel, RequestModel)
+    implementation 'jakarta.servlet:jakarta.servlet-api'
+
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

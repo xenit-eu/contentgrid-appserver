@@ -14,6 +14,14 @@ server:
   tomcat:
     max-part-count: 200
 management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include:
+            - readinessState
+            - opa
+      show-details: when-authorized
   server:
     port: 8081
   health:
