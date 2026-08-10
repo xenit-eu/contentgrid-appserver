@@ -27,3 +27,8 @@ management:
   health:
     rabbit:
       enabled: true
+
+opa:
+  service:
+    url: http://localhost:8181
+  query: data.contentgrid.appserver.allow == true

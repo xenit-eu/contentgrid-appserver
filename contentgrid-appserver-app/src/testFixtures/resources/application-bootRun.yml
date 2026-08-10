@@ -19,11 +19,6 @@ contentgrid:
     rabbitmq.enabled: false
     webhook-config-url: http://localhost:${management.server.port}/actuator/webhooks
 
-opa:
-  service:
-    url: http://localhost:8181
-  query: data.contentgrid.appserver.allow == true
-
 spring:
   datasource:
     url: jdbc:tc:postgresql:15:///
