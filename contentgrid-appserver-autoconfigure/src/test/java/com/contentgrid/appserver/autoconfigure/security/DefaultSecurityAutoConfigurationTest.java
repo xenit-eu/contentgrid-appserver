@@ -28,8 +28,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 
 class DefaultSecurityAutoConfigurationTest {
@@ -41,8 +39,7 @@ class DefaultSecurityAutoConfigurationTest {
                     DefaultSecurityAutoConfiguration.class,
                     OAuth2ResourceServerAutoConfiguration.class, SecurityAutoConfiguration.class,
                     ServletWebSecurityAutoConfiguration.class
-            ))
-            .withUserConfiguration(StubController.class);
+            ));
 
     @Test
     void hasSingleCentralizedOpaSecurityFilterChain() {
@@ -161,7 +158,7 @@ class DefaultSecurityAutoConfigurationTest {
     }
 
     @Test
-    void sidecarMode_withoutJwtDecoder_leavesRequestsUnauthenticated() {
+    void withoutJwtDecoder_andOPAAuthorizationManager_leavesRequestsUnauthenticated() {
         contextRunner
                 .withBean(AuthorizationManager.class,
                         () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
@@ -176,23 +173,11 @@ class DefaultSecurityAutoConfigurationTest {
 
     /**
      * Drives a request through the real, fully assembled {@code springSecurityFilterChain}, without starting a
-     * servlet container. A request that is not rejected by the chain reaches {@link StubController} and gets a 200.
+     * servlet container. A request that is not rejected by the chain gets a 200.
      */
     private static MvcTestResult bearerTokenRequest(WebApplicationContext context) {
         var mockMvc = MockMvcTester.from(context, builder -> builder.apply(springSecurity()).build());
         return mockMvc.get().uri("/").header(HttpHeaders.AUTHORIZATION, "Bearer test-token").exchange();
-    }
-
-    /**
-     * Gives every request a real endpoint to land on, so that "allowed by the security chain" shows up as a 200.
-     */
-    @RestController
-    static class StubController {
-
-        @GetMapping("/")
-        String root() {
-            return "ok";
-        }
     }
 
     @Configuration(proxyBeanMethods = false)
