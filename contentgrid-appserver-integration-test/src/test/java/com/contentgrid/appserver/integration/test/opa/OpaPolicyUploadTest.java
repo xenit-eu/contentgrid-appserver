@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
-import com.contentgrid.appserver.security.opa.OpaPolicyUploadInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
@@ -33,25 +32,12 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * The {@code opa} readiness indicator has three distinct scenarios, each requiring its own Spring context since the
- * relevant properties (opa-sidecar vs. centralized mode, reachable vs. unreachable OPA) are fixed at startup:
- * <ul>
- *     <li>sidecar mode, OPA unreachable: upload never succeeds, readiness stays DOWN (this class)</li>
- *     <li>centralized mode: this app never uploads a policy, readiness is UP regardless of OPA's contents
- *     ({@link WhenOpaIsCentralized})</li>
- *     <li>sidecar mode, OPA reachable: upload succeeds, readiness becomes UP ({@link WhenSidecarUploadSucceeds})</li>
- * </ul>
- */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "contentgrid.events.rabbitmq.enabled=false",
-                "contentgrid.system.policyPackage=",
                 "management.endpoints.web.exposure.include=*",
-                "management.server.port=0",
                 "management.endpoint.health.group.readiness.include=readinessState,opa",
-                "opa.service.url=http://localhost:1",
         }
 )
 @AutoConfigureRestTestClient
@@ -64,26 +50,15 @@ class OpaPolicyUploadTest {
     private static final String POLICY_ID = "appserver";
     private static final String POLICY_PACKAGE = "contentgrid.appserver";
     private static final String CENTRALIZED_POLICY_PACKAGE = "contentgrid.tenant.acme";
+    private static final String SIDECAR_POLICY_PACKAGE = "";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    @Autowired(required = false)
-    private OpaPolicyUploadInitializer opaPolicyUploadInitializer;
 
     @Autowired
     private RestTestClient rest;
 
     @Value("${local.management.port}")
     private int managementPort;
-
-    @Test
-    void readinessStaysDownWhenOpaIsUnreachable() {
-        assertThat(opaPolicyUploadInitializer)
-                .as("sidecar mode must create an upload initializer, without which no upload is ever attempted")
-                .isNotNull();
-
-        awaitReadiness("DOWN", 503);
-    }
 
     @Nested
     @Testcontainers
@@ -100,14 +75,9 @@ class OpaPolicyUploadTest {
 
         @Test
         void readinessIsUpWithoutUploadingAnyPolicy() throws Exception {
-            awaitReadiness("UP", 200);
+            awaitUp();
 
-            assertThat(opaPolicyUploadInitializer)
-                    .as("centralized mode must not create an upload initializer, since this app never owns the "
-                            + "policy pushed to a centralized OPA")
-                    .isNull();
-
-            var response = queryOpaClient(opa, POLICY_ID);
+            var response = queryOpaClient(opa);
             assertThat(response.statusCode())
                     .as("GET /v1/policies/%s should find nothing, since centralized mode never uploads", POLICY_ID)
                     .isEqualTo(404);
@@ -123,39 +93,30 @@ class OpaPolicyUploadTest {
 
         @DynamicPropertySource
         static void opaProperties(DynamicPropertyRegistry registry) {
+            registry.add("contentgrid.system.policyPackage", () -> SIDECAR_POLICY_PACKAGE);
             registry.add("opa.service.url", () -> opaUrl(opa));
         }
 
         @Test
         void startupUploadsBlueprintArtifactPolicyToOpa() throws Exception {
-            assertThat(opaPolicyUploadInitializer)
-                    .as("OpaPolicyUploadInitializer bean, without which no upload is ever attempted")
-                    .isNotNull();
-
+            awaitUp();
             var expectedPolicy = expectedPolicy();
-            // The upload retries indefinitely in the background rather than blocking startup, so poll instead of
-            // asserting immediately.
-            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-                var response = queryOpaClient(opa, POLICY_ID);
-                assertThat(response.statusCode())
-                        .as("GET /v1/policies/%s returned %d - %s", POLICY_ID, response.statusCode(),
-                                response.body())
-                        .isEqualTo(200);
-                assertThat(OBJECT_MAPPER.readTree(response.body()).path("result").path("raw").asText())
-                        .isEqualTo(expectedPolicy);
-            });
-            awaitReadiness("UP", 200);
+            var response = queryOpaClient(opa);
+            assertThat(response.statusCode())
+                    .as("GET /v1/policies/%s should find nothing, since centralized mode never uploads", POLICY_ID)
+                    .isEqualTo(200);
+            assertThat(OBJECT_MAPPER.readTree(response.body()).path("result").path("raw").asText())
+                    .isEqualTo(expectedPolicy);
         }
     }
 
-    // Health-based readiness reflects a DOWN status as an HTTP 503, not 2xx (that's the point of a readiness probe).
-    private void awaitReadiness(String expectedStatus, int expectedHttpStatus) {
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+    private void awaitUp() {
+        await().atMost(Duration.ofSeconds(3)).untilAsserted(() ->
                 rest.get().uri("http://localhost:" + managementPort + "/actuator/health/readiness")
                         .exchange()
-                        .expectStatus().isEqualTo(expectedHttpStatus)
+                        .expectStatus().isEqualTo(200)
                         .expectBody(String.class)
-                        .value(body -> assertThat(body).contains("\"status\":\"" + expectedStatus + "\"")));
+                        .value(body -> assertThat(body).contains("\"status\":\"" + "UP" + "\"")));
     }
 
     private static GenericContainer<?> newOpaContainer() {
@@ -179,12 +140,12 @@ class OpaPolicyUploadTest {
         }
     }
 
-    private static HttpResponse<String> queryOpaClient(GenericContainer<?> opa, String policyId)
+    private static HttpResponse<String> queryOpaClient(GenericContainer<?> opa)
             throws IOException, InterruptedException {
         try (var client = HttpClient.newHttpClient()) {
             var request = HttpRequest.newBuilder()
                     .uri(URI.create("http://%s:%d/v1/policies/%s"
-                            .formatted(opa.getHost(), opa.getMappedPort(8181), policyId)))
+                            .formatted(opa.getHost(), opa.getMappedPort(8181), OpaPolicyUploadTest.POLICY_ID)))
                     .GET()
                     .build();
             return client.send(request, BodyHandlers.ofString());

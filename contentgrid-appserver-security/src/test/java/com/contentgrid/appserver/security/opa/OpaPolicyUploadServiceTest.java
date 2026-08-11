@@ -29,12 +29,10 @@ class OpaPolicyUploadServiceTest {
     void upsertPolicy_fail_marksDown() throws InterruptedException {
         when(opaClient.upsertPolicy(any(), any()))
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("OPA unavailable")));
-        var thread = new Thread(() -> {
-            service.upsertPolicy("package contentgrid.appserver\n");
-        });
+        var thread = new Thread(() -> service.upsertPolicy("package contentgrid.appserver\n"));
 
         thread.start();
-        verify(opaClient, after(50).atLeast(1)).upsertPolicy(any(), any());
+        verify(opaClient, after(50).atLeast(2)).upsertPolicy(any(), any());
         thread.interrupt();
         thread.join(100);
 
