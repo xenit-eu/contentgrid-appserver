@@ -15,12 +15,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
-import software.amazon.awssdk.http.apache5.Apache5HttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 @AutoConfiguration
-@ConditionalOnClass({ContentStoreResolver.class, ContentStore.class, S3ContentStore.class, S3Client.class})
+@ConditionalOnClass({ContentStoreResolver.class, ContentStore.class, S3ContentStore.class, S3AsyncClient.class,
+        NettyNioAsyncHttpClient.class})
 @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "s3")
 @EnableConfigurationProperties(S3Properties.class)
 public class S3ContentStoreAutoConfiguration {
@@ -39,20 +39,20 @@ public class S3ContentStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    S3Client s3Client(S3Properties properties) {
+    S3AsyncClient s3AsyncClient(S3Properties properties) {
         // connection-pool-size 0 (the default) means connections must not be re-used at all (ACC-2696):
         // no-reuse is enforced with a `Connection: close` header on every request. With a pool, its size
-        // caps the number of pooled connections, and idle connections are kept around for the keep-alive
-        // period.
+        // caps the number of concurrent connections, and idle connections are kept around for the
+        // keep-alive period.
         var reuseConnections = properties.connectionPoolSize() > 0;
-        var httpClientBuilder = Apache5HttpClient.builder();
+        var httpClientBuilder = NettyNioAsyncHttpClient.builder();
         if (reuseConnections) {
             httpClientBuilder
-                    .maxConnections(properties.connectionPoolSize())
+                    .maxConcurrency(properties.connectionPoolSize())
                     .connectionMaxIdleTime(Duration.ofSeconds(properties.connectionPoolKeepAliveSeconds()));
         }
 
-        return S3ClientFactory.createS3Client(
+        return S3ClientFactory.createS3AsyncClient(
                 properties.url(),
                 properties.accessKey(),
                 properties.secretKey(),
@@ -64,26 +64,9 @@ public class S3ContentStoreAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    S3AsyncClient s3AsyncClient(S3Properties properties) {
-        // The connection-pool-tuning properties only govern the synchronous client; for this client only
-        // the no-reuse setting carries over.
-        var reuseConnections = properties.connectionPoolSize() > 0;
-        return S3ClientFactory.createS3AsyncClient(
-                properties.url(),
-                properties.accessKey(),
-                properties.secretKey(),
-                properties.region(),
-                properties.pathStyleAccess(),
-                reuseConnections
-        );
-    }
-
-    @Bean
-    @ConditionalOnBean({S3Client.class, S3AsyncClient.class})
-    ContentStoreResolver s3ContentStoreResolver(S3Client s3Client, S3AsyncClient s3AsyncClient,
-            S3Properties properties) {
-        var contentStore = new S3ContentStore(s3Client, s3AsyncClient, properties.bucket());
+    @ConditionalOnBean(S3AsyncClient.class)
+    ContentStoreResolver s3ContentStoreResolver(S3AsyncClient s3AsyncClient, S3Properties properties) {
+        var contentStore = new S3ContentStore(s3AsyncClient, properties.bucket());
         return application -> contentStore;
     }
 

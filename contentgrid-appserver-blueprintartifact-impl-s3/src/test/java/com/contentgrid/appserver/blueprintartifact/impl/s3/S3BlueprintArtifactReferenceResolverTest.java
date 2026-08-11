@@ -10,7 +10,7 @@ class S3BlueprintArtifactReferenceResolverTest {
 
     // No actual S3 calls are made: S3Artifact downloads lazily, so a dummy endpoint is fine.
     private final S3BlueprintArtifactReferenceResolver resolver = new S3BlueprintArtifactReferenceResolver(
-            S3TestClients.s3Client("http://localhost:9000"));
+            S3TestClients.s3AsyncClient("http://localhost:9000"));
 
     @Test
     void resolve_s3Reference_returnsS3BlueprintArtifact() {

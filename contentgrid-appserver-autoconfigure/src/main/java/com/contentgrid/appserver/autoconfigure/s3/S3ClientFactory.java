@@ -7,11 +7,10 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.http.apache5.Apache5HttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.profiles.ProfileFile;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
 
 /**
@@ -41,29 +40,16 @@ final class S3ClientFactory {
     private static final long PART_SIZE = 50L * 1024 * 1024;
 
     /**
+     * Creates the S3 client. Uploads over the part size transparently become multipart uploads, with
+     * parallel part uploads.
+     *
      * @param reuseConnections whether http connections may be re-used across requests. When {@code false},
-     * every request carries a {@code Connection: close} header, so a connection is never re-used.
-     */
-    static S3Client createS3Client(String endpoint, String accessKey, String secretKey, String region,
-            boolean pathStyleAccess, Apache5HttpClient.Builder httpClientBuilder, boolean reuseConnections) {
-        return S3Client.builder()
-                .endpointOverride(endpointUri(endpoint))
-                .forcePathStyle(pathStyleAccess)
-                .region(regionOrNone(region))
-                .credentialsProvider(credentialsProvider(accessKey, secretKey))
-                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
-                .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
-                .httpClientBuilder(httpClientBuilder)
-                .overrideConfiguration(overrideConfiguration(reuseConnections))
-                .build();
-    }
-
-    /**
-     * Creates the client used for uploads: it transparently splits large uploads into multipart uploads,
-     * with parallel part uploads.
+     * every request asks the server to close the connection with a {@code Connection: close} header. The
+     * client only keeps a connection when the response says it may, so this is what stops re-use.
      */
     static S3AsyncClient createS3AsyncClient(String endpoint, String accessKey, String secretKey,
-            String region, boolean pathStyleAccess, boolean reuseConnections) {
+            String region, boolean pathStyleAccess, NettyNioAsyncHttpClient.Builder httpClientBuilder,
+            boolean reuseConnections) {
         return S3AsyncClient.builder()
                 .endpointOverride(endpointUri(endpoint))
                 .forcePathStyle(pathStyleAccess)
@@ -73,9 +59,9 @@ final class S3ClientFactory {
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .multipartEnabled(true)
                 .multipartConfiguration(MultipartConfiguration.builder()
-                        .thresholdInBytes(PART_SIZE)
                         .minimumPartSizeInBytes(PART_SIZE)
                         .build())
+                .httpClientBuilder(httpClientBuilder)
                 .overrideConfiguration(overrideConfiguration(reuseConnections))
                 .build();
     }

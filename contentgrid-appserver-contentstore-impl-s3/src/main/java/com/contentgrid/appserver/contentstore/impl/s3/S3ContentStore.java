@@ -14,9 +14,8 @@ import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
-import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
@@ -26,10 +25,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 public class S3ContentStore implements ContentStore {
 
     @NonNull
-    private final S3Client client;
-
-    @NonNull
-    private final S3AsyncClient asyncClient;
+    private final S3AsyncClient client;
 
     @NonNull
     private final String bucketName;
@@ -48,17 +44,20 @@ public class S3ContentStore implements ContentStore {
                 requestBuilder.range("bytes=%d-%d".formatted(contentRange.getStartByte(),
                         contentRange.getEndByteInclusive()));
             }
-            var object = client.getObject(requestBuilder.build());
+            var object = client.getObject(requestBuilder.build(), AsyncResponseTransformer.toBlockingInputStream())
+                    .join();
 
             if (contentRange != null && contentSize(object.response()) != contentRange.getContentSize()) {
                 object.abort();
                 throw new UnreadableContentException(contentReference, "range size does not match actual size");
             }
 
-            var reader = new S3ContentReader(contentReference, object);
+            var reader = new S3ContentReader(contentReference, object, contentRange);
 
             return new GuardedContentReader(reader);
-        } catch (SdkException e) {
+        } catch (CompletionException e) {
+            throw new UnreadableContentException(contentReference, e.getCause());
+        } catch (RuntimeException e) {
             throw new UnreadableContentException(contentReference, e);
         }
     }
@@ -74,35 +73,19 @@ public class S3ContentStore implements ContentStore {
     @Override
     public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
-        var requestBody = AsyncRequestBody.forBlockingInputStream(null); // length unknown
-        var response = asyncClient.putObject(PutObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(contentReference.getValue())
-                        .contentType(CONTENT_TYPE)
-                        .build(),
-                requestBody);
-
-        // writeInputStream can hang if the upload fails partway (a BlockingInputStreamAsyncRequestBody
-        // limitation), so it runs on its own thread, interrupted once `response` completes.
-        var writer = new Thread(() -> {
-            try {
-                requestBody.writeInputStream(inputStream);
-            } catch (RuntimeException e) {
-                // The same failure surfaces through `response` below; nothing more to do here
-            }
-        }, "s3-content-writer-" + contentReference.getValue());
-        writer.setDaemon(true);
-        writer.start();
-
         try {
-            response.join();
+            client.putObject(PutObjectRequest.builder()
+                                    .bucket(bucketName)
+                                    .key(contentReference.getValue())
+                                    .contentType(CONTENT_TYPE)
+                                    .build(),
+                            AsyncRequestBody.fromInputStream(inputStream, null)) // length unknown
+                    .join();
             return new S3ContentAccessor(contentReference);
         } catch (CompletionException e) {
             throw new UnwritableContentException(contentReference, e.getCause());
         } catch (RuntimeException e) {
             throw new UnwritableContentException(contentReference, e);
-        } finally {
-            writer.interrupt();
         }
     }
 
@@ -110,10 +93,13 @@ public class S3ContentStore implements ContentStore {
     public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
             client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(contentReference.getValue())
-                    .build());
-        } catch (SdkException e) {
+                            .bucket(bucketName)
+                            .key(contentReference.getValue())
+                            .build())
+                    .join();
+        } catch (CompletionException e) {
+            throw new UnwritableContentException(contentReference, e.getCause());
+        } catch (RuntimeException e) {
             throw new UnwritableContentException(contentReference, e);
         }
     }

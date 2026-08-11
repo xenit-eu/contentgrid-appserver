@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
 import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
@@ -40,13 +39,11 @@ class S3ContentStoreWriteFailureTest {
     @Container
     private static final S3MockContainer s3MockContainer = S3MockUtils.s3MockContainer();
 
-    private S3Client client;
-    private S3AsyncClient asyncClient;
+    private S3AsyncClient client;
 
     @BeforeEach
     void setUp() {
-        client = S3TestClients.s3Client(s3MockContainer.getHttpEndpoint());
-        asyncClient = S3TestClients.s3AsyncClient(s3MockContainer.getHttpEndpoint());
+        client = S3TestClients.s3AsyncClient(s3MockContainer.getHttpEndpoint());
     }
 
     /**
@@ -55,7 +52,7 @@ class S3ContentStoreWriteFailureTest {
      */
     @Test
     void writeContent_whenS3OperationFails_shouldThrowUnwritableContentException() {
-        var store = new S3ContentStore(client, asyncClient, "non-existent-bucket-" + UUID.randomUUID());
+        var store = new S3ContentStore(client, "non-existent-bucket-" + UUID.randomUUID());
 
         assertThrows(UnwritableContentException.class, () -> store.writeContent(
                 new ByteArrayInputStream("test data".getBytes(StandardCharsets.UTF_8))));
@@ -69,9 +66,9 @@ class S3ContentStoreWriteFailureTest {
     @Test
     void writeContent_whenInputStreamFailsDuringUpload_shouldThrowUnwritableContentException() {
         var bucketName = "test-" + UUID.randomUUID();
-        client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
+        client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build()).join();
 
-        var store = new S3ContentStore(client, asyncClient, bucketName);
+        var store = new S3ContentStore(client, bucketName);
 
         var brokenInputStream = new InputStream() {
             private int bytesRead = 0;
@@ -108,9 +105,9 @@ class S3ContentStoreWriteFailureTest {
     @Test
     void writeContent_whenInputStreamFailsDuringMultipartUpload_shouldThrowUnwritableContentException() {
         var bucketName = "test-" + UUID.randomUUID();
-        client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
+        client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build()).join();
 
-        var store = new S3ContentStore(client, asyncClient, bucketName);
+        var store = new S3ContentStore(client, bucketName);
 
         var failAfter = 51L * 1024 * 1024; // one full part plus a bit, so the failure hits during part 2
         var brokenInputStream = new InputStream() {
@@ -142,7 +139,7 @@ class S3ContentStoreWriteFailureTest {
         // The failure aborts the multipart upload asynchronously, so no orphaned upload may be left behind
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             var uploads = client.listMultipartUploads(
-                    ListMultipartUploadsRequest.builder().bucket(bucketName).build());
+                    ListMultipartUploadsRequest.builder().bucket(bucketName).build()).join();
             assertTrue(uploads.uploads().isEmpty());
         });
     }
@@ -153,9 +150,9 @@ class S3ContentStoreWriteFailureTest {
     @Test
     void remove_whenS3OperationFails_shouldThrowUnwritableContentException() throws Exception {
         var bucketName = "test-" + UUID.randomUUID();
-        client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
+        client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build()).join();
 
-        var store = new S3ContentStore(client, asyncClient, bucketName);
+        var store = new S3ContentStore(client, bucketName);
 
         // Write content, then delete the bucket to force the remove to fail
         var accessor = store.writeContent(
@@ -163,7 +160,7 @@ class S3ContentStoreWriteFailureTest {
 
         // Remove the bucket's contents and the bucket itself to cause subsequent operations to fail
         store.remove(accessor.getReference());
-        client.deleteBucket(DeleteBucketRequest.builder().bucket(bucketName).build());
+        client.deleteBucket(DeleteBucketRequest.builder().bucket(bucketName).build()).join();
 
         // Now the store references a non-existent bucket, so remove should fail with UnwritableContentException
         assertThrows(UnwritableContentException.class, () -> store.remove(accessor.getReference()));

@@ -12,7 +12,7 @@ import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -29,18 +29,20 @@ class S3BlueprintArtifactTest extends AbstractBlueprintArtifactTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        var client = S3TestClients.s3Client(S3_MOCK.getHttpEndpoint());
+        var client = S3TestClients.s3AsyncClient(S3_MOCK.getHttpEndpoint());
 
         client.createBucket(CreateBucketRequest.builder()
-                .bucket(BUCKET_NAME)
-                .build());
+                        .bucket(BUCKET_NAME)
+                        .build())
+                .join();
 
         var zipBytes = createZip();
         client.putObject(PutObjectRequest.builder()
-                        .bucket(BUCKET_NAME)
-                        .key(OBJECT_KEY)
-                        .build(),
-                RequestBody.fromBytes(zipBytes));
+                                .bucket(BUCKET_NAME)
+                                .key(OBJECT_KEY)
+                                .build(),
+                        AsyncRequestBody.fromBytes(zipBytes))
+                .join();
 
         blueprintArtifact = new S3BlueprintArtifact(client, BUCKET_NAME, OBJECT_KEY);
     }

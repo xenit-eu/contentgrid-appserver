@@ -14,7 +14,6 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 class S3ContentStoreAutoConfigurationTest {
 
@@ -140,7 +139,7 @@ class S3ContentStoreAutoConfigurationTest {
     }
 
     @Test
-    void checkS3_existingClients() {
+    void checkS3_existingClient() {
         contextRunner
                 .withUserConfiguration(S3ClientConfiguration.class)
                 .withPropertyValues(
@@ -150,18 +149,12 @@ class S3ContentStoreAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasBean("s3ContentStoreResolver");
-                    assertThat(context).doesNotHaveBean("s3Client");
                     assertThat(context).doesNotHaveBean("s3AsyncClient");
                 });
     }
 
     @Configuration
     static class S3ClientConfiguration {
-
-        @Bean
-        S3Client testS3Client() {
-            return S3TestClients.s3Client("http://localhost");
-        }
 
         @Bean
         S3AsyncClient testS3AsyncClient() {
