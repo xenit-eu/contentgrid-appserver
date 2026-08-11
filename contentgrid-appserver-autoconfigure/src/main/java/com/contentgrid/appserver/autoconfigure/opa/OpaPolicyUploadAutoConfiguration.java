@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.opa;
 
-import com.contentgrid.appserver.actuator.policy.OnMissingPolicyPackageCondition;
+import com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.security.opa.OpaPolicyUploadInitializer;
 import com.contentgrid.appserver.security.opa.OpaPolicyUploadRetryProperties;
@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @AutoConfiguration(after = {OpaClientAutoConfiguration.class, OpaHealthIndicatorAutoConfiguration.class})
-@Conditional(OnMissingPolicyPackageCondition.class)
+@Conditional(IsOpaSidecarModeCondition.class)
 @ConditionalOnBean(OpaClient.class)
 @EnableAsync
 @EnableConfigurationProperties({OpaProperties.class, OpaPolicyUploadRetryProperties.class})

@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.opa;
 
-import static com.contentgrid.appserver.actuator.policy.OnPolicyPackageCondition.isCentralizedMode;
+import static com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition.isOpaSidecarMode;
 
 import com.contentgrid.appserver.security.opa.OpaHealthIndicator;
 import com.contentgrid.appserver.security.opa.OpaStatus;
@@ -17,7 +17,7 @@ public class OpaHealthIndicatorAutoConfiguration {
     @Bean
     public OpaStatusImpl opaStatus(Environment environment) {
         // When in centralized OPA mode, the appserver isn't responsible for OPA, so status UP
-        return new OpaStatusImpl(isCentralizedMode(environment) ? Status.UP : Status.DOWN);
+        return new OpaStatusImpl(isOpaSidecarMode(environment) ? Status.DOWN : Status.UP);
     }
 
     @Bean

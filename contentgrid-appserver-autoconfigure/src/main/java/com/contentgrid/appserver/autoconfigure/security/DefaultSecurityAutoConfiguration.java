@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.autoconfigure.security;
 
-import com.contentgrid.appserver.actuator.policy.OnPolicyPackageCondition;
+import com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition;
 import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import com.contentgrid.thunx.webmvc.autoconfigure.WebMvcAbacAutoConfiguration;
 import lombok.extern.slf4j.Slf4j;
@@ -8,12 +8,12 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -69,11 +69,12 @@ public class DefaultSecurityAutoConfiguration {
      * request with {@code authenticated()} only, ignoring the configured OPA policy manager, which is never what's
      * intended.
      * <p>
-     * Gated by {@code @Conditional}/{@code @ConditionalOnBean} rather than an injected runtime check: this bean, and
-     * therefore its failure, only exists when both conditions already hold.
+     * Gated by {@code @ConditionalOnExpression}/{@code @ConditionalOnBean} rather than an injected runtime check:
+     * this bean, and therefore its failure, only exists when both conditions already hold.
      */
     @Bean
-    @Conditional(OnPolicyPackageCondition.class)
+    @ConditionalOnExpression(
+            "T(org.springframework.util.StringUtils).hasText('${" + IsOpaSidecarModeCondition.PROPERTY_POLICY_PACKAGE + ":}')")
     @ConditionalOnBean(AuthorizationManager.class)
     InitializingBean policyAuthorizationManagerConflictValidator() {
         return () -> {
