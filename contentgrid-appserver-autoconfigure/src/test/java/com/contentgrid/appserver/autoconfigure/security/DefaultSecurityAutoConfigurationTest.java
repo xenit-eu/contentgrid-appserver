@@ -130,7 +130,7 @@ class DefaultSecurityAutoConfigurationTest {
     }
 
     @Test
-    void nonSidecarMode_withPolicyAuthorizationManager_failsFast() {
+    void policyAuthorizationManagerConflictValidator_failsFast() {
         contextRunner
                 .withUserConfiguration(DenyAllPolicyConfiguration.class)
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
@@ -144,6 +144,22 @@ class DefaultSecurityAutoConfigurationTest {
                             .isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("contentgrid.system.policyPackage");
                 });
+    }
+
+    @Test
+    void policyAuthorizationManagerConflictValidator_onlyPolicyPackageSet_doesNotFail() {
+        contextRunner
+                .withPropertyValues("contentgrid.system.policyPackage=foobar")
+                .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
+    void policyAuthorizationManagerConflictValidator_onlyAuthorizationManagerBeanPresent_doesNotFail() {
+        contextRunner
+                .withBean(AuthorizationManager.class,
+                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false))
+                .withPropertyValues("contentgrid.system.policyPackage=")
+                .run(context -> assertThat(context).hasNotFailed());
     }
 
     @Test

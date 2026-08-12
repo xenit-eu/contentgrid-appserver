@@ -79,7 +79,7 @@ public class DefaultSecurityAutoConfiguration {
     InitializingBean policyAuthorizationManagerConflictValidator() {
         return () -> {
             throw new IllegalStateException(
-                    "A policy AuthorizationManager bean is present (from contentgrid.thunx.abac.source=opa / "
+                    "A policy AuthorizationManager bean is present (from contentgrid.thunx.abac.source=opa && "
                             + "opa.service.url), but contentgrid.system.policyPackage is also set, which puts "
                             + "this app in centralized OPA mode. These are mutually exclusive: "
                             + "unset contentgrid.system.policyPackage for sidecar mode, "
