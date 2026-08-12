@@ -5,6 +5,14 @@ plugins {
     id 'io.freefair.lombok'
 }
 
+// Adds the version to the manifest, so users of the library (f.e. Scribe) can use the version in java code
+// through Application.class.getPackage().getImplementationVersion();
+jar {
+    manifest {
+        attributes 'Implementation-Version': version
+    }
+}
+
 dependencies {
     api 'com.contentgrid.hateoas:contentgrid-hateoas-uritemplate'
     testImplementation 'org.assertj:assertj-core'
