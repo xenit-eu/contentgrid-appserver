@@ -22,8 +22,8 @@ class OpaPolicyUploadServiceTest {
             new OpaPolicyUploadRetryProperties(Duration.ofMillis(1), Duration.ofMillis(10), 2);
 
     OpaClient opaClient = mock(OpaClient.class);
-    OpaStatusImpl opaStatus = new OpaStatusImpl(Status.DOWN);
-    OpaPolicyUploadService service = new OpaPolicyUploadService(opaClient, RETRY_PROPERTIES, opaStatus);
+    OpaHealthIndicator opaHealthIndicator = new OpaHealthIndicator(Status.DOWN);
+    OpaPolicyUploadService service = new OpaPolicyUploadService(opaClient, RETRY_PROPERTIES, opaHealthIndicator);
 
     @Test
     void upsertPolicy_fail_marksDown() throws InterruptedException {
@@ -36,8 +36,8 @@ class OpaPolicyUploadServiceTest {
         thread.interrupt();
         thread.join(100);
 
-        assertThat(opaStatus.getHealth().getStatus()).isEqualTo(Status.DOWN);
-        assertThat(opaStatus.getHealth().getDetails()).containsExactlyInAnyOrderEntriesOf(Map.of("OPAPolicyUploadException", "java.lang.RuntimeException: OPA unavailable"));
+        assertThat(opaHealthIndicator.health().getStatus()).isEqualTo(Status.DOWN);
+        assertThat(opaHealthIndicator.health().getDetails()).containsExactlyInAnyOrderEntriesOf(Map.of("OPAPolicyUploadException", "java.lang.RuntimeException: OPA unavailable"));
     }
 
     @Test
@@ -46,7 +46,7 @@ class OpaPolicyUploadServiceTest {
 
         service.upsertPolicy("package contentgrid.appserver\n");
 
-        assertThat(opaStatus.getHealth().getStatus()).isEqualTo(Status.UP);
+        assertThat(opaHealthIndicator.health().getStatus()).isEqualTo(Status.UP);
         verify(opaClient).upsertPolicy("appserver", "package contentgrid.appserver\n");
     }
 
@@ -59,7 +59,7 @@ class OpaPolicyUploadServiceTest {
 
         service.upsertPolicy("package contentgrid.appserver\n");
 
-        assertThat(opaStatus.getHealth().getStatus()).isEqualTo(Status.UP);
+        assertThat(opaHealthIndicator.health().getStatus()).isEqualTo(Status.UP);
         verify(opaClient, times(3)).upsertPolicy(any(), any());
     }
 }

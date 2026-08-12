@@ -2,10 +2,10 @@ package com.contentgrid.appserver.autoconfigure.opa;
 
 import com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.security.opa.OpaHealthIndicator;
 import com.contentgrid.appserver.security.opa.OpaPolicyUploadInitializer;
 import com.contentgrid.appserver.security.opa.OpaPolicyUploadRetryProperties;
 import com.contentgrid.appserver.security.opa.OpaPolicyUploadService;
-import com.contentgrid.appserver.security.opa.OpaStatusImpl;
 import com.contentgrid.opa.client.OpaClient;
 import com.contentgrid.thunx.opa.autoconfigure.OpaClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -36,8 +36,8 @@ public class OpaPolicyUploadAutoConfiguration {
     public OpaPolicyUploadService opaPolicyUploadService(
             OpaClient opaClient,
             OpaPolicyUploadRetryProperties retryProperties,
-            OpaStatusImpl opaStatus) {
-        return new OpaPolicyUploadService(opaClient, retryProperties, opaStatus);
+            OpaHealthIndicator opaHealthIndicator) {
+        return new OpaPolicyUploadService(opaClient, retryProperties, opaHealthIndicator);
     }
 
     @Bean

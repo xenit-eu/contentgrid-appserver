@@ -24,7 +24,7 @@ public class OpaPolicyUploadService {
 
     private final OpaClient opaClient;
     private final OpaPolicyUploadRetryProperties retryProperties;
-    private final OpaStatusImpl opaStatus;
+    private final OpaHealthIndicator opaHealthIndicator;
 
     @Async("opaRetryExecutor")
     public void upsertPolicy(String regoContent) {
@@ -39,7 +39,7 @@ public class OpaPolicyUploadService {
         retryTemplate.setRetryListener(new RetryListener() {
             @Override
             public void onRetryFailure(RetryPolicy policy, Retryable<?> retryable, Throwable throwable) {
-                opaStatus.setDown(STATUS_FAILURE_KEY, throwable.getCause().toString());
+                opaHealthIndicator.setDown(STATUS_FAILURE_KEY, throwable.getCause().toString());
                 log.error("Failed to upload policy '{}' to OPA, retrying", POLICY_ID, throwable.getCause());
             }
         });
@@ -49,7 +49,7 @@ public class OpaPolicyUploadService {
                 opaClient.upsertPolicy(POLICY_ID, regoContent).get();
                 return null;
             });
-            opaStatus.setUp();
+            opaHealthIndicator.setUp();
             log.info("Policy '{}' uploaded to OPA", POLICY_ID);
         } catch (RetryException e) {
             // maxRetries is unbounded, so the only way this executes is on interruption during backoff.
