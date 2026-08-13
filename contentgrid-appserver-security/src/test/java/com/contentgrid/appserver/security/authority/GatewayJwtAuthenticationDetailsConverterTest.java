@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.security.authority.Actor.ActorType;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -132,6 +133,27 @@ class GatewayJwtAuthenticationDetailsConverterTest {
                     .isEqualTo("extension-2");
             assertThat(actorParent.parent()).isNull();
         });
+    }
+
+    @Test
+    void principalClaimWithNullValue_doesNotCrashWithUnhandledException() {
+        var principalClaims = new HashMap<String, Object>();
+        principalClaims.put(GatewayAuthClaimNames.KIND, GatewayAuthClaimNames.KIND_USER);
+        principalClaims.put(JwtClaimNames.SUB, "user-1");
+        principalClaims.put("name", null);
+
+        var token = jwt(Map.of(
+                JwtClaimNames.SUB, "user-1",
+                GatewayAuthClaimNames.AUTH_KIND, GatewayAuthClaimNames.AUTH_KIND_USER,
+                GatewayAuthClaimNames.AUTH_PRINCIPAL, principalClaims
+        ));
+
+        var authorities = converter.convert(token);
+        var details = (AuthenticationDetails) authorities.iterator().next();
+
+        assertThat(details.getPrincipal().claims().getClaims())
+                .containsEntry(JwtClaimNames.SUB, "user-1")
+                .containsEntry("name", null);
     }
 
     // A gateway-signed token that violates the minting contract must be rejected as an invalid token (401),

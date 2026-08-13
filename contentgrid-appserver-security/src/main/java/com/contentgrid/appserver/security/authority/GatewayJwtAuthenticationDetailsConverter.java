@@ -2,12 +2,12 @@ package com.contentgrid.appserver.security.authority;
 
 import com.contentgrid.appserver.security.authority.Actor.ActorType;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.Collector;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.convert.converter.Converter;
@@ -54,9 +54,9 @@ public class GatewayJwtAuthenticationDetailsConverter implements Converter<Jwt, 
     }
 
     /**
-     * Recursively resolves the {@code act} chain: a nested {@code act} member is the parent (prior) actor of the
-     * actor it's nested in, so the outermost object here ends up as the returned {@link Actor}, chained to its
-     * parents via {@link Actor#parent()}.
+     * Recursively resolves the {@code act} chain: a nested {@code act} member is the parent (prior) actor of the actor
+     * it's nested in, so the outermost object here ends up as the returned {@link Actor}, chained to its parents via
+     * {@link Actor#parent()}.
      */
     private static @Nullable Actor actorChainFromClaims(@Nullable ClaimAccessor claims) {
         if (claims == null) {
@@ -93,10 +93,17 @@ public class GatewayJwtAuthenticationDetailsConverter implements Converter<Jwt, 
         return source.entrySet()
                 .stream()
                 .filter(entry -> !excluded.contains(entry.getKey()))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+                // Custom collector because the standard map collector doesn't support null values
+                .collect(Collector.of(HashMap::new,
+                        (map, entry1) -> map.put(entry1.getKey(), entry1.getValue()),
+                        (left, right) -> {
+                            left.putAll(right);
+                            return left;
+                        }));
     }
 
     private record MapClaimAccessor(Map<String, Object> claims) implements ClaimAccessor {
+
         @Override
         public Map<String, Object> getClaims() {
             return claims;
