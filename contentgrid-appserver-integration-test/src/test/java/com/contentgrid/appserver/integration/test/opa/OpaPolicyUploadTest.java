@@ -70,7 +70,6 @@ class OpaPolicyUploadTest {
         static void opaProperties(DynamicPropertyRegistry registry) {
             registry.add("contentgrid.system.policyPackage", () -> CENTRALIZED_POLICY_PACKAGE);
             registry.add("management.endpoint.health.group.readiness.include", () -> "readinessState");
-            registry.add("opa.service.url", () -> opaUrl(opa));
         }
 
         @Test
