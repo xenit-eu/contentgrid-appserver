@@ -50,7 +50,6 @@ class OpaPolicyUploadTest {
     private static final String POLICY_ID = "appserver";
     private static final String POLICY_PACKAGE = "contentgrid.appserver";
     private static final String CENTRALIZED_POLICY_PACKAGE = "contentgrid.tenant.acme";
-    private static final String SIDECAR_POLICY_PACKAGE = "";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -70,6 +69,7 @@ class OpaPolicyUploadTest {
         @DynamicPropertySource
         static void opaProperties(DynamicPropertyRegistry registry) {
             registry.add("contentgrid.system.policyPackage", () -> CENTRALIZED_POLICY_PACKAGE);
+            registry.add("management.endpoint.health.group.readiness.include", () -> "readinessState");
             registry.add("opa.service.url", () -> opaUrl(opa));
         }
 
@@ -93,7 +93,6 @@ class OpaPolicyUploadTest {
 
         @DynamicPropertySource
         static void opaProperties(DynamicPropertyRegistry registry) {
-            registry.add("contentgrid.system.policyPackage", () -> SIDECAR_POLICY_PACKAGE);
             registry.add("opa.service.url", () -> opaUrl(opa));
         }
 

@@ -26,6 +26,11 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableConfigurationProperties(OpaPolicyUploadRetryProperties.class)
 public class OpaPolicyUploadAutoConfiguration {
 
+    @Bean
+    public OpaHealthIndicator opaHealthIndicator() {
+        return new OpaHealthIndicator();
+    }
+
     @Bean(name = EXECUTOR_BEAN_NAME, defaultCandidate = false)
     public SimpleAsyncTaskExecutor opaRetryExecutor(SimpleAsyncTaskExecutorBuilder builder) {
         return builder

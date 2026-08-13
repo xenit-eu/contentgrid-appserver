@@ -13,21 +13,8 @@ server:
   port: ${PORT:8080}
   tomcat:
     max-part-count: 200
-management:
-  endpoint:
-    health:
-      group:
-        readiness:
-          include:
-            - readinessState
-            - opa
   server:
     port: 8081
   health:
     rabbit:
       enabled: true
-
-opa:
-  service:
-    url: http://localhost:8181
-  query: data.contentgrid.appserver.allow == true

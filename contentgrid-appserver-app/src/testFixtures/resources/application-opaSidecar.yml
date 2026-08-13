@@ -1,6 +1,0 @@
-contentgrid:
-  system:
-    policyPackage:
-  thunx:
-    abac:
-      source: opa

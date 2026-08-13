@@ -11,8 +11,8 @@ public class OpaHealthIndicator implements HealthIndicator {
     @SuppressWarnings("java:S3077")
     private volatile Health health;
 
-    public OpaHealthIndicator(Status initialStatus) {
-        setHealth(initialStatus, "message", "Initial status.");
+    public OpaHealthIndicator() {
+        setHealth(Status.DOWN, "message", "Initial status.");
     }
 
     @Override

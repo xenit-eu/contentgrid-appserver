@@ -22,7 +22,7 @@ class OpaPolicyUploadServiceTest {
             new OpaPolicyUploadRetryProperties(Duration.ofMillis(1), Duration.ofMillis(10), 2);
 
     OpaClient opaClient = mock(OpaClient.class);
-    OpaHealthIndicator opaHealthIndicator = new OpaHealthIndicator(Status.DOWN);
+    OpaHealthIndicator opaHealthIndicator = new OpaHealthIndicator();
     OpaPolicyUploadService service = new OpaPolicyUploadService(opaClient, RETRY_PROPERTIES, opaHealthIndicator);
 
     @Test
