@@ -22,11 +22,13 @@ public class OpaPolicyUploadService {
     private static final String POLICY_ID = "appserver";
     private static final String STATUS_FAILURE_KEY = "OPAPolicyUploadException";
 
+    public static final String EXECUTOR_BEAN_NAME = "opaRetryExecutor";
+
     private final OpaClient opaClient;
     private final OpaPolicyUploadRetryProperties retryProperties;
     private final OpaHealthIndicator opaHealthIndicator;
 
-    @Async("opaRetryExecutor")
+    @Async(EXECUTOR_BEAN_NAME)
     public void upsertPolicy(String regoContent) {
         var retryPolicy = RetryPolicy.builder()
                 .includes(ExecutionException.class)
