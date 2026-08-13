@@ -8,7 +8,7 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.common.spring.actuators.ExposedActuatorEndpoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,8 +18,7 @@ import org.springframework.context.annotation.Configuration;
 public class ActuatorConfiguration {
 
     @Bean
-    @ConditionalOnExpression(
-            "T(org.springframework.util.StringUtils).hasText('${" + IsOpaSidecarModeCondition.PROPERTY_POLICY_PACKAGE + ":}')")
+    @ConditionalOnProperty(IsOpaSidecarModeCondition.PROPERTY_POLICY_PACKAGE)
     PolicyActuator policyActuator(BlueprintArtifact blueprintArtifact, ContentgridApplicationProperties properties) {
         return new PolicyActuator(blueprintArtifact, properties.getSystem().getPolicyPackage());
     }

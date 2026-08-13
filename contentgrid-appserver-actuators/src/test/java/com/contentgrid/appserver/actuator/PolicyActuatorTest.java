@@ -18,7 +18,6 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
         properties = {
                 "contentgrid.system.deploymentId=fb0e9318-f389-4300-a64e-dba3532e6ac0",
                 "contentgrid.system.applicationId=336d61a5-94cd-4b7a-b90b-369fbe2ef78c",
-                "contentgrid.system.policyPackage=",
                 "management.endpoints.web.exposure.include=*",
                 "management.server.port=0"
         }

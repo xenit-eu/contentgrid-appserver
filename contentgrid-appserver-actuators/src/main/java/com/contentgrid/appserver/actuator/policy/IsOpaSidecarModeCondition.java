@@ -1,10 +1,8 @@
 package com.contentgrid.appserver.actuator.policy;
 
-import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
-import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
-import org.springframework.context.annotation.ConditionContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.NoneNestedConditions;
 import org.springframework.core.env.Environment;
-import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
 /**
@@ -15,7 +13,7 @@ import org.springframework.util.StringUtils;
  * See also {@code com.contentgrid.appserver.autoconfigure.opa.OpaSidecarAbacSourceEnvironmentPostProcessor} which
  * gates the other OPA sidecar branches.
  */
-public class IsOpaSidecarModeCondition extends SpringBootCondition {
+public class IsOpaSidecarModeCondition extends NoneNestedConditions {
 
     public static final String PROPERTY_POLICY_PACKAGE = "contentgrid.system.policyPackage";
 
@@ -23,10 +21,10 @@ public class IsOpaSidecarModeCondition extends SpringBootCondition {
         return !StringUtils.hasText(environment.getProperty(PROPERTY_POLICY_PACKAGE));
     }
 
-    @Override
-    public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        boolean sidecarMode = isOpaSidecarMode(context.getEnvironment());
-        return new ConditionOutcome(sidecarMode,
-                PROPERTY_POLICY_PACKAGE + " " + (sidecarMode ? "is not set" : "is set"));
+    IsOpaSidecarModeCondition() {
+        super(ConfigurationPhase.PARSE_CONFIGURATION);
     }
+
+    @ConditionalOnProperty(PROPERTY_POLICY_PACKAGE)
+    static class PolicyPackageIsSet {}
 }

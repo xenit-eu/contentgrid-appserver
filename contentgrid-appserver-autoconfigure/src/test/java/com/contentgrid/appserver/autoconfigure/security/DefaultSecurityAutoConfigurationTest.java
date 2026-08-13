@@ -158,7 +158,6 @@ class DefaultSecurityAutoConfigurationTest {
         contextRunner
                 .withBean(AuthorizationManager.class,
                         () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false))
-                .withPropertyValues("contentgrid.system.policyPackage=")
                 .run(context -> assertThat(context).hasNotFailed());
     }
 
