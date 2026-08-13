@@ -1,2 +1,1 @@
 org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer=com.contentgrid.appserver.autoconfigure.security.AnonymousHttpConfigurer
-org.springframework.boot.EnvironmentPostProcessor=com.contentgrid.appserver.autoconfigure.opa.OpaSidecarAbacSourceEnvironmentPostProcessor
