@@ -21,7 +21,6 @@ management:
           include:
             - readinessState
             - opa
-      show-details: when-authorized
   server:
     port: 8081
   health:
