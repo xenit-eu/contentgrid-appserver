@@ -64,6 +64,9 @@ import lombok.Value;
 @Value
 public class Application {
 
+    // Only returns the version when this class is loaded through its jar, so as a dependency
+    public static final String APP_SERVER_VERSION = Application.class.getPackage().getImplementationVersion();
+
     /**
      * Constructs an Application with the specified parameters.
      *

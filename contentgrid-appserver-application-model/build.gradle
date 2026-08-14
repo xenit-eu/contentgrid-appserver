@@ -5,6 +5,12 @@ plugins {
     id 'io.freefair.lombok'
 }
 
+jar {
+    manifest {
+        attributes 'Implementation-Version': version
+    }
+}
+
 dependencies {
     api 'com.contentgrid.hateoas:contentgrid-hateoas-uritemplate'
     testImplementation 'org.assertj:assertj-core'
