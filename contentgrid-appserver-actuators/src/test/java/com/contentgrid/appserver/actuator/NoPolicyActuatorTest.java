@@ -23,7 +23,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
         }
 )
 @AutoConfigureRestTestClient
-class PolicyActuatorTest {
+class NoPolicyActuatorTest {
 
     @Autowired
     private RestTestClient rest;
@@ -40,7 +40,7 @@ class PolicyActuatorTest {
         @Bean
         BlueprintArtifact testBlueprintArtifact() {
             return new ClassPathBlueprintArtifact(
-                    PolicyActuatorTest.class.getClassLoader(),
+                    NoPolicyActuatorTest.class.getClassLoader(),
                     Path.of("blueprint-artifact-static"));
         }
     }
