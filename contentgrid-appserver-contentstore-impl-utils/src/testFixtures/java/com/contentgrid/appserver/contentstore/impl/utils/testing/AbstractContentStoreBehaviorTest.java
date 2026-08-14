@@ -28,8 +28,8 @@ public abstract class AbstractContentStoreBehaviorTest {
 
     /**
      * Bigger than the chunk size a store may internally split content into, so reading this back also
-     * covers stores that have to reassemble an object out of several parts. Must stay above the part size
-     * the S3 store uploads with (see {@code S3TestClients}), or it silently stops covering that.
+     * covers stores that have to reassemble an object out of several parts. Lowering this below the part
+     * size a store uploads with (50 MiB for S3) silently stops covering that.
      */
     protected static final long LARGE_SIZE = 60L * 1024 * 1024;
 

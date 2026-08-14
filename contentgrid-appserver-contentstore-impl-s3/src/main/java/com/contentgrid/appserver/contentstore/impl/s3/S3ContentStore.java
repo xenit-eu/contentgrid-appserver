@@ -52,7 +52,7 @@ public class S3ContentStore implements ContentStore {
                 throw new UnreadableContentException(contentReference, "range size does not match actual size");
             }
 
-            var reader = new S3ContentReader(contentReference, object, contentRange);
+            var reader = new S3ContentReader(contentReference, object);
 
             return new GuardedContentReader(reader);
         } catch (CompletionException e) {

@@ -1,10 +1,10 @@
 package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
+import com.contentgrid.appserver.autoconfigure.s3.testing.S3TestClients;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.AbstractBlueprintArtifactTest;
 import com.contentgrid.appserver.blueprintartifact.impl.utils.ZipUtils;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
-import com.contentgrid.appserver.contentstore.impl.utils.testing.S3TestClients;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

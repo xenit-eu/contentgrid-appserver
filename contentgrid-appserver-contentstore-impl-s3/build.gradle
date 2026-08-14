@@ -10,6 +10,7 @@ dependencies {
     implementation 'software.amazon.awssdk:s3'
 
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
+    testImplementation testFixtures(project(':contentgrid-appserver-autoconfigure'))
     testImplementation 'org.awaitility:awaitility'
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"

@@ -27,7 +27,7 @@ import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
  *     those may grant access to a real environment, which must never be reachable by accident.</li>
  * </ul>
  */
-final class S3ClientFactory {
+public final class S3ClientFactory {
 
     private S3ClientFactory() {
     }
@@ -47,7 +47,7 @@ final class S3ClientFactory {
      * every request asks the server to close the connection with a {@code Connection: close} header. The
      * client only keeps a connection when the response says it may, so this is what stops re-use.
      */
-    static S3AsyncClient createS3AsyncClient(String endpoint, String accessKey, String secretKey,
+    public static S3AsyncClient createS3AsyncClient(String endpoint, String accessKey, String secretKey,
             String region, boolean pathStyleAccess, NettyNioAsyncHttpClient.Builder httpClientBuilder,
             boolean reuseConnections) {
         return S3AsyncClient.builder()

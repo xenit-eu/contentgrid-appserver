@@ -3,7 +3,7 @@ package com.contentgrid.appserver.autoconfigure.s3;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
-import com.contentgrid.appserver.contentstore.impl.utils.testing.S3TestClients;
+import com.contentgrid.appserver.autoconfigure.s3.testing.S3TestClients;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;

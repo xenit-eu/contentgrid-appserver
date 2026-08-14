@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
+import com.contentgrid.appserver.autoconfigure.s3.testing.S3TestClients;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
-import com.contentgrid.appserver.contentstore.impl.utils.testing.S3TestClients;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;

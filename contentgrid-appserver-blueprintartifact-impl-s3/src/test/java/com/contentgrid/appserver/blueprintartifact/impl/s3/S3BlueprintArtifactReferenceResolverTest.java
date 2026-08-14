@@ -2,7 +2,7 @@ package com.contentgrid.appserver.blueprintartifact.impl.s3;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.contentstore.impl.utils.testing.S3TestClients;
+import com.contentgrid.appserver.autoconfigure.s3.testing.S3TestClients;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import org.junit.jupiter.api.Test;
 
