@@ -17,6 +17,7 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest'
     testRuntimeOnly 'org.springframework:spring-webflux'
 
+    developmentOnly platform(project(':contentgrid-appserver-platform'))
     developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 }
 
