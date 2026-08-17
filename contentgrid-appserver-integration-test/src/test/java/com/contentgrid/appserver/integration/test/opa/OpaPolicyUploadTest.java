@@ -68,6 +68,7 @@ class OpaPolicyUploadTest {
 
         @DynamicPropertySource
         static void opaProperties(DynamicPropertyRegistry registry) {
+            registry.add("contentgrid.thunx.abac.source", () -> "none");
             registry.add("contentgrid.system.policyPackage", () -> CENTRALIZED_POLICY_PACKAGE);
             registry.add("management.endpoint.health.group.readiness.include", () -> "readinessState");
         }

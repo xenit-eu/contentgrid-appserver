@@ -134,9 +134,8 @@ class DefaultSecurityAutoConfigurationTest {
         contextRunner
                 .withUserConfiguration(DenyAllPolicyConfiguration.class)
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
-                .withBean(AuthorizationManager.class,
-                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false))
                 .withPropertyValues("contentgrid.system.policyPackage=foobar")
+                .withPropertyValues("contentgrid.thunx.abac.source=opa")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context).getFailure()

@@ -1,7 +1,7 @@
 contentgrid:
   thunx:
     abac:
-      source: opa
+      source: none
   security:
     csrf.disabled: true
     unauthenticated.allow: true
@@ -18,16 +18,19 @@ contentgrid:
     rabbitmq.enabled: false
     webhook-config-url: http://localhost:${management.server.port}/actuator/webhooks
 
-opa:
-  service:
-    url: http://localhost:8181
-  query: data.contentgrid.appserver.allow == true
-
 spring:
   datasource:
     url: jdbc:tc:postgresql:15:///
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+  docker:
+    compose:
+      enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: 'https://auth.contentgrid.com/realms/contentgrid-dev'
 
 management:
   endpoints:
@@ -37,11 +40,6 @@ management:
   endpoint:
     health:
       show-details: always
-      group:
-        readiness:
-          include:
-            - readinessState
-            - opa
 
 # spring:
 #   rabbitmq:
@@ -49,12 +47,3 @@ management:
 #     port: 5672
 #     username: guest
 #     password: guest
-
-# When unauthenticated, you get HTTP 403 instead of 401 if you don't have the following
-
-#spring:
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: 'https://auth.contentgrid.com/realms/contentgrid-dev'

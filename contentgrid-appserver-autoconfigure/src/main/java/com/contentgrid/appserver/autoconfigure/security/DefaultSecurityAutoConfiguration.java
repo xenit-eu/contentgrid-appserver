@@ -2,13 +2,11 @@ package com.contentgrid.appserver.autoconfigure.security;
 
 import com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition;
 import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
-import com.contentgrid.thunx.webmvc.autoconfigure.WebMvcAbacAutoConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
@@ -23,14 +21,29 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 @Slf4j
-@AutoConfiguration(before = SecurityAutoConfiguration.class, after = WebMvcAbacAutoConfiguration.class)
+@AutoConfiguration(before = SecurityAutoConfiguration.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(SecurityFilterChain.class)
 public class DefaultSecurityAutoConfiguration {
 
     @Bean
-    @ConditionalOnBean({AuthorizationManager.class, JwtDecoder.class})
-    SecurityFilterChain opaSecurityFilterChain(
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            ObjectProvider<AuthorizationManager<RequestAuthorizationContext>> policyAuthorizationManagerProvider,
+            ObjectProvider<JwtDecoder> jwtDecoderProvider
+    ) {
+        var policyAuthorizationManager = policyAuthorizationManagerProvider.getIfAvailable();
+        var jwtDecoder = jwtDecoderProvider.getIfAvailable();
+        if (policyAuthorizationManager != null && jwtDecoder != null) {
+            return opaSecurityFilterChain(http, policyAuthorizationManager);
+        } else if (jwtDecoder != null) {
+            return centralizedOpaSecurityFilterChain(http);
+        } else {
+            return noJwtDecoderSecurityFilterChain(http);
+        }
+    }
+
+    private SecurityFilterChain opaSecurityFilterChain(
             HttpSecurity http,
             AuthorizationManager<RequestAuthorizationContext> policyAuthorizationManager
     ) {
@@ -40,49 +53,34 @@ public class DefaultSecurityAutoConfiguration {
         return http.build();
     }
 
-    @Bean
-    @ConditionalOnBean(JwtDecoder.class)
-    @ConditionalOnMissingBean
-    SecurityFilterChain centralizedOpaSecurityFilterChain(HttpSecurity http) {
+    private SecurityFilterChain centralizedOpaSecurityFilterChain(HttpSecurity http) {
         http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
         return http.build();
     }
 
-    /**
-     * Last resort: reached only when neither {@link #opaSecurityFilterChain} nor
-     * {@link #centralizedOpaSecurityFilterChain} created a chain, which (given their conditions) only happens
-     * when no {@link JwtDecoder} is available. Without one there is no way to decode and verify the JWT, so
-     * this requires some non-anonymous authentication, for instance by {@link AnonymousHttpConfigurer}.
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    SecurityFilterChain noJwtDecoderSecurityFilterChain(HttpSecurity http) {
+    private SecurityFilterChain noJwtDecoderSecurityFilterChain(HttpSecurity http) {
         http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
         return http.build();
     }
 
+
     /**
-     * Fails application startup outright if a policy {@link AuthorizationManager} bean exists (from
-     * {@code contentgrid.thunx.abac.source=opa} / {@code opa.service.url}) while {@code contentgrid.system.policyPackage}
-     * is also set, i.e. centralized/Solon mode. That combination means the app would silently authorize every
-     * request with {@code authenticated()} only, ignoring the configured OPA policy manager, which is never what's
-     * intended.
-     * <p>
-     * Gated by {@code @ConditionalOnExpression}/{@code @ConditionalOnBean} rather than an injected runtime check:
-     * this bean, and therefore its failure, only exists when both conditions already hold.
+     * Fails application startup outright if thunx is configured to authorize through OPA while
+     * {@code contentgrid.system.policyPackage} is also set (i.e. centralized/Solon mode).
+     * In the centralized OPA mode, no policy is pushed to OPA. So it would be inconsistent to authorize through OPA.
      */
     @Bean
     @ConditionalOnProperty(IsOpaSidecarModeCondition.PROPERTY_POLICY_PACKAGE)
-    @ConditionalOnBean(AuthorizationManager.class)
+    @ConditionalOnProperty(value = "contentgrid.thunx.abac.source", havingValue = "opa")
     InitializingBean policyAuthorizationManagerConflictValidator() {
         return () -> {
             throw new IllegalStateException(
-                    "A policy AuthorizationManager bean is present (from contentgrid.thunx.abac.source=opa && "
-                            + "opa.service.url), but contentgrid.system.policyPackage is also set, which puts "
+                    "The property 'contentgrid.thunx.abac.source' is set to 'opa', meaning authorization requires an OPA"
+                            + "sidecar. But contentgrid.system.policyPackage is also set, which puts "
                             + "this app in centralized OPA mode. These are mutually exclusive: "
                             + "unset contentgrid.system.policyPackage for sidecar mode, "
-                            + "or remove the OPA client configuration for centralized mode.");
+                            + "or set contentgrid.thunx.abac.source to a different option.");
         };
     }
 

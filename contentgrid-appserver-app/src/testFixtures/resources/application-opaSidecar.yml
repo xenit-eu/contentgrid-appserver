@@ -1,0 +1,24 @@
+contentgrid:
+  thunx:
+    abac:
+      source: opa
+
+spring:
+  docker:
+    compose:
+      enabled: true
+      file: ../docker/docker-compose.yml
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include:
+            - readinessState
+            - opa
+
+opa:
+  service:
+    url: http://localhost:8181
+  query: data.contentgrid.appserver.allow == true
