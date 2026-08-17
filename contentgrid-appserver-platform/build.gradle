@@ -10,6 +10,7 @@ javaPlatform {
 dependencies {
     api platform('org.springframework.boot:spring-boot-dependencies:4.0.7')
     api platform('com.contentgrid.thunx:thunx-bom:0.16.1')
+    api platform('software.amazon.awssdk:bom:2.46.7')
 
     constraints {
         api 'org.hamcrest:hamcrest:3.0'
@@ -19,8 +20,6 @@ dependencies {
         api 'com.contentgrid.hateoas:contentgrid-hateoas-uritemplate:1.0.1'
 
         api 'com.fasterxml.uuid:java-uuid-generator:5.2.0'
-
-        api 'io.minio:minio:8.6.0'
 
         api 'com.adobe.testing:s3mock-testcontainers:5.1.0'
 

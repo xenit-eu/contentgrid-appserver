@@ -8,127 +8,100 @@ import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.utils.GuardedContentReader;
-import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
-import io.minio.MinioAsyncClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
-import io.minio.errors.InsufficientDataException;
-import io.minio.errors.InternalException;
-import io.minio.errors.MinioException;
-import io.minio.errors.XmlParserException;
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @RequiredArgsConstructor
 public class S3ContentStore implements ContentStore {
 
     @NonNull
-    private final MinioAsyncClient client;
+    private final S3AsyncClient client;
 
     @NonNull
     private final String bucketName;
 
-    /**
-     * Size of a part to be uploaded to S3.
-     * <p>
-     * Its value must be between 5 MiB and 5 GiB
-     * <p>
-     * It is a trade-off between:
-     * - memory usage for buffers on our side
-     * - overhead for multipart uploads
-     * - the maximum size of an object that can be uploaded
-     * S3 enforces a maximum size of 10000 parts for a multipart upload
-     * <p>
-     * With this setting of 50 MiB, this would limit the maximal filesize to slightly over 0.5TB,
-     * which should be sufficient.
-     *
-     * @see io.minio.ObjectWriteArgs#MAX_MULTIPART_COUNT
-     * @see io.minio.ObjectWriteArgs#MIN_MULTIPART_SIZE
-     * @see io.minio.ObjectWriteArgs#MAX_PART_SIZE
-     */
-    private static final int PART_SIZE = 50*1024*1024; // 50 MiB
+    private static final String CONTENT_TYPE = "application/octet-stream";
 
     @Override
-    @SneakyThrows(InterruptedException.class)
     public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
             throws UnreadableContentException {
 
         try {
-            var getObjectArgsBuilder = GetObjectArgs.builder()
+            var requestBuilder = GetObjectRequest.builder()
                     .bucket(bucketName)
-                    .object(contentReference.getValue());
+                    .key(contentReference.getValue());
             if (contentRange != null) {
-                getObjectArgsBuilder = getObjectArgsBuilder.offset(contentRange.getStartByte())
-                        .length(contentRange.getRangeSize());
+                requestBuilder.range("bytes=%d-%d".formatted(contentRange.getStartByte(),
+                        contentRange.getEndByteInclusive()));
             }
-            var object = client.getObject(getObjectArgsBuilder.build()).get();
+            var object = client.getObject(requestBuilder.build(), AsyncResponseTransformer.toBlockingInputStream())
+                    .join();
 
-            if(contentRange != null && contentSize(object) != contentRange.getContentSize()) {
+            if (contentRange != null && contentSize(object.response()) != contentRange.getContentSize()) {
+                object.abort();
                 throw new UnreadableContentException(contentReference, "range size does not match actual size");
             }
 
-            var reader = new S3ContentReader(object);
+            var reader = new S3ContentReader(contentReference, object);
 
             return new GuardedContentReader(reader);
-        } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
-            throw new UnreadableContentException(contentReference, e);
-        } catch (ExecutionException e) {
+        } catch (CompletionException e) {
             throw new UnreadableContentException(contentReference, e.getCause());
+        } catch (RuntimeException e) {
+            throw new UnreadableContentException(contentReference, e);
         }
     }
 
     private static long contentSize(GetObjectResponse response) {
-        var contentRange = response.headers().get("Content-Range");
+        var contentRange = response.contentRange();
         if (contentRange != null) {
             return Long.parseLong(contentRange.split("/", 2)[1]);
         }
-        return Long.parseLong(response.headers().get("Content-Length"));
+        return response.contentLength();
     }
 
     @Override
-    @SneakyThrows(InterruptedException.class)
     public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
         try {
-            client.putObject(PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(contentReference.getValue())
-                            .stream(inputStream, -1, PART_SIZE)
-                            .build())
-                    .get();
+            client.putObject(PutObjectRequest.builder()
+                                    .bucket(bucketName)
+                                    .key(contentReference.getValue())
+                                    .contentType(CONTENT_TYPE)
+                                    .build(),
+                            AsyncRequestBody.fromInputStream(inputStream, null)) // length unknown
+                    .join();
             return new S3ContentAccessor(contentReference);
-        } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
-                 NoSuchAlgorithmException | XmlParserException e) {
-            throw new UnwritableContentException(contentReference, e);
-        } catch (ExecutionException e) {
+        } catch (CompletionException e) {
             throw new UnwritableContentException(contentReference, e.getCause());
+        } catch (RuntimeException e) {
+            throw new UnwritableContentException(contentReference, e);
         }
     }
 
     @Override
-    @SneakyThrows(InterruptedException.class)
     public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
-            client.removeObject(RemoveObjectArgs.builder()
+            client.deleteObject(DeleteObjectRequest.builder()
                             .bucket(bucketName)
-                            .object(contentReference.getValue())
-                    .build())
-                    .get();
-        } catch (InsufficientDataException | InternalException | InvalidKeyException | IOException |
-                 NoSuchAlgorithmException | XmlParserException e) {
-            throw new UnwritableContentException(contentReference, e);
-        } catch (ExecutionException e) {
+                            .key(contentReference.getValue())
+                            .build())
+                    .join();
+        } catch (CompletionException e) {
             throw new UnwritableContentException(contentReference, e.getCause());
+        } catch (RuntimeException e) {
+            throw new UnwritableContentException(contentReference, e);
         }
-
     }
 
 }

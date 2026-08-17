@@ -72,10 +72,11 @@ The content store type is selected with `contentgrid.appserver.content-store.typ
 |---|---|---|---|
 | `contentgrid.appserver.content.s3.url` | S3 endpoint URL (e.g. `https://s3.amazonaws.com` or a MinIO URL). | — | Yes |
 | `contentgrid.appserver.content.s3.bucket` | Name of the S3 bucket to use. | — | Yes |
-| `contentgrid.appserver.content.s3.access-key` | S3 access key ID. | — | No |
-| `contentgrid.appserver.content.s3.secret-key` | S3 secret access key. | — | No |
-| `contentgrid.appserver.content.s3.region` | AWS region identifier (e.g. `eu-west-1`). | — | No |
-| `contentgrid.appserver.content.s3.connection-pool-size` | Maximum number of idle HTTP connections to keep in the pool. | `0` | No |
+| `contentgrid.appserver.content.s3.access-key` | S3 access key ID. | — | Yes |
+| `contentgrid.appserver.content.s3.secret-key` | S3 secret access key. | — | Yes |
+| `contentgrid.appserver.content.s3.region` | Region identifier (e.g. `eu-west-1`). | `none` | No |
+| `contentgrid.appserver.content.s3.path-style-access` | Use path-style access (`https://endpoint/bucket/key`) instead of virtual-host style (`https://bucket.endpoint/key`). | `true` | No |
+| `contentgrid.appserver.content.s3.connection-pool-size` | Maximum number of concurrent HTTP connections. `0` disables connection re-use entirely. | `0` | No |
 | `contentgrid.appserver.content.s3.connection-pool-keep-alive-seconds` | How long idle connections are kept alive (in seconds). | `1` | No |
 
 ### Query engine

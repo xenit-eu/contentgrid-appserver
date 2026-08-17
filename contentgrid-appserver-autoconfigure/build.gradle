@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'java-test-fixtures'
     id 'maven-publish'
     id 'io.freefair.lombok'
 }
@@ -34,8 +35,8 @@ dependencies {
     compileOnly 'com.contentgrid.thunx:thunx-spring-security'
     compileOnly 'com.contentgrid.thunx:thunx-pdp-opa'
 
-    compileOnly 'io.minio:minio'
-    compileOnly 'com.squareup.okhttp3:okhttp'
+    compileOnly 'software.amazon.awssdk:s3'
+    compileOnly 'software.amazon.awssdk:netty-nio-client'
     compileOnly 'com.zaxxer:HikariCP'
     compileOnly 'org.flywaydb:flyway-core'
     compileOnly 'org.jooq:jooq'
@@ -90,8 +91,12 @@ dependencies {
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 
 
-    testImplementation 'io.minio:minio'
+    testImplementation 'software.amazon.awssdk:s3'
+    testImplementation 'software.amazon.awssdk:netty-nio-client'
     testImplementation 'org.springframework.hateoas:spring-hateoas'
+
+    testFixturesApi 'software.amazon.awssdk:s3'
+    testFixturesImplementation 'software.amazon.awssdk:netty-nio-client'
 }
 
 test {
