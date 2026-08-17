@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.run.BootRun
+
 plugins {
     id 'java-library'
     id 'java-test-fixtures'
@@ -14,12 +16,21 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.hamcrest:hamcrest'
     testRuntimeOnly 'org.springframework:spring-webflux'
+
+    developmentOnly platform(project(':contentgrid-appserver-platform'))
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 }
 
 bootRun {
     systemProperty('spring.profiles.active', 'bootRun')
     classpath += sourceSets.testFixtures.output
     classpath += configurations.testFixturesRuntimeClasspath
+}
+
+tasks.register('opaSidecarBootRun', BootRun) {
+    mainClass = bootRun.mainClass
+    classpath = bootRun.classpath
+    systemProperty('spring.profiles.active', 'bootRun, opaSidecar')
 }
 
 bootBuildImage {

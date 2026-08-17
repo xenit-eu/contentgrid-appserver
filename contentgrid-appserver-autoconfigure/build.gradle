@@ -28,9 +28,11 @@ dependencies {
     compileOnly project(':contentgrid-appserver-query-engine-api')
     compileOnly project(':contentgrid-appserver-query-engine-impl-jooq')
     compileOnly project(':contentgrid-appserver-rest')
+    compileOnly project(':contentgrid-appserver-security')
     compileOnly project(':contentgrid-appserver-webjars')
 
     compileOnly 'com.contentgrid.thunx:thunx-spring-security'
+    compileOnly 'com.contentgrid.thunx:thunx-pdp-opa'
 
     compileOnly 'io.minio:minio'
     compileOnly 'com.squareup.okhttp3:okhttp'
@@ -41,6 +43,7 @@ dependencies {
     compileOnly 'org.springframework.hateoas:spring-hateoas'
     compileOnly 'org.springframework.security:spring-security-web'
     compileOnly 'org.springframework.security:spring-security-oauth2-jose'
+    compileOnly 'org.springframework.security:spring-security-oauth2-resource-server'
 
     // dependencies for AnonymousHttpConfigurer
     compileOnly 'org.springframework.security:spring-security-config'
@@ -69,6 +72,7 @@ dependencies {
     testImplementation project(':contentgrid-appserver-query-engine-api')
     testImplementation project(':contentgrid-appserver-query-engine-impl-jooq')
     testImplementation project(':contentgrid-appserver-rest')
+    testImplementation project(':contentgrid-appserver-security')
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
     testImplementation project(':contentgrid-appserver-spring-boot-starter')
     testImplementation ("com.contentgrid.common:contentgrid-common-spring-autoconfigure:${contentgridCommonVersion}") {
@@ -81,6 +85,7 @@ dependencies {
     testImplementation 'org.flywaydb:flyway-core'
     testImplementation 'com.h2database:h2'
     testImplementation 'com.contentgrid.thunx:thunx-spring-security'
+    testImplementation 'com.contentgrid.thunx:thunx-pdp-opa'
     testRuntimeOnly 'org.springframework:spring-webflux'
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 

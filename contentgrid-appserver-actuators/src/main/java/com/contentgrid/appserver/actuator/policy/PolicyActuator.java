@@ -1,9 +1,9 @@
 package com.contentgrid.appserver.actuator.policy;
 
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItem;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemUnreadableException;
-import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,24 +18,23 @@ import org.springframework.util.SystemPropertyUtils;
 @WebEndpoint(id = "policy")
 @RequiredArgsConstructor
 public class PolicyActuator {
-    private static final Path PATH = Path.of("rego", "policy.rego");
 
-    private final BlueprintArtifact blueprintArtifact;
-    private final PolicyVariables policyVariables;
+    private static final Path PATH = Path.of("rego", "policy.rego");
     private static final PropertyPlaceholderHelper PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper(
             SystemPropertyUtils.PLACEHOLDER_PREFIX,
             SystemPropertyUtils.PLACEHOLDER_SUFFIX
     );
 
+    private final BlueprintArtifact blueprintArtifact;
+    private final String policyPackage;
+
     @ReadOperation(producesFrom = RegoProducible.class)
     public String readPolicy() throws IOException, BlueprintArtifactException, BlueprintArtifactItemUnreadableException {
         var maybeBlueprintArtifactItem = blueprintArtifact.load(PATH);
-        if (maybeBlueprintArtifactItem.isPresent()) {
-            String contents = readContents(maybeBlueprintArtifactItem.get());
-            return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(contents, policyVariables);
-        } else {
+        if (maybeBlueprintArtifactItem.isEmpty()) {
             throw new FileNotFoundException("rego file at " + PATH + " in " + blueprintArtifact.getReference() + " is not present");
         }
+        return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(readContents(maybeBlueprintArtifactItem.get()), new PolicyVariables(policyPackage));
     }
 
     public String readContents(BlueprintArtifactItem blueprintArtifactItem) throws IOException, BlueprintArtifactItemUnreadableException {

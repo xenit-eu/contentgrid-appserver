@@ -14,6 +14,7 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-web'
 
     implementation project(':contentgrid-appserver-actuators')
+    implementation project(':contentgrid-appserver-security')
     implementation project(':contentgrid-appserver-domain-spi')
     implementation project(':contentgrid-appserver-events')
     implementation project(':contentgrid-appserver-query-engine-impl-jooq')
@@ -31,6 +32,7 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
+    implementation 'com.contentgrid.thunx:thunx-spring-webmvc'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 }

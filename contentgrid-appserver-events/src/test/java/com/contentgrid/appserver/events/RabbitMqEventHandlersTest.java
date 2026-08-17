@@ -34,7 +34,6 @@ import org.springframework.test.web.servlet.MockMvc;
         "contentgrid.system.deployment-id="+RabbitMqEventHandlersTest.DEPLOYMENT_ID,
         "contentgrid.system.application-id="+RabbitMqEventHandlersTest.APP_ID,
         "contentgrid.events.webhook-config-url="+RabbitMqEventHandlersTest.CONFIG_URL
-
 })
 @AutoConfigureMockMvc
 class RabbitMqEventHandlersTest {

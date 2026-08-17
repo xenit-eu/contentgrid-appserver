@@ -1,0 +1,29 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'io.freefair.lombok'
+}
+
+dependencies {
+    api project(':contentgrid-appserver-domain-spi')
+
+    implementation project(':contentgrid-appserver-actuators')
+
+    implementation 'com.contentgrid.thunx:thunx-pdp-opa'
+
+    implementation 'org.springframework.boot:spring-boot'
+    implementation 'org.springframework.security:spring-security-core'
+    implementation 'org.springframework.security:spring-security-oauth2-core'
+    implementation 'org.springframework.security:spring-security-oauth2-jose'
+    implementation 'org.springframework.security:spring-security-oauth2-resource-server'
+
+    implementation 'jakarta.servlet:jakarta.servlet-api'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+    useJUnitPlatform()
+}

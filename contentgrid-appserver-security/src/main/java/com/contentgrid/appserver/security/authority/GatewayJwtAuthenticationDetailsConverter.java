@@ -1,0 +1,112 @@
+package com.contentgrid.appserver.security.authority;
+
+import com.contentgrid.appserver.security.authority.Actor.ActorType;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collector;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.core.ClaimAccessor;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
+
+public class GatewayJwtAuthenticationDetailsConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+
+    @Override
+    public Collection<GrantedAuthority> convert(Jwt source) {
+        try {
+            return convertClaims(source);
+        } catch (IllegalArgumentException e) {
+            // Malformed claim shapes (e.g. a non-object contentgrid:auth:principal) surface as
+            // IllegalArgumentException from ClaimAccessor conversion; reject the token instead of erroring.
+            throw new InvalidBearerTokenException(e.getMessage(), e);
+        }
+    }
+
+    private Collection<GrantedAuthority> convertClaims(Jwt source) {
+        var principalClaims = source.getClaimAsMap(GatewayAuthClaimNames.AUTH_PRINCIPAL);
+        if (principalClaims == null) {
+            throw new InvalidBearerTokenException(
+                    "JWT is missing the '%s' claim".formatted(GatewayAuthClaimNames.AUTH_PRINCIPAL));
+        }
+
+        var principal = actorFromClaims(new MapClaimAccessor(principalClaims), null);
+        var actorClaims = source.getClaimAsMap(GatewayAuthClaimNames.ACT);
+        var isDelegated = GatewayAuthClaimNames.AUTH_KIND_DELEGATED
+                .equals(source.getClaimAsString(GatewayAuthClaimNames.AUTH_KIND));
+        if (isDelegated == (actorClaims == null)) {
+            throw new InvalidBearerTokenException(
+                    "JWT '%s' claim and presence of the '%s' claim are inconsistent".formatted(
+                            GatewayAuthClaimNames.AUTH_KIND, GatewayAuthClaimNames.ACT));
+        }
+
+        if (actorClaims != null) {
+            var actor = actorChainFromClaims(new MapClaimAccessor(actorClaims));
+            return List.of(new DelegatedAuthenticationDetailsGrantedAuthority(principal, actor));
+        }
+        return List.of(new PrincipalAuthenticationDetailsGrantedAuthority(principal));
+    }
+
+    /**
+     * Recursively resolves the {@code act} chain: a nested {@code act} member is the parent (prior) actor of the actor
+     * it's nested in, so the outermost object here ends up as the returned {@link Actor}, chained to its parents via
+     * {@link Actor#parent()}.
+     */
+    private static @Nullable Actor actorChainFromClaims(@Nullable ClaimAccessor claims) {
+        if (claims == null) {
+            return null;
+        }
+        var parent = Optional.ofNullable(claims.getClaimAsMap(GatewayAuthClaimNames.ACT))
+                .map(MapClaimAccessor::new)
+                .map(GatewayJwtAuthenticationDetailsConverter::actorChainFromClaims)
+                .orElse(null);
+        return actorFromClaims(claims, parent);
+    }
+
+    private static Actor actorFromClaims(ClaimAccessor claims, @Nullable Actor parent) {
+        return new Actor(actorTypeOf(claims),
+                () -> withoutKeys(claims.getClaims(), GatewayAuthClaimNames.KIND, GatewayAuthClaimNames.ACT), parent);
+    }
+
+    private static ActorType actorTypeOf(@NonNull ClaimAccessor claims) {
+        var kind = claims.getClaimAsString(GatewayAuthClaimNames.KIND);
+        if (kind != null) {
+            return switch (kind) {
+                case GatewayAuthClaimNames.KIND_USER -> ActorType.USER;
+                case GatewayAuthClaimNames.KIND_EXTENSION -> ActorType.EXTENSION;
+                default -> throw new InvalidBearerTokenException("Unknown actor type '%s' value '%s'".formatted(
+                        GatewayAuthClaimNames.KIND, kind));
+            };
+        }
+        throw new InvalidBearerTokenException(
+                "Actor object is missing its '%s' member".formatted(GatewayAuthClaimNames.KIND));
+    }
+
+    private static Map<String, Object> withoutKeys(Map<String, Object> source, String... keys) {
+        var excluded = Set.of(keys);
+        return source.entrySet()
+                .stream()
+                .filter(entry -> !excluded.contains(entry.getKey()))
+                // Custom collector because the standard map collector doesn't support null values
+                .collect(Collector.of(HashMap::new,
+                        (map, entry1) -> map.put(entry1.getKey(), entry1.getValue()),
+                        (left, right) -> {
+                            left.putAll(right);
+                            return left;
+                        }));
+    }
+
+    private record MapClaimAccessor(Map<String, Object> claims) implements ClaimAccessor {
+
+        @Override
+        public Map<String, Object> getClaims() {
+            return claims;
+        }
+    }
+}

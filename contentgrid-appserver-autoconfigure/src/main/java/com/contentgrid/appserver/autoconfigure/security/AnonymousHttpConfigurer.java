@@ -10,6 +10,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
+/**
+ * Allows anonymous requests to be passed as authenticated for testing purposes.
+ */
 public class AnonymousHttpConfigurer extends AbstractHttpConfigurer<AnonymousHttpConfigurer, HttpSecurity> {
 
     @Override
