@@ -10,6 +10,7 @@ import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
 import java.time.Instant;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
@@ -81,6 +82,7 @@ class DefaultSecurityAutoConfigurationTest {
                 .withBean(AuthorizationManager.class,
                         () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
+                .withPropertyValues("contentgrid.thunx.abac.source=opa")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
 
@@ -97,6 +99,7 @@ class DefaultSecurityAutoConfigurationTest {
                 .withBean(AuthorizationManager.class,
                         () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
                 .withBean(JwtDecoder.class, () -> token -> contractViolatingJwt())
+                .withPropertyValues("contentgrid.thunx.abac.source=opa")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(bearerTokenRequest(context)).hasStatus(HttpStatus.UNAUTHORIZED);
@@ -109,6 +112,7 @@ class DefaultSecurityAutoConfigurationTest {
                 .withBean(AuthorizationManager.class,
                         () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(false))
                 .withBean(JwtDecoder.class, () -> token -> gatewayShapedJwt())
+                .withPropertyValues("contentgrid.thunx.abac.source=opa")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(bearerTokenRequest(context)).hasStatus(HttpStatus.FORBIDDEN);
@@ -172,16 +176,17 @@ class DefaultSecurityAutoConfigurationTest {
     }
 
     @Test
-    void withoutJwtDecoder_andOPAAuthorizationManager_leavesRequestsUnauthenticated() {
+    void withoutJwtDecoder_withAuthorizationManager_callsAuthorizationManager() {
+        AuthorizationManager mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
         contextRunner
-                .withBean(AuthorizationManager.class,
-                        () -> (authentication, requestAuthorizationContext) -> new AuthorizationDecision(true))
+                .withBean(AuthorizationManager.class, () -> mockAuthorizationManager)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-
+                    Mockito.when(mockAuthorizationManager.authorize(Mockito.any(), Mockito.any())).thenReturn(new AuthorizationDecision(false));
                     assertThat(bearerTokenRequest(context))
                             .matches(unauthenticated())
                             .hasStatus(HttpStatus.FORBIDDEN);
+                    Mockito.verify(mockAuthorizationManager).authorize(Mockito.any(), Mockito.any());
                 });
     }
 

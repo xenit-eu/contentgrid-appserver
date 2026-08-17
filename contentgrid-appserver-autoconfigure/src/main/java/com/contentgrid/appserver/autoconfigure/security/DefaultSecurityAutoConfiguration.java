@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,38 +33,21 @@ public class DefaultSecurityAutoConfiguration {
             ObjectProvider<AuthorizationManager<RequestAuthorizationContext>> policyAuthorizationManagerProvider,
             ObjectProvider<JwtDecoder> jwtDecoderProvider
     ) {
-        var policyAuthorizationManager = policyAuthorizationManagerProvider.getIfAvailable();
-        var jwtDecoder = jwtDecoderProvider.getIfAvailable();
-        if (policyAuthorizationManager != null && jwtDecoder != null) {
-            return opaSecurityFilterChain(http, policyAuthorizationManager);
-        } else if (jwtDecoder != null) {
-            return centralizedOpaSecurityFilterChain(http);
-        } else {
-            return noJwtDecoderSecurityFilterChain(http);
-        }
-    }
-
-    private SecurityFilterChain opaSecurityFilterChain(
-            HttpSecurity http,
-            AuthorizationManager<RequestAuthorizationContext> policyAuthorizationManager
-    ) {
-        http.authorizeHttpRequests(authorize -> authorize.anyRequest().access(policyAuthorizationManager));
-        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
-                jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+        var authorizationManager = policyAuthorizationManagerProvider.getIfAvailable(AuthenticatedAuthorizationManager::authenticated);
+        http.authorizeHttpRequests(authorize -> authorize.anyRequest().access(authorizationManager));
+        jwtDecoderProvider.ifAvailable(jwtDecoder -> {
+            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+        });
         return http.build();
     }
 
-    private SecurityFilterChain centralizedOpaSecurityFilterChain(HttpSecurity http) {
-        http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
-        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
-        return http.build();
+    @ConditionalOnProperty(value = "contentgrid.thunx.abac.source", havingValue = "opa")
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        var converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(new GatewayJwtAuthenticationDetailsConverter());
+        return converter;
     }
-
-    private SecurityFilterChain noJwtDecoderSecurityFilterChain(HttpSecurity http) {
-        http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
-        return http.build();
-    }
-
 
     /**
      * Fails application startup outright if thunx is configured to authorize through OPA while
@@ -84,9 +68,4 @@ public class DefaultSecurityAutoConfiguration {
         };
     }
 
-    private static JwtAuthenticationConverter jwtAuthenticationConverter() {
-        var converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(new GatewayJwtAuthenticationDetailsConverter());
-        return converter;
-    }
 }

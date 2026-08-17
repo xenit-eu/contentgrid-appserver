@@ -26,11 +26,6 @@ spring:
   docker:
     compose:
       enabled: false
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: 'https://auth.contentgrid.com/realms/contentgrid-dev'
 
 management:
   endpoints:
