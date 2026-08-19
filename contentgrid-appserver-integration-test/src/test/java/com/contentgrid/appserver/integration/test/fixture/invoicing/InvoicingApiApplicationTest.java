@@ -238,6 +238,30 @@ class InvoicingApiApplicationTest {
             }
 
             @Test
+            void listShippingAddresses_withTextSetFilter_returns_http200_ok() throws Exception {
+                mockMvc.perform(post("/shipping-addresses")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"street": "Main street 1", "zip": "1000", "city": "Brussels",
+                                         "tags": ["urgent", "priority"]}
+                                        """))
+                        .andExpect(status().isCreated());
+                mockMvc.perform(post("/shipping-addresses")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"street": "Side street 2", "zip": "2000", "city": "Antwerp"}
+                                        """))
+                        .andExpect(status().isCreated());
+
+                mockMvc.perform(get("/shipping-addresses?tags={tag}", "urgent")
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$._embedded.['item'].length()").value(1))
+                        .andExpect(jsonPath("$._embedded.['item'][0].zip").value("1000"))
+                        .andExpect(jsonPath("$._embedded.['item'][0].tags.length()").value(2));
+            }
+
+            @Test
             void listRefunds_returns_http200_ok() throws Exception {
                 mockMvc.perform(get("/refunds").contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
