@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConst
 import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.ArrayBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
@@ -101,9 +102,15 @@ public class JsonSchemaAssembler {
             case ArrayBodyValue arrayBodyValue -> {
                 if (arrayBodyValue.getItems() instanceof RelationBodyValue) {
                     yield property.asAssociationArray();
-                } else {
-                    throw new IllegalArgumentException("Array value with non-relation body is not supported");
                 }
+                if (arrayBodyValue.getItems() instanceof SimpleBodyValue itemValue
+                        && itemValue.getType() == SimpleAttribute.Type.TEXT) {
+                    var allowedValues = itemValue.getConstraint(AllowedValuesConstraint.class)
+                            .map(AllowedValuesConstraint::getValues)
+                            .orElse(null);
+                    yield property.asStringArray(allowedValues);
+                }
+                throw new IllegalArgumentException("Array value with non-relation body is not supported");
             }
             case RelationBodyValue relationBodyValue -> property.asAssociation();
             case ContentBodyValue contentBodyValue -> throw new IllegalArgumentException("Content value is not supported");

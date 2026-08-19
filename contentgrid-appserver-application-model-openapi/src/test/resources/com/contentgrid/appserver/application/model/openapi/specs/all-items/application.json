@@ -86,6 +86,24 @@
         },
         {
           "type": "simple",
+          "name": "string_set_attribute",
+          "description": "A multi-value string attribute.",
+          "dataType": "text_set",
+          "columnName": "string_set_attribute",
+          "title": "String set attribute",
+          "constraints": [
+            {
+              "type": "allowedValues",
+              "values": [
+                "alpha",
+                "beta",
+                "gamma"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "simple",
           "name": "integer_attribute",
           "description": "A long attribute for numerical values.",
           "dataType": "long",
@@ -348,6 +366,17 @@
           "title": "Full text search string attribute: Full Text",
           "type": "full-text",
           "locale": "en"
+        },
+        {
+          "name": "string_set_attribute",
+          "attributePath": [
+            {
+              "name": "string_set_attribute",
+              "type": "attr"
+            }
+          ],
+          "title": "String set attribute",
+          "type": "exact"
         }
       ],
       "sortableFields": [

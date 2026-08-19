@@ -606,6 +606,18 @@ class ProfileRestControllerTest {
                                     {
                                         name: "gender",
                                         title: "gender"
+                                    },
+                                    {
+                                        name: "tags",
+                                        title: "Tags",
+                                        "_embedded": {
+                                            "blueprint:search-param": [
+                                                {
+                                                    name: "tags",
+                                                    title: "tags"
+                                                }
+                                            ]
+                                        }
                                     }
                                 ],
                                 "blueprint:relation": [
@@ -663,6 +675,10 @@ class ProfileRestControllerTest {
                                         {
                                             name: "name~prefix",
                                             prompt: "Naam begint met"
+                                        },
+                                        {
+                                            name: "tags",
+                                            prompt: "tags"
                                         },
                                         {
                                             name: "vat",
@@ -786,6 +802,10 @@ class ProfileRestControllerTest {
                                             prompt: "gender"
                                         },
                                         {
+                                            name: "tags",
+                                            prompt: "Tags"
+                                        },
+                                        {
                                             name: "invoices",
                                             prompt: "invoices"
                                         },
@@ -807,6 +827,44 @@ class ProfileRestControllerTest {
                         }
                         """));
 
+    }
+
+    @Test
+    void getProfileEntity_textSetAttribute() throws Exception {
+        mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            _embedded: {
+                                "blueprint:attribute": [
+                                    { name: "person_id" },
+                                    { name: "name" },
+                                    { name: "vat" },
+                                    { name: "age" },
+                                    { name: "gender" },
+                                    {
+                                        name: "tags",
+                                        type: "string_set",
+                                        _embedded: {
+                                            "blueprint:search-param": [{
+                                                name: "tags",
+                                                type: "exact-match"
+                                            }]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                        """));
+    }
+
+    @Test
+    void getProfileEntity_jsonSchemaTextSet() throws Exception {
+        mockMvc.perform(get("/profile/persons").accept("application/schema+json"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.properties.tags.type").value("array"))
+                .andExpect(jsonPath("$.properties.tags.uniqueItems").value(true))
+                .andExpect(jsonPath("$.properties.tags.items.type").value("string"));
     }
 
     @Test

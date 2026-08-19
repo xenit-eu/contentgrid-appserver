@@ -361,7 +361,7 @@ public class OpenApiSpecConverter {
                         BodyValue relationValue = new RelationBodyValue(relation.getTargetEndPoint()
                                 .getEntity());
                         if(isCollection) {
-                            relationValue = new ArrayBodyValue(relationValue);
+                            relationValue = ArrayBodyValue.builder().items(relationValue).build();
                             body.setDescription("Newline separated list of %s URIs".formatted(relation.getTargetEndPoint().getEntity().getValue()));
                         } else {
                             body.setDescription("One %s URI".formatted(relation.getTargetEndPoint().getEntity().getValue()));
@@ -578,7 +578,13 @@ public class OpenApiSpecConverter {
 
     private static OpenApiPotentialReference<JsonSchema> bodyValueToJsonSchema(OpenApiSpecContext context, BodyValue bodyValue, BodyType bodyType) {
         AbstractJsonSchemaDataType jsonSchema = switch (bodyValue) {
-            case ArrayBodyValue arrayBodyValue -> new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems(), bodyType));
+            case ArrayBodyValue arrayBodyValue -> {
+                var array = new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems(), bodyType));
+                if (arrayBodyValue.isUniqueItems()) {
+                    array.setUniqueItems(true);
+                }
+                yield array;
+            }
             case ContentBodyValue contentBodyValue -> new JsonSchemaString().setFormat(Format.BINARY);
             case ObjectBodyValue objectBodyValue -> {
                 var object = new JsonSchemaObject();

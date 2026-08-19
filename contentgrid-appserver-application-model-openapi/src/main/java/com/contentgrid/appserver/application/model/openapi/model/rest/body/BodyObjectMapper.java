@@ -147,7 +147,10 @@ public final class BodyObjectMapper {
                 if (relation instanceof OneToManyRelation
                         || relation instanceof ManyToManyRelation) {
                     // The array for to-many relations can't contain null values, and can not be null itself (it can be left out)
-                    relationValue = new ArrayBodyValue(relationValue.withNullable(false)).withNullable(false);
+                    relationValue = ArrayBodyValue.builder()
+                            .items(relationValue.withNullable(false))
+                            .nullable(false)
+                            .build();
                 } else {
                     relationValue = relationValue
                             // For to-one relations that are required, they are required.
@@ -258,17 +261,34 @@ public final class BodyObjectMapper {
 
     private static BodyValue getBodyValue(Context context, SourceType sourceType, Attribute attribute) {
         var bodyValue = switch (attribute) {
-            case SimpleAttribute sa -> SimpleBodyValue.builder()
-                    .sourceType(sourceType)
-                    .nullable(!sa.hasConstraint(RequiredConstraint.class))
-                    .type(sa.getType())
-                    .constraints(sa.getConstraints().stream()
-                            // Filter out required & unique constraints.
-                            // required is already reflected in 'nullable', and unique has nothing to do with body structure
-                            .filter(c -> !(c instanceof RequiredConstraint || c instanceof UniqueConstraint))
-                            .toList()
-                    )
-                    .build();
+            case SimpleAttribute sa -> {
+                var simpleValue = SimpleBodyValue.builder()
+                        .sourceType(sourceType)
+                        .nullable(!sa.hasConstraint(RequiredConstraint.class))
+                        .type(sa.getType())
+                        .constraints(sa.getConstraints().stream()
+                                // Filter out required & unique constraints.
+                                // required is already reflected in 'nullable',
+                                // and unique has nothing to do with body structure
+                                .filter(c -> !(c instanceof RequiredConstraint || c instanceof UniqueConstraint))
+                                .toList()
+                        )
+                        .build();
+                if (sa.getType() == SimpleAttribute.Type.TEXT_SET) {
+                    // A multi-value attribute is a set of text elements: the element type carries the
+                    // constraints, the array itself is always present and never null
+                    yield ArrayBodyValue.builder()
+                            .sourceType(sourceType)
+                            .items(simpleValue.toBuilder()
+                                    .type(SimpleAttribute.Type.TEXT)
+                                    .nullable(false)
+                                    .build())
+                            .uniqueItems(true)
+                            .nullable(false)
+                            .build();
+                }
+                yield simpleValue;
+            }
             case ContentAttribute ca -> {
                 if (context.mediaType().canTransportContent()) {
                     // For multipart forms, use a special type for content upload
@@ -330,8 +350,11 @@ public final class BodyObjectMapper {
         if (bodyValue != null) {
             bodyValue = switch (context.bodyType()) {
                 case RESPONSE -> bodyValue.withMandatory(true); // All items are always present in the response
-                case PUT, POST -> bodyValue.isNullable() ? bodyValue : bodyValue.withMandatory(
-                        true); // All non-nullable values are required when POST or PUT (keys that are left out are set to null)
+                // An array can always be left out: a missing multi-value attribute is the empty array.
+                // All non-nullable values are required when POST or PUT (keys left out are set to null)
+                case PUT, POST -> bodyValue.isNullable() || bodyValue instanceof ArrayBodyValue
+                        ? bodyValue
+                        : bodyValue.withMandatory(true);
                 case PATCH -> bodyValue.withMandatory(false); // No items are mandatory for PATCH (keys that are left out are kept as-is)
             };
 
