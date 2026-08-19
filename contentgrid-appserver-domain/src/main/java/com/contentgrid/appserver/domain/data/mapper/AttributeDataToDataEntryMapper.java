@@ -36,7 +36,10 @@ public class AttributeDataToDataEntryMapper implements
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, (CompositeAttributeData)data);
             case UserAttribute userAttribute -> mapUserAttribute(userAttribute, (CompositeAttributeData)data);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, (CompositeAttributeData)data);
-        }).orElse(NullDataEntry.INSTANCE);
+        }).orElseGet(() -> attribute instanceof SimpleAttribute simpleAttribute
+                // Absent data canonicalizes the same way as a null value (a multi-value attribute is always an array)
+                ? mapSimpleAttribute(simpleAttribute.getType(), null)
+                : NullDataEntry.INSTANCE);
     }
 
     private PlainDataEntry mapUserAttribute(UserAttribute userAttribute, CompositeAttributeData data) {
@@ -76,7 +79,8 @@ public class AttributeDataToDataEntryMapper implements
 
     private PlainDataEntry mapSimpleAttribute(@NonNull SimpleAttribute.Type type, Object data) {
         if(data == null) {
-            return NullDataEntry.INSTANCE;
+            // A multi-value attribute is always an array in responses, even when the column value is null
+            return type == SimpleAttribute.Type.TEXT_SET ? new ListDataEntry(List.of()) : NullDataEntry.INSTANCE;
         }
         return switch (type) {
             case LONG -> new LongDataEntry((Long) data);

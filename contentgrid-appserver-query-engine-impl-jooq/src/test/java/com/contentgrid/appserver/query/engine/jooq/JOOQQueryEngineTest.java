@@ -1104,6 +1104,13 @@ class JOOQQueryEngineTest {
             var emptyTags = assertInstanceOf(SimpleAttributeData.class,
                     actualEmpty.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
             assertEquals(List.of(), emptyTags.getValue());
+
+            // The collection listing uses an untyped select; the array column must come back identically
+            var slice = queryEngine.findAll(TEXT_SET_APPLICATION, DOCUMENT, TRUE_EXPRESSION, null, DEFAULT_PAGE_DATA);
+            assertThat(slice.getEntities())
+                    .extracting(entity -> assertInstanceOf(SimpleAttributeData.class,
+                            entity.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow()).getValue())
+                    .containsExactlyInAnyOrder(List.of("urgent", "ethias"), List.of());
         } finally {
             tableCreator.dropTables(TEXT_SET_APPLICATION);
         }
