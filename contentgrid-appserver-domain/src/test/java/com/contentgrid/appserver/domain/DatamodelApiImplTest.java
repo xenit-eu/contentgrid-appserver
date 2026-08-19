@@ -45,9 +45,11 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
@@ -381,6 +383,42 @@ class DatamodelApiImplTest {
         void elementOutsideAllowedValues_fails() {
             expectCreateFailure(Map.of("labels", List.of("hr", "legal")),
                     AllowedValuesConstraintViolationInvalidDataException.class);
+        }
+
+        private EntityInstance findDocument(List<AttributeData> attributes) {
+            Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
+                var request = args.getArgument(1, EntityRequest.class);
+                return Optional.of(new EntityData(
+                        EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
+                        attributes
+                ));
+            });
+            return datamodelApi.findById(TEXT_SET_APPLICATION,
+                            EntityRequest.forEntity(DOCUMENT.getName(), EntityId.of(UUID.randomUUID())),
+                            AuthorizationContext.allowAll())
+                    .orElseThrow();
+        }
+
+        @Test
+        void readValues_returnsJsonArrayEntries() {
+            var result = findDocument(List.of(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "ethias")),
+                    new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
+            ));
+            assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of(
+                    new StringDataEntry("urgent"), new StringDataEntry("ethias"))));
+            assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
+        }
+
+        @Test
+        void readNullOrAbsentValue_returnsEmptyList() {
+            // Defensive: the column is NOT NULL, but data predating the type must still read as an array
+            var result = findDocument(List.of(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), null)
+                    // no data for labels at all
+            ));
+            assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of()));
+            assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
         }
     }
 
