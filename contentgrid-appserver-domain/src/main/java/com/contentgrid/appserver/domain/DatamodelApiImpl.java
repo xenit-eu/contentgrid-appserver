@@ -38,6 +38,7 @@ import com.contentgrid.appserver.domain.data.validation.NulByteValidator;
 import com.contentgrid.appserver.domain.data.validation.RegexPatternConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.RelationRequiredValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.RequiredAttributeConstraintValidator;
+import com.contentgrid.appserver.domain.data.validation.TextSetValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
@@ -128,7 +129,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                 ))
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
-                                new AttributeValidationDataMapper(new NulByteValidator()),
+                                new AttributeValidationDataMapper(
+                                        List.of(new NulByteValidator(), new TextSetValidator())),
                                 (relation, value) -> Optional.of(value)
                         )
                 ))
