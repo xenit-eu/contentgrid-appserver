@@ -307,6 +307,19 @@ public class JOOQThunkExpressionResolver {
 
                             yield generateFTSCondition(leftField, rightField, language);
                         }
+                        case StringComparison.ContentGridArraySearch contentGridArraySearch -> {
+                            var left = contentGridArraySearch.getLeftTerm().accept(this, context);
+                            if (!left.getDataType().isArray()) {
+                                logWarning("cg_array_search", left);
+                                yield DSL.falseCondition();
+                            }
+                            // The search values are normalized by the SQL function, not per element
+                            var right = getArray(context,
+                                    ((SetValue) contentGridArraySearch.getRightTerm()).getValue().stream(), false);
+                            yield DSL.arrayOverlap(
+                                    JOOQUtils.arraySearchNormalize(left),
+                                    JOOQUtils.arraySearchNormalize(right));
+                        }
                         default -> throw new InvalidThunkExpressionException(
                                 "Function expression with type %s is not supported.".formatted(
                                         functionExpression.getClass().getSimpleName()));
@@ -384,10 +397,15 @@ public class JOOQThunkExpressionResolver {
         }
 
         private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
+            return getArray(context, stream, true);
+        }
+
+        private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream,
+                boolean normalizeStrings) {
             var values = stream.map(thunkExpression -> {
                 if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
                     Field<?> field = visit(scalar, context);
-                    if (field.getDataType().isString()) {
+                    if (normalizeStrings && field.getDataType().isString()) {
                         field = JOOQUtils.normalize(field);
                     }
                     return field;

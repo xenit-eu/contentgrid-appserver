@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
 import com.contentgrid.thunx.predicates.model.Comparison;
+import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Locale;
 import lombok.EqualsAndHashCode;
@@ -40,6 +41,16 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return new ContentGridFullTextSearch(leftTerm, rightTerm, locale);
     }
 
+    /**
+     * Matches a multi-value text attribute when any of its elements equals any of the search values.
+     * All values travel in the single right-hand {@link SetValue}, so one expression resolves to one
+     * overlap condition, for one as well as for many values.
+     */
+    public static ContentGridArraySearch contentGridArraySearchMatch(@NonNull ThunkExpression<?> leftTerm,
+                                                                     @NonNull SetValue rightTerm) {
+        return new ContentGridArraySearch(leftTerm, rightTerm);
+    }
+
     public static final class ContentGridPrefixSearch extends StringComparison {
 
         private ContentGridPrefixSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
@@ -59,6 +70,13 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
             super("cg_fulltext_search", leftTerm, rightTerm);
 
             this.locale = locale;
+        }
+    }
+
+    public static final class ContentGridArraySearch extends StringComparison {
+
+        private ContentGridArraySearch(@NonNull ThunkExpression<?> leftTerm, @NonNull SetValue rightTerm) {
+            super("cg_array_search", leftTerm, rightTerm);
         }
     }
 

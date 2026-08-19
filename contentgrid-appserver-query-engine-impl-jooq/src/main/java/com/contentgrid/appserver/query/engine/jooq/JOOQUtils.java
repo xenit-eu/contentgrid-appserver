@@ -109,13 +109,14 @@ public class JOOQUtils {
         };
     }
 
+    private static final DataType<String[]> TEXT_ARRAY = SQLDataType.CLOB.getArrayDataType();
+
     /**
      * A multi-value text column is always {@code NOT NULL DEFAULT '{}'}: only the empty array represents an
      * empty set, independent of the required constraint (which is not supported for multi-value attributes).
      */
     private static DataType<String[]> textSetDataType() {
-        var arrayType = SQLDataType.CLOB.getArrayDataType();
-        return arrayType.nullable(false).defaultValue(DSL.inline(new String[0], arrayType));
+        return TEXT_ARRAY.nullable(false).defaultValue(DSL.inline(new String[0], TEXT_ARRAY));
     }
 
     @Allow.PlainSQL
@@ -132,6 +133,10 @@ public class JOOQUtils {
     @Allow.PlainSQL
     public static Field<String> prefixSearchNormalize(Field<?> field) {
         return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
+    }
+
+    public static Field<String[]> arraySearchNormalize(Field<?> field) {
+        return DSL.function(DSL.name("extensions", "contentgrid_array_search_normalize"), TEXT_ARRAY, field);
     }
 
     public static Field<?>[] resolveRelationFields(@NonNull Application application, @NonNull Entity entity) {
