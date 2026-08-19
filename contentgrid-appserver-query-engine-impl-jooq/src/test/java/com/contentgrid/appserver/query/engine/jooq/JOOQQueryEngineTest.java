@@ -1057,6 +1057,84 @@ class JOOQQueryEngineTest {
         }
     }
 
+    private static final SimpleAttribute DOCUMENT_TAGS = SimpleAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .type(Type.TEXT_SET)
+            .build();
+
+    private static final Entity DOCUMENT = Entity.builder()
+            .name(EntityName.of("document"))
+            .table(TableName.of("document"))
+            .pathSegment(PathSegmentName.of("documents"))
+            .linkName(LinkName.of("documents"))
+            .attribute(DOCUMENT_TAGS)
+            .build();
+
+    private static final Application TEXT_SET_APPLICATION = Application.builder()
+            .name(ApplicationName.of("text-set-application"))
+            .entity(DOCUMENT)
+            .build();
+
+    @Test
+    void createEntityWithTextSetAttribute() {
+        tableCreator.createTables(TEXT_SET_APPLICATION);
+        try {
+            var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                    .entityName(DOCUMENT.getName())
+                    .attribute(SimpleAttributeData.builder()
+                            .name(DOCUMENT_TAGS.getName())
+                            .value(List.of("urgent", "ethias"))
+                            .build())
+                    .build(), TRUE_EXPRESSION, createEventConsumer);
+
+            var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(), TRUE_EXPRESSION)
+                    .orElseThrow();
+            var actualTags = assertInstanceOf(SimpleAttributeData.class,
+                    actual.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
+            assertEquals(List.of("urgent", "ethias"), actualTags.getValue());
+
+            // A row created without tags reads back as the empty list (the column default)
+            var createdEmpty = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                    .entityName(DOCUMENT.getName())
+                    .build(), TRUE_EXPRESSION, createEventConsumer);
+            var actualEmpty = queryEngine
+                    .findById(TEXT_SET_APPLICATION, createdEmpty.getIdentity().toRequest(), TRUE_EXPRESSION)
+                    .orElseThrow();
+            var emptyTags = assertInstanceOf(SimpleAttributeData.class,
+                    actualEmpty.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
+            assertEquals(List.of(), emptyTags.getValue());
+        } finally {
+            tableCreator.dropTables(TEXT_SET_APPLICATION);
+        }
+    }
+
+    static Stream<Arguments> invalidTextSetValues() {
+        return Stream.of(
+                Arguments.argumentSet("not a list", "urgent"),
+                Arguments.argumentSet("non-string element", List.of("urgent", 123))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidTextSetValues")
+    void createEntityWithInvalidTextSetValue(Object value) {
+        tableCreator.createTables(TEXT_SET_APPLICATION);
+        try {
+            var createData = EntityCreateData.builder()
+                    .entityName(DOCUMENT.getName())
+                    .attribute(SimpleAttributeData.builder()
+                            .name(DOCUMENT_TAGS.getName())
+                            .value(value)
+                            .build())
+                    .build();
+            assertThrows(IllegalInputDataException.class,
+                    () -> queryEngine.create(TEXT_SET_APPLICATION, createData, TRUE_EXPRESSION, createEventConsumer));
+        } finally {
+            tableCreator.dropTables(TEXT_SET_APPLICATION);
+        }
+    }
+
     @ParameterizedTest
     @CsvSource({
             "100,false",

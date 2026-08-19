@@ -62,7 +62,12 @@ public class EntityDataConverter {
     private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, SimpleAttribute attribute) {
         checkType(attribute.getType(), data.getValue());
         var field = (Field<Object>) JOOQUtils.resolveField(attribute);
-        return List.of(new JOOQPair<>(field, data.getValue()));
+        var value = data.getValue();
+        if (attribute.getType() == SimpleAttribute.Type.TEXT_SET && value instanceof List<?> list) {
+            // The text[] column binds as String[]; the query-engine API carries List<String>
+            value = list.toArray(String[]::new);
+        }
+        return List.of(new JOOQPair<>(field, value));
     }
 
     private List<JOOQPair<Object>> convert(CompositeAttributeData data, CompositeAttribute attribute) {
@@ -86,6 +91,19 @@ public class EntityDataConverter {
                 if (!(value instanceof String)) {
                     throw new IllegalInputDataException("Expected value to be of type %s, got %s"
                             .formatted(String.class.getSimpleName(), value.getClass().getSimpleName()));
+                }
+            }
+            case TEXT_SET -> {
+                if (!(value instanceof List<?> list)) {
+                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
+                            .formatted(List.class.getSimpleName(), value.getClass().getSimpleName()));
+                }
+                for (var element : list) {
+                    if (!(element instanceof String)) {
+                        throw new IllegalInputDataException("Expected all elements to be of type %s, got %s"
+                                .formatted(String.class.getSimpleName(),
+                                        element == null ? "null" : element.getClass().getSimpleName()));
+                    }
                 }
             }
             case LONG -> {
