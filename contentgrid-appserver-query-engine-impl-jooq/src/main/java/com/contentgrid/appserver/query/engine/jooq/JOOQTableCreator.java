@@ -35,6 +35,7 @@ public class JOOQTableCreator implements TableCreator {
         }
         // Create extensions schema and functions
         createCGPrefixSearchNormalize(dslContext);
+        createCGArraySearchNormalize(dslContext);
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
@@ -81,7 +82,10 @@ public class JOOQTableCreator implements TableCreator {
             dslContext.dropTableIfExists(table).execute();
         }
 
-        // Drop extensions schema and functions
+        // Drop extensions schema and functions.
+        // The array function must be dropped first: dropCGPrefixSearchNormalize ends by dropping the
+        // extensions schema without CASCADE, which fails while the schema still contains a function.
+        dropCGArraySearchNormalize(dslContext);
         dropCGPrefixSearchNormalize(dslContext);
     }
 
@@ -104,6 +108,24 @@ public class JOOQTableCreator implements TableCreator {
         dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_prefix_search_normalize(text);", schema));
         dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
         dslContext.dropSchemaIfExists(schema).execute();
+    }
+
+    @Allow.PlainSQL
+    private void createCGArraySearchNormalize(DSLContext dslContext) {
+        var schema = DSL.schema("extensions");
+        dslContext.createSchemaIfNotExists(schema).execute();
+        dslContext.execute(DSL.sql("""
+                CREATE OR REPLACE FUNCTION ?.contentgrid_array_search_normalize(arr text[])
+                  RETURNS text[]
+                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+                RETURN (SELECT ARRAY(SELECT normalize(e, NFKC) FROM unnest(arr) AS e));
+                """, schema));
+    }
+
+    @Allow.PlainSQL
+    private void dropCGArraySearchNormalize(DSLContext dslContext) {
+        var schema = DSL.schema("extensions");
+        dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_array_search_normalize(text[]);", schema));
     }
 
 }

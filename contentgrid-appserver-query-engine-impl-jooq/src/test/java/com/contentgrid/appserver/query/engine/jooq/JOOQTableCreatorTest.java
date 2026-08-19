@@ -80,6 +80,12 @@ class JOOQTableCreatorTest {
             .constraint(Constraint.unique())
             .build();
 
+    private static final SimpleAttribute PERSON_TAGS = SimpleAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .type(Type.TEXT_SET)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -87,6 +93,7 @@ class JOOQTableCreatorTest {
             .linkName(LinkName.of("persons"))
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
+            .attribute(PERSON_TAGS)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -339,14 +346,61 @@ class JOOQTableCreatorTest {
 
         var columnInfo = getColumnInfo("public", "person");
 
-        assertEquals(3, columnInfo.size());
+        assertEquals(4, columnInfo.size());
         assertEquals("uuid", columnInfo.get("id"));
         assertEquals("text", columnInfo.get("vat"));
         assertEquals("text", columnInfo.get("name"));
+        assertTextArray(columnInfo.get("tags"));
 
         // drop tables
         tableCreator.dropTables(application);
         assertTrue(getTables("public").isEmpty());
+    }
+
+    @Test
+    void textSetColumnIsNeverNull() {
+        var application = Application.builder()
+                .name(ApplicationName.of("simple-entity-application"))
+                .entity(PERSON)
+                .build();
+
+        tableCreator.createTables(application);
+
+        var nullable = jdbcTemplate.queryForObject(
+                "SELECT is_nullable FROM information_schema.columns"
+                        + " WHERE table_schema = 'public' AND table_name = 'person' AND column_name = 'tags'",
+                String.class);
+        assertEquals("NO", nullable);
+
+        // A row created without tags gets the empty array, not null
+        jdbcTemplate.update("INSERT INTO person (id, name, vat) VALUES (?, ?, ?)",
+                java.util.UUID.randomUUID(), "Alice", "BE0123456789");
+        var tags = jdbcTemplate.queryForObject("SELECT tags::text FROM person", String.class);
+        assertEquals("{}", tags);
+
+        tableCreator.dropTables(application);
+    }
+
+    @Test
+    void arraySearchNormalizeFunction() {
+        var application = Application.builder()
+                .name(ApplicationName.of("simple-entity-application"))
+                .entity(PERSON)
+                .build();
+
+        tableCreator.createTables(application);
+
+        // NFKC folds compatibility forms (the ﬁ ligature) but keeps case and accents
+        var normalized = jdbcTemplate.queryForObject(
+                "SELECT extensions.contentgrid_array_search_normalize(ARRAY['ﬁle', 'Café'])::text", String.class);
+        assertEquals("{file,Café}", normalized);
+
+        // An empty array yields {}, not null, so empty rows never match any search
+        var empty = jdbcTemplate.queryForObject(
+                "SELECT extensions.contentgrid_array_search_normalize('{}'::text[])::text", String.class);
+        assertEquals("{}", empty);
+
+        tableCreator.dropTables(application);
     }
 
     @Test
@@ -406,6 +460,13 @@ class JOOQTableCreatorTest {
         }
     }
 
+    // The JDBC metadata reports a text[] column as _text
+    static void assertTextArray(String columnType) {
+        if (! (columnType.equals("_text") || columnType.equals("text[]"))) {
+            Assertions.fail("Type is not a text array: " + columnType);
+        }
+    }
+
     static Stream<Relation> customerInvoicesRelations() {
         return Stream.of(INVOICE_CUSTOMER, INVOICE_CUSTOMER.inverse());
     }
@@ -427,7 +488,7 @@ class JOOQTableCreatorTest {
         var invoiceInfo = getColumnInfo("public", "invoice");
         var invoiceForeignKeys = getForeignKeys("public", "invoice");
 
-        assertEquals(3, personInfo.size()); // unchanged
+        assertEquals(4, personInfo.size()); // unchanged
         assertEquals(20, invoiceInfo.size());
         assertEquals("uuid", invoiceInfo.get("customer"));
 
@@ -454,7 +515,7 @@ class JOOQTableCreatorTest {
         var joinTableInfo = getColumnInfo("public", "person__friends");
         var joinTableForeignKeys = getForeignKeys("public", "person__friends");
 
-        assertEquals(3, personInfo.size()); // unchanged
+        assertEquals(4, personInfo.size()); // unchanged
         assertEquals(2, joinTableInfo.size());
         assertEquals("uuid", joinTableInfo.get("person_src_id"));
         assertEquals("uuid", joinTableInfo.get("person_tgt_id"));
