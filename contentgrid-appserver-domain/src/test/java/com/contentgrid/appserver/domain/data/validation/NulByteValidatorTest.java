@@ -8,10 +8,12 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class NulByteValidatorTest {
@@ -30,6 +32,12 @@ class NulByteValidatorTest {
             .type(Type.LONG)
             .build();
 
+    private static final SimpleAttribute TAGS_ATTR = SimpleAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .type(Type.TEXT_SET)
+            .build();
+
     private static final SimpleAttributePath PATH = new SimpleAttributePath(AttributeName.of("description"));
 
     @Test
@@ -41,6 +49,19 @@ class NulByteValidatorTest {
     @Test
     void textWithoutNulBytePasses() {
         assertDoesNotThrow(() -> validator.validate(PATH, TEXT_ATTR, new StringDataEntry("foobar")));
+    }
+
+    @Test
+    void textSetWithNulByteElementThrows() {
+        assertThrows(InvalidDataFormatException.class,
+                () -> validator.validate(PATH, TAGS_ATTR, new ListDataEntry(List.of(
+                        new StringDataEntry("foo"), new StringDataEntry("bar\u0000baz")))));
+    }
+
+    @Test
+    void textSetWithoutNulBytePasses() {
+        assertDoesNotThrow(() -> validator.validate(PATH, TAGS_ATTR, new ListDataEntry(List.of(
+                new StringDataEntry("foo"), new StringDataEntry("bar")))));
     }
 
     @Test
