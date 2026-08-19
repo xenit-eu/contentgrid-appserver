@@ -70,7 +70,8 @@ public class ThunkExpressionGenerator {
                     }
 
                     if (!parsedValues.isEmpty()) {
-                        expressions.add(createExpression(variableGenerator, application, entity, attributeSearchFilter, parsedValues));
+                        expressions.add(createExpression(variableGenerator, application, entity, attributeSearchFilter,
+                                attribute, parsedValues));
                     }
                 }
             }
@@ -119,6 +120,7 @@ public class ThunkExpressionGenerator {
             Application application,
             Entity entity,
             BaseAttributeSearchFilter filter,
+            SimpleAttribute attribute,
             List<Scalar<?>> values) {
 
         if (filter instanceof FullTextSearchAttributeSearchFilter ftsFilter) {
@@ -136,8 +138,13 @@ public class ThunkExpressionGenerator {
         if (filter instanceof AttributeSearchFilter attrFilter) {
             return switch (attrFilter.getOperation()) {
                 case EXACT -> {
-                    // EXACT can use in when there are multiple values
                     var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
+                    if (attribute.getType() == SimpleAttribute.Type.TEXT_SET) {
+                        // Any element matches any of the values: one overlap expression carries all values
+                        yield StringComparison.contentGridArraySearchMatch(attr,
+                                new SetValue(new LinkedHashSet<>(values)));
+                    }
+                    // EXACT can use in when there are multiple values
                     yield values.size() == 1
                             ? Comparison.areEqual(attr, values.getFirst())
                             : Comparison.in(attr, new SetValue(new LinkedHashSet<>(values)));

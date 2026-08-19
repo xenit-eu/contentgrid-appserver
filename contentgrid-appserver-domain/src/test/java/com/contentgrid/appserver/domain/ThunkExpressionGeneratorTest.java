@@ -31,6 +31,7 @@ import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridArraySearch;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
@@ -76,6 +77,12 @@ class ThunkExpressionGeneratorTest {
             .name(AttributeName.of("description"))
             .column(ColumnName.of("description"))
             .type(Type.TEXT)
+            .build();
+
+    private static final SimpleAttribute TAGS_ATTR = SimpleAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .type(Type.TEXT_SET)
             .build();
 
     private static final SimpleAttribute DATE_ATTR = SimpleAttribute.builder()
@@ -131,9 +138,15 @@ class ThunkExpressionGeneratorTest {
             .attribute(DOUBLE_ATTR)
             .attribute(BOOLEAN_ATTR)
             .attribute(TEXT_ATTR)
+            .attribute(TAGS_ATTR)
             .attribute(DATE_ATTR)
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("tags"))
+                    .attribute(TAGS_ATTR)
+                    .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("count"))
@@ -912,6 +925,35 @@ class ThunkExpressionGeneratorTest {
         assertTrue(setValue.getValue().contains(Scalar.of(1L)));
         assertTrue(setValue.getValue().contains(Scalar.of(2L)));
         assertTrue(setValue.getValue().contains(Scalar.of(3L)));
+    }
+
+    @Test
+    void textSetExactUsesArraySearch() {
+        Map<String, List<String>> params = Map.of("tags", List.of("urgent"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var arraySearch = assertInstanceOf(ContentGridArraySearch.class, result);
+        assertEquals(
+                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("tags")),
+                arraySearch.getLeftTerm()
+        );
+        var setValue = assertInstanceOf(SetValue.class, arraySearch.getRightTerm());
+        assertEquals(1, setValue.getValue().size());
+        assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
+    }
+
+    @Test
+    void textSetExactMultipleValuesUseOneArraySearch() {
+        Map<String, List<String>> params = Map.of("tags", List.of("urgent", "vip"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var arraySearch = assertInstanceOf(ContentGridArraySearch.class, result);
+        var setValue = assertInstanceOf(SetValue.class, arraySearch.getRightTerm());
+        assertEquals(2, setValue.getValue().size());
+        assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
+        assertTrue(setValue.getValue().contains(Scalar.of("vip")));
     }
 
     @Test

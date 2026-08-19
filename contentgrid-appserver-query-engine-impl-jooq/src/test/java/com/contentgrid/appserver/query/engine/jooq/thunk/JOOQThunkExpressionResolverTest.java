@@ -62,11 +62,14 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -111,6 +114,12 @@ class JOOQThunkExpressionResolverTest {
             .type(Type.TEXT)
             .build();
 
+    private static final SimpleAttribute PERSON_TAGS = SimpleAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .type(Type.TEXT_SET)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -119,6 +128,12 @@ class JOOQThunkExpressionResolverTest {
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .attribute(PERSON_COMMENT)
+            .attribute(PERSON_TAGS)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .attribute(PERSON_TAGS)
+                    .name(FilterName.of("tags"))
+                    .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -255,6 +270,12 @@ class JOOQThunkExpressionResolverTest {
             .flag(ETagFlag.INSTANCE)
             .build();
 
+    private static final SimpleAttribute INVOICE_LABELS = SimpleAttribute.builder()
+            .name(AttributeName.of("labels"))
+            .column(ColumnName.of("labels"))
+            .type(Type.TEXT_SET)
+            .build();
+
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
@@ -267,6 +288,7 @@ class JOOQThunkExpressionResolverTest {
             .attribute(INVOICE_PAY_BEFORE)
             .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
+            .attribute(INVOICE_LABELS)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .searchFilter(AttributeSearchFilter.builder()
@@ -469,11 +491,16 @@ class JOOQThunkExpressionResolverTest {
                         DSL.field(DSL.name("id"), UUID.class),
                         DSL.field(DSL.name("name"), String.class),
                         DSL.field(DSL.name("vat"), String.class),
-                        DSL.field(DSL.name("comment"), String.class))
-                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.")
-                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.")
-                .values(JOHN_ID, "john", "vat_3", "Just a random comment.")
-                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.")
+                        DSL.field(DSL.name("comment"), String.class),
+                        DSL.field(DSL.name("tags"), String[].class))
+                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.",
+                        new String[] {"urgent", "vip"})
+                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.",
+                        new String[] {"vip"})
+                .values(JOHN_ID, "john", "vat_3", "Just a random comment.",
+                        new String[] {})
+                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.",
+                        new String[] {"file"})
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("french-person")),
                         DSL.field(DSL.name("id"), UUID.class),
@@ -660,6 +687,56 @@ class JOOQThunkExpressionResolverTest {
                 .fetch()
                 .intoSet("name", String.class);
         assertEquals(Set.of("Thĳs"), results);
+    }
+
+    private Set<String> findPersonsWithArraySearch(String... values) {
+        var searchValues = Arrays.stream(values).<Scalar<?>>map(value -> Scalar.of(value))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
+                new SetValue(searchValues)
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = RESOLVER.resolveExpression(expression, context);
+        return dslContext.selectFrom(table)
+                .where(condition)
+                .fetch()
+                .intoSet("name", String.class);
+    }
+
+    @Test
+    void findWithArraySearch() {
+        assertEquals(Set.of("alice"), findPersonsWithArraySearch("urgent"));
+    }
+
+    @Test
+    void findWithArraySearchMultipleValues() {
+        // Multiple values are a disjunction: any element matches any value
+        assertEquals(Set.of("alice", "bob"), findPersonsWithArraySearch("urgent", "vip"));
+    }
+
+    @Test
+    void arraySearchIsCaseSensitive() {
+        // Exact search normalizes NFKC only: case and accents are significant
+        assertEquals(Set.of(), findPersonsWithArraySearch("URGENT"));
+    }
+
+    @Test
+    void findNormalizedWithArraySearch() {
+        // The ﬁ ligature NFKC-normalizes to fi, matching the stored element "file"
+        assertEquals(Set.of("Thĳs"), findPersonsWithArraySearch("ﬁle"));
+    }
+
+    @Test
+    void arraySearchOnScalarAttributeIsFalse() {
+        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                new SetValue(Set.of(Scalar.of("alice")))
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var condition = RESOLVER.resolveExpression(expression, context);
+        assertEquals(DSL.falseCondition(), condition);
     }
 
     @Test
@@ -1322,6 +1399,7 @@ class JOOQThunkExpressionResolverTest {
 
     private static final Map<String, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
             "STRING", SymbolicReference.parse("entity.number"),
+            "STRING_SET", SymbolicReference.parse("entity.labels"),
             "NUMBER", SymbolicReference.parse("entity.amount"),
             "BOOLEAN", SymbolicReference.parse("entity.is_paid"),
             "DATE", SymbolicReference.parse("entity.received"),
