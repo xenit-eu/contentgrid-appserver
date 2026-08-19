@@ -196,7 +196,8 @@ public class HalFormsTemplateGenerator {
                 var item = toHalFormsProperty(name, av.getItems());
                 var options = item.getOptions();
                 if (options == null) {
-                    options = HalFormsOptions.inline();
+                    // Mark the property as multi-valued, without suggesting an (empty) value list
+                    options = HalFormsOptions.inline().withMinItems(0L);
                 }
                 if (options instanceof AbstractHalFormsOptions<?> halFormsOptions) {
                     // Set max items to unlimited when we have an array

@@ -790,6 +790,10 @@ class EntityRestControllerTest {
                                             {
                                                 name: "gender",
                                                 prompt: "gender"
+                                            },
+                                            {
+                                                name: "tags",
+                                                prompt: "Tags"
                                             }
                                         ]
                                     }

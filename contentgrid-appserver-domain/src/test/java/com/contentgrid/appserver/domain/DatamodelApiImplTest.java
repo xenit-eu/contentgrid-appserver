@@ -678,7 +678,8 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_NAME.getName(), "test"),
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
-                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null)
+                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
+                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of())
                 );
 
                 assertThat(createData.getRelations()).isEmpty();
