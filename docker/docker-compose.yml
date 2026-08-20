@@ -7,5 +7,11 @@ services:
       - "--addr=0.0.0.0:8181"
       - "--log-format=json-pretty"
       - "--set=decision_logs.console=true"
+      - "--config-file=/config/opa-config.yaml"
+    volumes:
+      - ./opa/config.yaml:/config/opa-config.yaml:ro
+    extra_hosts:
+      # allows the bundle service url to reach the appserver management port on the host
+      - "host.docker.internal:host-gateway"
     ports:
       - "8181:8181"

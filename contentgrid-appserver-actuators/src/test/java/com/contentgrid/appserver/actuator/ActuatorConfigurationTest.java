@@ -4,7 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +33,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
         }
 )
 @AutoConfigureRestTestClient
-public class ActuatorConfigurationTest {
+class ActuatorConfigurationTest {
     @Autowired
     private RestTestClient rest;
 
@@ -64,6 +71,49 @@ public class ActuatorConfigurationTest {
                         "application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8")
                 .expectBody(String.class)
                 .value(body -> assertThat(body).contains("xfb0")); // templating works
+    }
+
+    @Test
+    void policyBundleEndpointIsPublicAndServesAnOpaBundle() throws IOException {
+        var body = rest.get().uri("http://localhost:" + managementPort + "/actuator/policybundle")
+                .exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectHeader().valueEquals("Content-Type", "application/gzip")
+                .expectBody(byte[].class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(body).isNotNull();
+
+        var entries = new LinkedHashMap<String, String>();
+        try (var archive = new TarArchiveInputStream(new GzipCompressorInputStream(new ByteArrayInputStream(body)))) {
+            TarArchiveEntry entry;
+            while ((entry = archive.getNextEntry()) != null) {
+                entries.put(entry.getName(), new String(archive.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+
+        assertThat(entries).containsOnlyKeys(".manifest", "policy.rego")
+                .containsEntry(".manifest", "{\"roots\": [\"xfb0e9318f3894300a64edba3532e6ac0\"]}");
+        assertThat(entries.get("policy.rego")).contains("package xfb0e9318f3894300a64edba3532e6ac0");
+    }
+
+    @Test
+    void policyBundleIsByteForByteReproducible() {
+        var first = fetchBundle();
+        var second = fetchBundle();
+        assertThat(first).isEqualTo(second)
+                .isNotNull()
+                .isNotEmpty();
+    }
+
+    private byte[] fetchBundle() {
+        return rest.get().uri("http://localhost:" + managementPort + "/actuator/policybundle")
+                .exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectBody(byte[].class)
+                .returnResult()
+                .getResponseBody();
     }
 
     @Test

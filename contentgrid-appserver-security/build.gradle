@@ -7,8 +7,6 @@ plugins {
 dependencies {
     api project(':contentgrid-appserver-domain-spi')
 
-    implementation project(':contentgrid-appserver-actuators')
-
     implementation 'com.contentgrid.thunx:thunx-pdp-opa'
 
     implementation 'org.springframework.boot:spring-boot'

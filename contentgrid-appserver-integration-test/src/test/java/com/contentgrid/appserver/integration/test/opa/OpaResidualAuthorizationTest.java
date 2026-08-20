@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.integration.test.opa;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -9,13 +10,21 @@ import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
 import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -53,6 +62,10 @@ class OpaResidualAuthorizationTest {
 
     private static final String JWT_ISSUER = "https://tenant.example.com";
 
+    private static final String POLICY_PATH = "rego/policy.rego";
+    private static final String POLICY_ID = "appserver";
+    private static final String POLICY_PACKAGE = "contentgrid.appserver";
+
     @Container
     static GenericContainer<?> opa = new GenericContainer<>("openpolicyagent/opa:1.15.2-static")
             .withCommand("run", "--server", "--log-format=json-pretty", "--set=decision_logs.console=true",
@@ -65,6 +78,29 @@ class OpaResidualAuthorizationTest {
     static void opaProperties(DynamicPropertyRegistry registry) {
         registry.add("opa.service.url",
                 () -> "http://%s:%d".formatted(opa.getHost(), opa.getMappedPort(8181)));
+    }
+
+    @BeforeAll
+    static void pushPolicyToOpa() throws Exception {
+        String policy;
+        try (var stream = Objects.requireNonNull(
+                OpaResidualAuthorizationTest.class.getClassLoader().getResourceAsStream(POLICY_PATH),
+                POLICY_PATH + " is missing from the test classpath")) {
+            policy = new String(stream.readAllBytes(), StandardCharsets.UTF_8)
+                    .replace("${system.policy.package}", POLICY_PACKAGE);
+        }
+
+        try (var client = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://%s:%d/v1/policies/%s"
+                            .formatted(opa.getHost(), opa.getMappedPort(8181), POLICY_ID)))
+                    .PUT(BodyPublishers.ofString(policy))
+                    .build();
+            var response = client.send(request, BodyHandlers.ofString());
+            assertThat(response.statusCode())
+                    .as("loading the policy into OPA should succeed, but got: %s", response.body())
+                    .isEqualTo(200);
+        }
     }
 
     @Autowired
@@ -158,10 +194,8 @@ class OpaResidualAuthorizationTest {
     static class NoOpJwtDecoderConfiguration {
 
         /**
-         * Only needs to exist so {@link com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration#opaSecurityFilterChain(HttpSecurity, AuthorizationManager)}'s
-         * {@code @ConditionalOnBean(JwtDecoder.class)} activates. Every request here authenticates via
-         * {@code jwtRequestProcessor()}, which injects the {@code Authentication} directly,
-         * so this decoder is never actually invoked.
+         * Only needs to exist so {@link com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration#securityFilterChain}'s
+         * {@code ObjectProvider<JwtDecoder.class>} is satisfied.
          */
         @Bean
         JwtDecoder jwtDecoder() {

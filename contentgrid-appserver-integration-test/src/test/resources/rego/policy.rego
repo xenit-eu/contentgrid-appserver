@@ -1,6 +1,5 @@
-# Blueprint-artifact policy picked up by OpaPolicyUploader (which loads rego/policy.rego from the
-# blueprint artifact root). Shared by OpaPolicyUploadTest (verifies upload happens verbatim) and
-# OpaResidualAuthorizationTest (exercises the residual-authorization behavior of the second rule below).
+# Policy used by OpaResidualAuthorizationTest, which loads it into its OPA container and exercises the
+# residual-authorization behavior of the second rule below.
 package ${system.policy.package}
 
 import rego.v1
