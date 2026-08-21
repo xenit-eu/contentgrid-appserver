@@ -28,6 +28,7 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-resttestclient'
     testImplementation 'org.springframework.hateoas:spring-hateoas'
     testImplementation 'org.springframework.security:spring-security-oauth2-jose'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
@@ -38,6 +39,7 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
     testImplementation 'com.adobe.testing:s3mock-testcontainers'
     testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.apache.commons:commons-compress'
     testRuntimeOnly 'org.flywaydb:flyway-database-postgresql'
 
 }

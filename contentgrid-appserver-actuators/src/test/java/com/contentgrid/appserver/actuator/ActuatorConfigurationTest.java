@@ -93,27 +93,7 @@ class ActuatorConfigurationTest {
             }
         }
 
-        assertThat(entries).containsOnlyKeys(".manifest", "policy.rego")
-                .containsEntry(".manifest", "{\"roots\": [\"xfb0e9318f3894300a64edba3532e6ac0\"]}");
-        assertThat(entries.get("policy.rego")).contains("package xfb0e9318f3894300a64edba3532e6ac0");
-    }
-
-    @Test
-    void policyBundleIsByteForByteReproducible() {
-        var first = fetchBundle();
-        var second = fetchBundle();
-        assertThat(first).isEqualTo(second)
-                .isNotNull()
-                .isNotEmpty();
-    }
-
-    private byte[] fetchBundle() {
-        return rest.get().uri("http://localhost:" + managementPort + "/actuator/policybundle")
-                .exchange()
-                .expectStatus().is2xxSuccessful()
-                .expectBody(byte[].class)
-                .returnResult()
-                .getResponseBody();
+        assertThat(entries).containsOnlyKeys(".manifest", "policy.rego");
     }
 
     @Test

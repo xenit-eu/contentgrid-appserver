@@ -18,6 +18,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAutoConfiguration;
@@ -47,7 +48,6 @@ import org.springframework.boot.web.server.context.ServerPortInfoApplicationCont
 import org.springframework.boot.web.server.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
-import org.springframework.lang.Nullable;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.reactive.server.StatusAssertions;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -70,6 +70,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
     static final String ACTUATOR_ENV = "/actuator/env";
 
     static final String ACTUATOR_POLICY = "/actuator/policy";
+    static final String ACTUATOR_POLICY_BUNDLE = "/actuator/policybundle";
+    static final String ACTUATOR_WEBHOOKS = "/actuator/webhooks";
 
     static class AutoConfigs {
 
@@ -145,6 +147,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 assertHttp.get(ACTUATOR_METRICS).isForbidden();
                 assertHttp.get(ACTUATOR_PROMETHEUS).isForbidden();
                 assertHttp.get(ACTUATOR_POLICY).isForbidden();
+                assertHttp.get(ACTUATOR_POLICY_BUNDLE).isForbidden();
+                assertHttp.get(ACTUATOR_WEBHOOKS).isForbidden();
 
                 // other endpoints fall through if not from loopback-address
                 assertHttp.get(ACTUATOR_ENV).isForbidden();
@@ -189,6 +193,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                         assertHttp.get(ACTUATOR_METRICS).isOk();
                         assertHttp.get(ACTUATOR_PROMETHEUS).isOk();
                         assertHttp.get(ACTUATOR_POLICY).isOk();
+                        assertHttp.get(ACTUATOR_POLICY_BUNDLE).isOk();
+                        assertHttp.get(ACTUATOR_WEBHOOKS).isOk();
 
                         // other endpoints fall through if not from loopback-address
                         assertHttp.get(ACTUATOR_ENV).isForbidden();
@@ -243,6 +249,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                 assertHttp.get(ACTUATOR_METRICS).isOk();
                 assertHttp.get(ACTUATOR_PROMETHEUS).isOk();
                 assertHttp.get(ACTUATOR_POLICY).isOk();
+                assertHttp.get(ACTUATOR_POLICY_BUNDLE).isOk();
+                assertHttp.get(ACTUATOR_WEBHOOKS).isOk();
                 assertHttp.get(ACTUATOR_ENV).isOk();
 
                 assertHttp.get(ACTUATOR_ROOT).isOk();
@@ -294,6 +302,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                                 assertThat(filterChain.matches(get(ACTUATOR_METRICS, servletContext))).isFalse();
                                 assertThat(filterChain.matches(get(ACTUATOR_PROMETHEUS, servletContext))).isFalse();
                                 assertThat(filterChain.matches(get(ACTUATOR_POLICY, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_POLICY_BUNDLE, servletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_WEBHOOKS, servletContext))).isFalse();
 
                                 // management context runs on a different port
                                 var mgmtServletContext = context.getBean(ManagementContextSupplier.class).get()
@@ -304,6 +314,8 @@ class ActuatorEndpointsWebSecurityAutoConfigurationTest {
                                 assertThat(filterChain.matches(get(ACTUATOR_METRICS, mgmtServletContext))).isTrue();
                                 assertThat(filterChain.matches(get(ACTUATOR_PROMETHEUS, mgmtServletContext))).isTrue();
                                 assertThat(filterChain.matches(get(ACTUATOR_POLICY, mgmtServletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_POLICY_BUNDLE, mgmtServletContext))).isFalse();
+                                assertThat(filterChain.matches(get(ACTUATOR_WEBHOOKS, mgmtServletContext))).isFalse();
                             });
                 });
     }

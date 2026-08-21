@@ -13,6 +13,7 @@ dependencies {
     implementation project(':contentgrid-appserver-domain-spi')
     implementation 'org.apache.commons:commons-compress'
     implementation ("com.contentgrid.common:contentgrid-common-spring-actuators:${contentgridCommonVersion}")
+    implementation 'org.springframework:spring-web'
     implementation 'org.springframework.security:spring-security-web'
     implementation 'org.springframework.security:spring-security-config'
     implementation 'jakarta.servlet:jakarta.servlet-api'
