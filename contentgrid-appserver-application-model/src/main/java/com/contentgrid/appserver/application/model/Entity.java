@@ -191,13 +191,14 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                     }
 
                     if (sortableField.getPropertyPath() instanceof SimpleAttributePath simpleAttributePath) {
-                        getAttributeByName(simpleAttributePath.getFirst()).orElseThrow(() ->
+                        var attribute = getAttributeByName(simpleAttributePath.getFirst()).orElseThrow(() ->
                                 new InvalidArgumentModelException(("Sorting across a relation is not implemented."
                                         + " SortableField %s must reference a single attribute on this entity")
                                         .formatted(sortableField.getName())));
+                        checkSortable(sortableField, attribute);
                     } else if (sortableField.getPropertyPath() instanceof CompositeAttributePath compositeAttributePath) {
                         // throws if invalid
-                        resolveAttributePath(compositeAttributePath);
+                        checkSortable(sortableField, resolveAttributePath(compositeAttributePath));
                     } else {
                         throw new InvalidArgumentModelException("SortableField %s references non-existent attribute %s"
                                 .formatted(sortableField.getName(), sortableField.getPropertyPath().getFirst()));
@@ -207,6 +208,14 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
         this.attributes.remove(this.primaryKey.getName());
 
         this.links.addAll(links);
+    }
+
+    private static void checkSortable(SortableField sortableField, Attribute attribute) {
+        if (attribute instanceof SimpleAttribute simpleAttribute && simpleAttribute.getType() == Type.TEXT_SET) {
+            throw new InvalidArgumentModelException(
+                    "SortableField %s references multi-value attribute %s, which cannot be sorted on"
+                            .formatted(sortableField.getName(), simpleAttribute.getName()));
+        }
     }
 
     /**

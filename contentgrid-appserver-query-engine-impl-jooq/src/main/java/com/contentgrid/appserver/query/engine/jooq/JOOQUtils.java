@@ -97,16 +97,25 @@ public class JOOQUtils {
     }
 
     private static DataType<?> resolveType(SimpleAttribute.Type type, boolean required) {
-        var dataType = switch (type) {
-            case UUID -> SQLDataType.UUID;
-            case TEXT -> SQLDataType.CLOB;
-            case LONG -> SQLDataType.BIGINT;
-            case DOUBLE -> SQLDataType.DECIMAL;
-            case BOOLEAN -> SQLDataType.BOOLEAN;
-            case DATE -> SQLDataType.LOCALDATE;
-            case DATETIME -> SQLDataType.INSTANT;
+        return switch (type) {
+            case UUID -> SQLDataType.UUID.nullable(!required);
+            case TEXT -> SQLDataType.CLOB.nullable(!required);
+            case LONG -> SQLDataType.BIGINT.nullable(!required);
+            case DOUBLE -> SQLDataType.DECIMAL.nullable(!required);
+            case BOOLEAN -> SQLDataType.BOOLEAN.nullable(!required);
+            case DATE -> SQLDataType.LOCALDATE.nullable(!required);
+            case DATETIME -> SQLDataType.INSTANT.nullable(!required);
+            case TEXT_SET -> textSetDataType();
         };
-        return dataType.nullable(!required);
+    }
+
+    /**
+     * A multi-value text column is always {@code NOT NULL DEFAULT '{}'}: only the empty array represents an
+     * empty set, independent of the required constraint (which is not supported for multi-value attributes).
+     */
+    private static DataType<String[]> textSetDataType() {
+        var arrayType = SQLDataType.CLOB.getArrayDataType();
+        return arrayType.nullable(false).defaultValue(DSL.inline(new String[0], arrayType));
     }
 
     @Allow.PlainSQL

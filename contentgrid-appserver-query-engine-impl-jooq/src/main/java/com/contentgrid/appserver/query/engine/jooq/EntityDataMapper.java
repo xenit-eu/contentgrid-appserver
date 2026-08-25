@@ -17,6 +17,7 @@ import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.Temporal;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import lombok.NonNull;
@@ -92,6 +93,13 @@ public class EntityDataMapper {
                     yield string;
                 }
                 throw new IllegalStateException("Value of attribute '%s' is not a string".formatted(attribute.getName()));
+            }
+            case TEXT_SET -> {
+                if (value instanceof String[] strings) {
+                    yield Arrays.stream(strings).toList();
+                }
+                throw new IllegalStateException(
+                        "Value of attribute '%s' is not a text array".formatted(attribute.getName()));
             }
             case LONG -> {
                 if (value instanceof Number number) {

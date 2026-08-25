@@ -477,6 +477,24 @@ class EntityTest {
     }
 
     @Test
+    void entity_sortableOnMultiValueAttribute() {
+        var tags = SimpleAttribute.builder().name(AttributeName.of("tags")).column(ColumnName.of("tags"))
+                .type(Type.TEXT_SET).build();
+        var sortableTags = SortableField.builder().name(SortableName.of("tags"))
+                .propertyPath(PropertyPath.toAttribute(tags.getName())).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .attribute(tags)
+                .searchFilter(FILTER1)
+                .sortableField(sortableTags);
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
     void entity_translations() {
         var entity = Entity.builder()
                 .name(EntityName.of("color"))

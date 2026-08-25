@@ -2,6 +2,7 @@ package com.contentgrid.appserver.application.model.attributes;
 
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
+import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
@@ -69,6 +70,7 @@ public class SimpleAttribute implements Attribute {
         DOUBLE,
         BOOLEAN,
         TEXT,
+        TEXT_SET,
         DATE,
         DATETIME,
         UUID;
@@ -90,6 +92,15 @@ public class SimpleAttribute implements Attribute {
         this.constraints = constraints;
         for (var flag : this.flags) {
             flag.checkSupported(this);
+        }
+        if (type == Type.TEXT_SET) {
+            for (var constraint : this.constraints) {
+                if (!(constraint instanceof Constraint.AllowedValuesConstraint)) {
+                    throw new InvalidConstraintException(
+                            "Constraint %s is not supported for attribute type %s"
+                                    .formatted(constraint.getClass().getSimpleName(), type));
+                }
+            }
         }
     }
 

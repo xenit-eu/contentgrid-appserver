@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum TechnicalDataType implements DataType {
     STRING,
+    STRING_SET,
     LONG,
     DECIMAL,
     BOOLEAN,
