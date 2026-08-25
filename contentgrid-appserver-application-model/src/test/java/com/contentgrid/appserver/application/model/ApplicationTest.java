@@ -414,7 +414,7 @@ class ApplicationTest {
 
     @ParameterizedTest
     @CsvSource({
-            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
+            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME", "TEXT_SET"
     })
     void application_prefixSearchFilterInvalidAttributeType(Type type) {
         var entity = Entity.builder()
@@ -445,10 +445,37 @@ class ApplicationTest {
         });
     }
 
+    @Test
+    void application_exactSearchFilterOnTextSet() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .type(Type.TEXT_SET)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.EXACT)
+                        .name(FilterName.of("tags"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
+    }
 
     @ParameterizedTest
     @CsvSource({
-            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
+            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME", "TEXT_SET"
     })
     void application_fullTextSearchFilterInvalidAttributeType(Type type) {
         var entity = Entity.builder()
@@ -506,7 +533,7 @@ class ApplicationTest {
     }
 
     static Stream<Arguments> application_orderedSearchFilterInvalidAttributeType() {
-        var types = Stream.of(Type.TEXT, Type.UUID, Type.BOOLEAN);
+        var types = Stream.of(Type.TEXT, Type.UUID, Type.BOOLEAN, Type.TEXT_SET);
         var operations = List.of(Operation.GREATER_THAN, Operation.GREATER_THAN_OR_EQUAL, Operation.LESS_THAN, Operation.LESS_THAN_OR_EQUAL);
         return types.flatMap(type -> operations.stream().map(operation -> Arguments.of(type, operation)));
     }

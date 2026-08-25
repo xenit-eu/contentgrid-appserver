@@ -57,7 +57,7 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
     }
 
     public enum Operation {
-        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME)),
+        EXACT(Set.of(Type.TEXT, Type.TEXT_SET, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME)),
         PREFIX(Set.of(Type.TEXT)),
         GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
         GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),

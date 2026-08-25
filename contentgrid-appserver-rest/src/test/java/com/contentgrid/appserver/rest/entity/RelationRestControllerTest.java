@@ -106,6 +106,7 @@ class RelationRestControllerTest {
                     case DATE -> LocalDate.now().toString();
                     case DATETIME -> Instant.now().toString();
                     case UUID, TEXT -> UUID.randomUUID().toString();
+                    case TEXT_SET -> throw new IllegalStateException("TEXT_SET cannot have a required constraint");
                 });
                 sa.getConstraint(AllowedValuesConstraint.class).ifPresent(allowedValues -> {
                     params.set(sa.getName().getValue(), allowedValues.getValues().getFirst());

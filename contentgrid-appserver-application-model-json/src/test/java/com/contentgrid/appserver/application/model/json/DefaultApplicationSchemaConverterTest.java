@@ -40,6 +40,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DefaultApplicationSchemaConverterTest {
 
@@ -253,6 +255,53 @@ class DefaultApplicationSchemaConverterTest {
         var converter = new DefaultApplicationSchemaConverter();
         assertThrows(SchemaValidationException.class, () -> converter.convert(
                 new ByteArrayInputStream(jsonWithUnknownFlag.getBytes(StandardCharsets.UTF_8))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"type\": \"required\"}",
+            "{\"type\": \"unique\"}",
+            "{\"type\": \"pattern\", \"regex\": \"[0-9]+\"}"
+    })
+    void testTextSetForbiddenConstraints(String constraint) {
+        var jsonWithForbiddenConstraint = """
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "HR application",
+                    "version": "1.0.0",
+                    "entities": [
+                        {
+                            "name": "Employee",
+                            "description": "An employee of the company",
+                            "table": "employees",
+                            "pathSegment": "employee",
+                            "linkName": "employee",
+                            "primaryKey":
+                                {
+                                    "name": "id",
+                                    "type": "simple",
+                                    "dataType": "uuid",
+                                    "columnName": "id",
+                                    "flags": ["readOnly"]
+                                },
+                            "attributes": [
+                                {
+                                    "name": "skills",
+                                    "type": "simple",
+                                    "dataType": "text_set",
+                                    "columnName": "skills",
+                                    "constraints": [%s]
+                                }
+                            ]
+                        }
+                    ]
+                }
+                """.formatted(constraint);
+
+        var converter = new DefaultApplicationSchemaConverter();
+        assertThrows(SchemaValidationException.class, () -> converter.convert(
+                new ByteArrayInputStream(jsonWithForbiddenConstraint.getBytes(StandardCharsets.UTF_8))),
+                "expected schema validation to reject text_set with constraint " + constraint);
     }
 
     @Test

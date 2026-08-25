@@ -23,6 +23,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidFlagException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -31,7 +32,10 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class AttributeTest {
 
@@ -72,6 +76,31 @@ class AttributeTest {
         assertTrue(attribute.hasConstraint(AllowedValuesConstraint.class));
         assertEquals(List.of("test", "demo"), attribute.getConstraint(AllowedValuesConstraint.class).orElseThrow().getValues());
         assertEquals(Set.of(), attribute.getFlags());
+    }
+
+    @Test
+    void textSetAttribute() {
+        var attribute = SimpleAttribute.builder().name(AttributeName.of("attribute")).column(ColumnName.of("column"))
+                .type(Type.TEXT_SET)
+                .constraint(Constraint.allowedValues(List.of("test", "demo"))).build();
+
+        assertEquals(AttributeName.of("attribute"), attribute.getName());
+        assertEquals(Type.TEXT_SET, attribute.getType());
+        assertTrue(attribute.hasConstraint(AllowedValuesConstraint.class));
+        assertFalse(attribute.hasConstraint(RequiredConstraint.class));
+        assertFalse(attribute.hasConstraint(UniqueConstraint.class));
+    }
+
+    static Stream<Constraint> textSet_invalidConstraints() {
+        return Stream.of(Constraint.required(), Constraint.unique(), Constraint.pattern("[0-9]+"));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void textSet_invalidConstraints(Constraint constraint) {
+        var builder = SimpleAttribute.builder().name(AttributeName.of("attribute")).column(ColumnName.of("column"))
+                .type(Type.TEXT_SET).constraint(constraint);
+        assertThrows(InvalidConstraintException.class, builder::build);
     }
 
     @Test

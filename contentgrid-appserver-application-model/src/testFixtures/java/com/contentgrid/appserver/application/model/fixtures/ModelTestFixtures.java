@@ -96,6 +96,13 @@ public class ModelTestFixtures {
             .constraint(Constraint.allowedValues(List.of("female", "male")))
             .build();
 
+    public static final SimpleAttribute PERSON_TAGS = SimpleAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .translationsBy(Locale.ENGLISH, t -> t.withName("Tags"))
+            .type(Type.TEXT_SET)
+            .build();
+
     public static final EntityLink PERSON_VAT_LINK = EntityLink.builder()
             .identity(new NamedLink(URI.create("https://vat.example/rel/lookup"), "vat"))
             .profile(URI.create("https://vat.example/profile"))

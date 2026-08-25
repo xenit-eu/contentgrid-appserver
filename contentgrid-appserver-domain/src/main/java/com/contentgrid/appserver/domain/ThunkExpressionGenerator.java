@@ -101,7 +101,8 @@ public class ThunkExpressionGenerator {
             case LONG -> Scalar.of(Long.parseLong(value));
             case DOUBLE -> Scalar.of(new BigDecimal(value));
             case BOOLEAN -> Scalar.of(Boolean.parseBoolean(value));
-            case TEXT -> {
+            // A TEXT_SET filter value is a single string: it is compared against each element
+            case TEXT, TEXT_SET -> {
                 if (value.indexOf('\u0000') >= 0) {
                     throw new IllegalArgumentException(NulByteValidator.ERROR_MESSAGE);
                 }
