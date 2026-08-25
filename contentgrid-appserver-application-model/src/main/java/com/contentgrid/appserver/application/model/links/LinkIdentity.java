@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.links;
 
 import java.net.URI;
 import lombok.NonNull;
-import lombok.ToString;
 
 public sealed interface LinkIdentity {
     URI rel();

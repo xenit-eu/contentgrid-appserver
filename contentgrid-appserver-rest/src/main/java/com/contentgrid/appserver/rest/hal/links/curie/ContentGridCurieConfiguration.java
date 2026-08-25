@@ -3,14 +3,11 @@ package com.contentgrid.appserver.rest.hal.links.curie;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.mediatype.MediaTypeConfigurationCustomizer;
 import org.springframework.hateoas.mediatype.hal.CurieProvider;
 import org.springframework.hateoas.mediatype.hal.HalConfiguration;
 import org.springframework.hateoas.mediatype.hal.HalConfiguration.RenderSingleLinks;
 import org.springframework.hateoas.mediatype.hal.HalLinkRelation;
-import org.springframework.hateoas.server.LinkRelationProvider;
-import org.springframework.hateoas.server.RepresentationModelProcessor;
 
 /**
  * Copied from contentgrid-spring.

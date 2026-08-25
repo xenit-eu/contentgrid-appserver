@@ -2,7 +2,6 @@ package com.contentgrid.appserver.domain.values;
 
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.RelationName;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import lombok.AccessLevel;
 import lombok.NonNull;
