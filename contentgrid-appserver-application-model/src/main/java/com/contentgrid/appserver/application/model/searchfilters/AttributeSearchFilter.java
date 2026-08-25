@@ -51,12 +51,7 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
                 .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
     }
 
-    /**
-     * Determines if this search filter supports the given attribute.
-     * <p>
-     * @param attribute the attribute to check support for
-     * @return true if the attribute is supported, false otherwise
-     */
+    @Override
     public boolean supports(SimpleAttribute attribute) {
         return operation.supports(attribute);
     }

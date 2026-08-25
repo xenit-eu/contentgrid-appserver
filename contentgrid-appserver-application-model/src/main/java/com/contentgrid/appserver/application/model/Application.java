@@ -24,6 +24,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -374,7 +375,7 @@ public class Application {
 
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
+            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
                     var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
                     if(!attributeSearchFilter.supports(resolvedAttribute)) {
                         throw new InvalidSearchFilterException(

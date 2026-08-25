@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.TranslatableImpl;
 import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSupport;
@@ -37,6 +38,11 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
         super(name, translations, attributePath, flags);
 
         this.locale = locale;
+    }
+
+    @Override
+    public boolean supports(SimpleAttribute attribute) {
+        return attribute.getType() == Type.TEXT;
     }
 
     public static FullTextSearchAttributeSearchFilterBuilder builder() {

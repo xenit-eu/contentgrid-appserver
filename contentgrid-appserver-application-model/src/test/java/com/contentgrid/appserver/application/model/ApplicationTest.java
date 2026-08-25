@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,6 +33,7 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
@@ -50,6 +52,7 @@ import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -440,6 +443,66 @@ class ApplicationTest {
                     .entity(entity)
                     .build();
         });
+    }
+
+
+    @ParameterizedTest
+    @CsvSource({
+            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
+    })
+    void application_fullTextSearchFilterInvalidAttributeType(Type type) {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(type)
+                        .build()
+                )
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("filter~fts"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .locale(Locale.ENGLISH)
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_fullTextSearchFilterOnText() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("filter~fts"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .locale(Locale.ENGLISH)
+                        .build())
+                .build();
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
     }
 
     static Stream<Arguments> application_orderedSearchFilterInvalidAttributeType() {
