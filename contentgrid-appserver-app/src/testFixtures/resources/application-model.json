@@ -86,7 +86,7 @@
             }
           ],
           "title": "Tags",
-          "type": "exact"
+          "type": "contains"
         },
         {
           "name": "last_name",

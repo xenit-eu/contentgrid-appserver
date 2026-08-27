@@ -444,6 +444,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var operation = switch (type) {
             case "prefix" -> Operation.PREFIX;
             case "exact" -> Operation.EXACT;
+            case "contains" -> Operation.CONTAINS;
             case "greater" -> Operation.GREATER_THAN;
             case "greater-or-equal" -> Operation.GREATER_THAN_OR_EQUAL;
             case "less" -> Operation.LESS_THAN;
@@ -771,6 +772,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 case AttributeSearchFilter attributeSearchFilter ->
                     type = switch (attributeSearchFilter.getOperation()) {
                         case EXACT -> "exact";
+                        case CONTAINS -> "contains";
                         case PREFIX -> "prefix";
                         case GREATER_THAN -> "greater";
                         case GREATER_THAN_OR_EQUAL -> "greater-or-equal";

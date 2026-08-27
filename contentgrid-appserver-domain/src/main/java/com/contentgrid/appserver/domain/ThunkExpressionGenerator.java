@@ -153,15 +153,16 @@ public class ThunkExpressionGenerator {
             return switch (attrFilter.getOperation()) {
                 case EXACT -> {
                     var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
-                    if (attribute instanceof MultivalueAttribute) {
-                        // Any element matches any of the values: one overlap expression carries all values
-                        yield StringComparison.contentGridArraySearchMatch(attr,
-                                new SetValue(new LinkedHashSet<>(values)));
-                    }
                     // EXACT can use in when there are multiple values
                     yield values.size() == 1
                             ? Comparison.areEqual(attr, values.getFirst())
                             : Comparison.in(attr, new SetValue(new LinkedHashSet<>(values)));
+                }
+                case CONTAINS -> {
+                    var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
+                    // Any element matches any of the values: one overlap expression carries all values
+                    yield StringComparison.contentGridArraySearchMatch(attr,
+                            new SetValue(new LinkedHashSet<>(values)));
                 }
                 case PREFIX -> {
                     // PREFIX keeps a disjunction; each term gets its own path so to-many wildcards stay independent

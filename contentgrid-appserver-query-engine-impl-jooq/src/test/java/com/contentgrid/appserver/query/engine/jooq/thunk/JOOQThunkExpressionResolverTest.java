@@ -131,7 +131,7 @@ class JOOQThunkExpressionResolverTest {
             .attribute(PERSON_COMMENT)
             .attribute(PERSON_TAGS)
             .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(Operation.CONTAINS)
                     .attribute(PERSON_TAGS)
                     .name(FilterName.of("tags"))
                     .build())

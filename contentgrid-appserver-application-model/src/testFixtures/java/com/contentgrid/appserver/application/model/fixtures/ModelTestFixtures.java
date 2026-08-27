@@ -148,7 +148,7 @@ public class ModelTestFixtures {
                     .translationsBy(Locale.of("nl"), t -> t.withName("Naam begint met"))
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(Operation.CONTAINS)
                     .attribute(PERSON_TAGS)
                     .name(FilterName.of("tags"))
                     .build())

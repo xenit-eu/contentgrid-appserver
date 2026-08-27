@@ -47,6 +47,46 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class DefaultApplicationSchemaConverterTest {
 
+    private static final String MULTIVALUE_APPLICATION_JSON = """
+            {
+                "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                "applicationName": "HR application",
+                "version": "1.0.0",
+                "entities": [
+                    {
+                        "name": "Employee",
+                        "table": "employees",
+                        "pathSegment": "employee",
+                        "linkName": "employee",
+                        "primaryKey":
+                            {
+                                "name": "id",
+                                "type": "simple",
+                                "dataType": "uuid",
+                                "columnName": "id",
+                                "flags": ["readOnly"]
+                            },
+                        "attributes": [
+                            {
+                                "name": "skills",
+                                "type": "simple",
+                                "dataType": "text_set",
+                                "columnName": "skills",
+                                "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
+                            }
+                        ],
+                        "searchFilters": [
+                            {
+                                "name": "skills",
+                                "attributePath": [{"name": "skills", "type": "attr"}],
+                                "type": "contains"
+                            }
+                        ]
+                    }
+                ]
+            }
+            """;
+
     @Test
     void testConvertSampleApplicationJson() throws Exception {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-application.json")) {
@@ -304,39 +344,6 @@ class DefaultApplicationSchemaConverterTest {
                 "expected the model to reject text_set with constraint " + constraint);
     }
 
-    private static final String MULTIVALUE_APPLICATION_JSON = """
-            {
-                "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
-                "applicationName": "HR application",
-                "version": "1.0.0",
-                "entities": [
-                    {
-                        "name": "Employee",
-                        "table": "employees",
-                        "pathSegment": "employee",
-                        "linkName": "employee",
-                        "primaryKey":
-                            {
-                                "name": "id",
-                                "type": "simple",
-                                "dataType": "uuid",
-                                "columnName": "id",
-                                "flags": ["readOnly"]
-                            },
-                        "attributes": [
-                            {
-                                "name": "skills",
-                                "type": "simple",
-                                "dataType": "text_set",
-                                "columnName": "skills",
-                                "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
-                            }
-                        ]
-                    }
-                ]
-            }
-            """;
-
     @Test
     void testMultivalueAttributeDeserialization() throws Exception {
         var app = new DefaultApplicationSchemaConverter().convert(
@@ -388,6 +395,13 @@ class DefaultApplicationSchemaConverterTest {
                                     "dataType": "text_set",
                                     "columnName": "skills",
                                     "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
+                                }
+                            ],
+                            "searchFilters": [
+                                {
+                                    "name": "skills",
+                                    "attributePath": [{"name": "skills", "type": "attr"}],
+                                    "type": "contains"
                                 }
                             ]
                         }

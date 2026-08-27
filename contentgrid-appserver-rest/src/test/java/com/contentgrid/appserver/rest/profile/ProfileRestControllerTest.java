@@ -848,7 +848,7 @@ class ProfileRestControllerTest {
                                         _embedded: {
                                             "blueprint:search-param": [{
                                                 name: "tags",
-                                                type: "exact-match"
+                                                type: "contains"
                                             }]
                                         }
                                     }

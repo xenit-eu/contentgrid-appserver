@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -60,6 +61,7 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
 
     public enum Operation {
         EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME)),
+        CONTAINS(Set.of()),
         PREFIX(Set.of(Type.TEXT)),
         GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
         GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
@@ -76,10 +78,9 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
         public boolean supports(Attribute attribute) {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute -> supportedTypes.contains(simpleAttribute.getType());
-                // Exact search matches any element of a multi-value attribute against the value
                 case MultivalueAttribute multivalueAttribute ->
-                        this == EXACT && multivalueAttribute.getItemType() == Type.TEXT;
-                default -> false;
+                        this == CONTAINS && multivalueAttribute.getItemType() == Type.TEXT;
+                case CompositeAttribute ignored -> false;
             };
         }
     }

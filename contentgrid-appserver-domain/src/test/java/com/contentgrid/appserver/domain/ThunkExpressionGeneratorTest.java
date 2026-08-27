@@ -145,7 +145,7 @@ class ThunkExpressionGeneratorTest {
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
             .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
+                    .operation(Operation.CONTAINS)
                     .name(FilterName.of("keywords"))
                     .attribute(KEYWORDS_ATTR)
                     .build())
@@ -930,7 +930,7 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void multivalueExactUsesArraySearch() {
+    void multivalueContainsUsesArraySearch() {
         Map<String, List<String>> params = Map.of("keywords", List.of("urgent"));
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
@@ -946,7 +946,7 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void multivalueExactMultipleValuesUseOneArraySearch() {
+    void multivalueContainsMultipleValuesUseOneArraySearch() {
         Map<String, List<String>> params = Map.of("keywords", List.of("urgent", "vip"));
 
         ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
@@ -959,7 +959,7 @@ class ThunkExpressionGeneratorTest {
     }
 
     @Test
-    void multivalueExactRejectsNulByte() {
+    void multivalueContainsRejectsNulByte() {
         Map<String, List<String>> params = Map.of("keywords", List.of("a\u0000b"));
 
         var exception = assertThrows(InvalidFilterParameterException.class,
