@@ -7,7 +7,6 @@ import com.contentgrid.appserver.actuator.policy.PolicyBundleEtagFilter;
 import org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration;
 import org.springframework.boot.actuate.endpoint.EndpointId;
 import org.springframework.boot.actuate.endpoint.web.PathMappedEndpoints;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
@@ -33,7 +32,6 @@ public class PolicyBundleEtagManagementContextConfiguration {
     private static final int FILTER_ORDER = DEFAULT_FILTER_ORDER + 10;
 
     @Bean
-    @ConditionalOnBean(PolicyBundleActuator.class)
     FilterRegistrationBean<PolicyBundleEtagFilter> policyBundleEtagFilterRegistration(
             PathMappedEndpoints pathMappedEndpoints) {
         var registration = new FilterRegistrationBean<>(new PolicyBundleEtagFilter());
