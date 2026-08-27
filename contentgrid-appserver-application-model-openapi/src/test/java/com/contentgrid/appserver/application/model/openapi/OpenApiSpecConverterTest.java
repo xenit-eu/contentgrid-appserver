@@ -334,7 +334,7 @@ class OpenApiSpecConverterTest {
                                             .setFormat(Format.URI)
                                             .setExamples(
                                                     List.of("https://contentgrid-app.example/relation-target-item-path/00000000-0000-0000-0000-000000000000"))
-                            ));
+                            ).setUniqueItems(true));
                         });
                     });
                 });

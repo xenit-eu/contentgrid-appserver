@@ -361,7 +361,7 @@ public class OpenApiSpecConverter {
                         BodyValue relationValue = new RelationBodyValue(relation.getTargetEndPoint()
                                 .getEntity());
                         if(isCollection) {
-                            relationValue = ArrayBodyValue.builder().items(relationValue).build();
+                            relationValue = ArrayBodyValue.builder().items(relationValue).uniqueItems(true).build();
                             body.setDescription("Newline separated list of %s URIs".formatted(relation.getTargetEndPoint().getEntity().getValue()));
                         } else {
                             body.setDescription("One %s URI".formatted(relation.getTargetEndPoint().getEntity().getValue()));
