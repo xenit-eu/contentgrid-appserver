@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain.data.validation;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -37,9 +38,20 @@ public class AttributeValidationDataMapper extends AbstractDescendingAttributeMa
     @Override
     protected Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData)
             throws InvalidDataException {
+        return validateAttribute(path, simpleAttribute, inputData);
+    }
+
+    @Override
+    protected Optional<DataEntry> mapMultivalueAttribute(AttributePath path, MultivalueAttribute multivalueAttribute,
+            DataEntry inputData) throws InvalidDataException {
+        return validateAttribute(path, multivalueAttribute, inputData);
+    }
+
+    private Optional<DataEntry> validateAttribute(AttributePath path, Attribute attribute, DataEntry inputData)
+            throws InvalidDataException {
         var collector = new ValidationExceptionCollector<>(InvalidDataException.class);
         for (var validator : validators) {
-            collector.use(() -> validator.validate(path, simpleAttribute, inputData));
+            collector.use(() -> validator.validate(path, attribute, inputData));
         }
         collector.rethrow();
         return Optional.of(inputData);

@@ -54,6 +54,9 @@ public class CompositeAttributeImpl implements CompositeAttribute {
             if(attribute instanceof ContentAttribute) {
                 throw new InvalidAttributeTypeException("Composite attribute '%s' can not contain content attributes".formatted(name));
             }
+            if(attribute instanceof MultivalueAttribute) {
+                throw new InvalidAttributeTypeException("Composite attribute '%s' can not contain multi-value attributes".formatted(name));
+            }
             if (this.attributes.put(attribute.getName(), attribute) != null) {
                 throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
             }

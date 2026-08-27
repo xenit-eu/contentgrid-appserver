@@ -2,7 +2,9 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -53,9 +55,13 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
         try {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute when simpleAttribute.getType() == SimpleAttribute.Type.TEXT_SET ->
-                        mapMultiValueAttribute(simpleAttribute, inputData);
+                        mapMultiValueAttribute(simpleAttribute.getName(), DataType.of(simpleAttribute.getType()),
+                                inputData);
                 case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData)
                         .map(entry -> new SimpleAttributeData<>(attribute.getName(), entry.getValue()));
+                case MultivalueAttribute multivalueAttribute ->
+                        mapMultiValueAttribute(multivalueAttribute.getName(), DataType.of(multivalueAttribute),
+                                inputData);
                 case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
             };
         } catch (InvalidDataException e) {
@@ -99,11 +105,10 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
         throw new InvalidDataTypeException(DataType.of(expectedType), DataType.of(inputData));
     }
 
-    private Optional<AttributeData> mapMultiValueAttribute(SimpleAttribute attribute, DataEntry inputData)
-            throws InvalidDataTypeException {
+    private Optional<AttributeData> mapMultiValueAttribute(AttributeName attributeName, DataType attributeType,
+            DataEntry inputData) throws InvalidDataTypeException {
         if(inputData instanceof NullDataEntry) {
-            // null canonicalizes to the empty set: the column never holds null
-            return Optional.of(new SimpleAttributeData<>(attribute.getName(), List.<String>of()));
+            return Optional.of(new SimpleAttributeData<>(attributeName, List.<String>of()));
         }
         if(inputData instanceof ListDataEntry listDataEntry) {
             var values = new ArrayList<String>(listDataEntry.getItems().size());
@@ -113,9 +118,9 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
                 }
                 values.add(stringDataEntry.getValue());
             }
-            return Optional.of(new SimpleAttributeData<>(attribute.getName(), List.copyOf(values)));
+            return Optional.of(new SimpleAttributeData<>(attributeName, List.copyOf(values)));
         }
-        throw new InvalidDataTypeException(DataType.of(attribute.getType()), DataType.of(inputData));
+        throw new InvalidDataTypeException(attributeType, DataType.of(inputData));
     }
 
     private Class<ScalarDataEntry> getTypeForAttribute(@NonNull SimpleAttribute.Type type) {

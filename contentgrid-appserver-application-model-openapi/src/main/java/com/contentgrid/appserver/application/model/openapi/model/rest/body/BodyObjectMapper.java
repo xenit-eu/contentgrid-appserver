@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
@@ -289,6 +290,20 @@ public final class BodyObjectMapper {
                 }
                 yield simpleValue;
             }
+            case MultivalueAttribute ma ->
+                    // A multi-value attribute is a set of elements: the element type carries the
+                    // constraints, the array itself is always present and never null
+                    ArrayBodyValue.builder()
+                            .sourceType(sourceType)
+                            .items(SimpleBodyValue.builder()
+                                    .sourceType(sourceType)
+                                    .type(ma.getItemType())
+                                    .nullable(false)
+                                    .constraints(ma.getConstraints())
+                                    .build())
+                            .uniqueItems(true)
+                            .nullable(false)
+                            .build();
             case ContentAttribute ca -> {
                 if (context.mediaType().canTransportContent()) {
                     // For multipart forms, use a special type for content upload
