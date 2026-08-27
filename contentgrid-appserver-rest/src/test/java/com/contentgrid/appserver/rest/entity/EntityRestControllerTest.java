@@ -41,8 +41,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.HashMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -489,6 +489,18 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.name").value("Bob"))
                     .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
 
+            // A new value on PATCH replaces the whole set
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"tags": ["billing"]}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("billing")));
+
             // An explicit null on PATCH clears the set
             mockMvc.perform(patch(location)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -499,6 +511,21 @@ class EntityRestControllerTest {
 
             mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testCreateEntityWithExplicitEmptyTextSetList() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-9");
+            person.put("tags", List.of());
+
+            mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.tags").isArray())
                     .andExpect(jsonPath("$.tags").isEmpty());
         }

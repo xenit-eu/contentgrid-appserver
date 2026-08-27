@@ -706,27 +706,23 @@ class JOOQThunkExpressionResolverTest {
                 .intoSet("name", String.class);
     }
 
-    @Test
-    void findWithArraySearch() {
-        assertEquals(Set.of("alice"), findPersonsWithArraySearch("urgent"));
+    static Stream<Arguments> findWithArraySearch() {
+        return Stream.of(
+                Arguments.argumentSet("any element matches the value",
+                        Set.of("alice"), new String[] {"urgent"}),
+                Arguments.argumentSet("multiple values are a disjunction: any element matches any value",
+                        Set.of("alice", "bob"), new String[] {"urgent", "vip"}),
+                Arguments.argumentSet("search normalizes NFKC only: case and accents are significant",
+                        Set.of(), new String[] {"URGENT"}),
+                Arguments.argumentSet("the ﬁ ligature NFKC-normalizes to fi, matching the stored element 'file'",
+                        Set.of("Thĳs"), new String[] {"ﬁle"})
+        );
     }
 
-    @Test
-    void findWithArraySearchMultipleValues() {
-        // Multiple values are a disjunction: any element matches any value
-        assertEquals(Set.of("alice", "bob"), findPersonsWithArraySearch("urgent", "vip"));
-    }
-
-    @Test
-    void arraySearchIsCaseSensitive() {
-        // Exact search normalizes NFKC only: case and accents are significant
-        assertEquals(Set.of(), findPersonsWithArraySearch("URGENT"));
-    }
-
-    @Test
-    void findNormalizedWithArraySearch() {
-        // The ﬁ ligature NFKC-normalizes to fi, matching the stored element "file"
-        assertEquals(Set.of("Thĳs"), findPersonsWithArraySearch("ﬁle"));
+    @ParameterizedTest
+    @MethodSource
+    void findWithArraySearch(Set<String> expectedNames, String[] searchValues) {
+        assertEquals(expectedNames, findPersonsWithArraySearch(searchValues));
     }
 
     @Test
