@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
@@ -56,6 +57,9 @@ public class JOOQTableCreator implements TableCreator {
                     result = result.constraint(DSL.unique(simpleAttribute.getColumn().getValue()));
                 }
                 return result;
+            }
+            case MultivalueAttribute multivalueAttribute -> {
+                return step.column(JOOQUtils.resolveField(multivalueAttribute));
             }
             case CompositeAttribute compositeAttribute -> {
                 for (var nestedAttribute : compositeAttribute.getAttributes()) {

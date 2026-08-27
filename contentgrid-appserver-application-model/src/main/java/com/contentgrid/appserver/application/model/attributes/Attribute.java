@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Value;
 import lombok.With;
 
-public sealed interface Attribute extends Translatable<AttributeTranslations> permits CompositeAttribute, SimpleAttribute {
+public sealed interface Attribute extends Translatable<AttributeTranslations> permits CompositeAttribute, MultivalueAttribute, SimpleAttribute {
 
     interface AttributeTranslations {
         String getName();

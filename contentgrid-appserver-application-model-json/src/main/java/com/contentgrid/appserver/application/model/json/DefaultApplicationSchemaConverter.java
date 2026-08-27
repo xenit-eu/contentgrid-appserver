@@ -636,6 +636,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private Attribute toJsonAttribute(com.contentgrid.appserver.application.model.attributes.Attribute attr) {
         var jsonAttr = switch (attr) {
             case com.contentgrid.appserver.application.model.attributes.SimpleAttribute sa -> toJsonSimpleAttribute(sa);
+            case com.contentgrid.appserver.application.model.attributes.MultivalueAttribute ma ->
+                    toJsonMultivalueAttribute(ma);
             case CompositeAttributeImpl ca -> toJsonCompositeAttribute(ca);
             case com.contentgrid.appserver.application.model.attributes.ContentAttribute ca ->
                     toJsonContentAttribute(ca);
@@ -654,6 +656,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var jsonAttr = new SimpleAttribute();
         jsonAttr.setColumnName(attr.getColumn().getValue());
         jsonAttr.setDataType(attr.getType().name().toLowerCase());
+        jsonAttr.setFlags(attr.getFlags().stream().map(this::toJsonAttribute).toList());
+        jsonAttr.setConstraints(attr.getConstraints().stream().map(this::toJsonConstraint).toList());
+        return jsonAttr;
+    }
+
+    private SimpleAttribute toJsonMultivalueAttribute(
+            com.contentgrid.appserver.application.model.attributes.MultivalueAttribute attr) {
+        var jsonAttr = new SimpleAttribute();
+        jsonAttr.setColumnName(attr.getColumn().getValue());
+        jsonAttr.setDataType(attr.getItemType().name().toLowerCase() + "_set");
         jsonAttr.setFlags(attr.getFlags().stream().map(this::toJsonAttribute).toList());
         jsonAttr.setConstraints(attr.getConstraints().stream().map(this::toJsonConstraint).toList());
         return jsonAttr;

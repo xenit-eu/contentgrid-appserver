@@ -3,7 +3,9 @@ package com.contentgrid.appserver.domain.data.mapper;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -55,6 +57,8 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         }
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
+            case MultivalueAttribute multivalueAttribute ->
+                    mapMultiValueAttribute(multivalueAttribute.getName(), DataType.of(multivalueAttribute), inputData);
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, inputData);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
         };
@@ -83,7 +87,8 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             case DOUBLE -> mapScalarAttribute(simpleAttribute, DecimalDataEntry.class, inputData);
             case BOOLEAN -> mapScalarAttribute(simpleAttribute, BooleanDataEntry.class, inputData);
             case TEXT, UUID -> mapScalarAttribute(simpleAttribute, StringDataEntry.class, inputData);
-            case TEXT_SET -> mapMultiValueAttribute(simpleAttribute, inputData);
+            case TEXT_SET -> mapMultiValueAttribute(simpleAttribute.getName(),
+                    DataType.of(simpleAttribute.getType()), inputData);
             case DATE -> mapScalarAttribute(simpleAttribute, LocalDateDataEntry.class, inputData);
             case DATETIME -> mapScalarAttribute(simpleAttribute, InstantDataEntry.class, inputData);
         };
@@ -99,15 +104,14 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         }
     }
 
-    private Optional<DataEntry> mapMultiValueAttribute(SimpleAttribute simpleAttribute,
+    private Optional<DataEntry> mapMultiValueAttribute(AttributeName attributeName, DataType attributeType,
             RequestInputData inputData) throws InvalidPropertyDataException {
-        var attributeName = simpleAttribute.getName();
         try {
-            var listResult = getMultiValueList(simpleAttribute, inputData);
+            var listResult = getMultiValueList(attributeName, attributeType, inputData);
             return switch (listResult) {
-                case DataResult<List<? extends DataEntry>> v -> {
+                case DataResult<List<? extends DataEntry>> data -> {
                     var builder = ListDataEntry.builder();
-                    for (var item : v.get()) {
+                    for (var item : data.get()) {
                         if (!(item instanceof StringDataEntry stringDataEntry)) {
                             // A set of strings has no null (or non-string) members
                             throw new InvalidDataTypeException(TechnicalDataType.STRING, DataType.of(item));
@@ -116,22 +120,21 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                     }
                     yield Optional.of(builder.build());
                 }
-                case MissingResult<List<? extends DataEntry>> v -> Optional.of(MissingDataEntry.INSTANCE);
-                case NullResult<List<? extends DataEntry>> v -> Optional.of(NullDataEntry.INSTANCE);
+                case MissingResult<List<? extends DataEntry>> ignored -> Optional.of(MissingDataEntry.INSTANCE);
+                case NullResult<List<? extends DataEntry>> ignored -> Optional.of(NullDataEntry.INSTANCE);
             };
         } catch (InvalidDataException e) {
             throw e.withinProperty(attributeName);
         }
     }
 
-    private Result<List<? extends DataEntry>> getMultiValueList(SimpleAttribute simpleAttribute,
+    private Result<List<? extends DataEntry>> getMultiValueList(AttributeName attributeName, DataType attributeType,
             RequestInputData inputData) throws InvalidDataException {
         try {
-            return inputData.getList(simpleAttribute.getName().getValue(), StringDataEntry.class);
+            return inputData.getList(attributeName.getValue(), StringDataEntry.class);
         } catch (InvalidDataException e) {
             if (e instanceof ExceptionWithExpectedType<?> withExpectedType) {
-                // The value as a whole has the wrong shape; report the attribute type instead of a generic list
-                throw withExpectedType.withSpecializedExpectedType(DataType.of(simpleAttribute.getType()));
+                throw withExpectedType.withSpecializedExpectedType(attributeType);
             }
             throw e;
         }

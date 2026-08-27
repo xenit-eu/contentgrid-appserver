@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
@@ -28,6 +29,8 @@ import org.jooq.impl.SQLDataType;
 @UtilityClass
 public class JOOQUtils {
 
+    private static final DataType<String[]> TEXT_ARRAY = SQLDataType.CLOB.getArrayDataType();
+
     public static Table<?> resolveTable(Entity entity) {
         return resolveTable(entity.getTable());
     }
@@ -50,6 +53,14 @@ public class JOOQUtils {
 
     public static Field<?> resolveField(SimpleAttribute attribute) {
         return resolveField(attribute.getColumn(), attribute.getType(), attribute.hasConstraint(RequiredConstraint.class));
+    }
+
+    public static Field<?> resolveField(MultivalueAttribute attribute) {
+        return DSL.field(DSL.name(attribute.getColumn().getValue()), textSetDataType());
+    }
+
+    public static Field<?> resolveField(TableName alias, MultivalueAttribute attribute) {
+        return DSL.field(DSL.name(alias.getValue(), attribute.getColumn().getValue()), textSetDataType());
     }
 
     public static Field<?> resolveField(ColumnName column, SimpleAttribute.Type type, boolean required) {
@@ -91,6 +102,7 @@ public class JOOQUtils {
                 entity.nestedAttributes()
                         .flatMap(entry -> switch (entry.getAttribute()) {
                             case SimpleAttribute simpleAttribute -> Stream.of(resolveField(simpleAttribute));
+                            case MultivalueAttribute multivalueAttribute -> Stream.of(resolveField(multivalueAttribute));
                             case CompositeAttribute ignored -> Stream.of();
                         })
         ).toArray(Field[]::new);
@@ -109,12 +121,6 @@ public class JOOQUtils {
         };
     }
 
-    private static final DataType<String[]> TEXT_ARRAY = SQLDataType.CLOB.getArrayDataType();
-
-    /**
-     * A multi-value text column is always {@code NOT NULL DEFAULT '{}'}: only the empty array represents an
-     * empty set, independent of the required constraint (which is not supported for multi-value attributes).
-     */
     private static DataType<String[]> textSetDataType() {
         return TEXT_ARRAY.nullable(false).defaultValue(DSL.inline(new String[0], TEXT_ARRAY));
     }
