@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -30,6 +31,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridArraySearch;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
@@ -83,6 +85,12 @@ class ThunkExpressionGeneratorTest {
             .name(AttributeName.of("tags"))
             .column(ColumnName.of("tags"))
             .type(Type.TEXT_SET)
+            .build();
+
+    private static final MultivalueAttribute KEYWORDS_ATTR = MultivalueAttribute.builder()
+            .name(AttributeName.of("keywords"))
+            .column(ColumnName.of("keywords"))
+            .itemType(Type.TEXT)
             .build();
 
     private static final SimpleAttribute DATE_ATTR = SimpleAttribute.builder()
@@ -139,6 +147,7 @@ class ThunkExpressionGeneratorTest {
             .attribute(BOOLEAN_ATTR)
             .attribute(TEXT_ATTR)
             .attribute(TAGS_ATTR)
+            .attribute(KEYWORDS_ATTR)
             .attribute(DATE_ATTR)
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
@@ -146,6 +155,11 @@ class ThunkExpressionGeneratorTest {
                     .operation(Operation.EXACT)
                     .name(FilterName.of("tags"))
                     .attribute(TAGS_ATTR)
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.EXACT)
+                    .name(FilterName.of("keywords"))
+                    .attribute(KEYWORDS_ATTR)
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
@@ -687,7 +701,7 @@ class ThunkExpressionGeneratorTest {
         );
 
         assertEquals("count", exception.getFilterName().getValue());
-        assertEquals(Type.LONG, exception.getType());
+        assertEquals(DataType.of(Type.LONG), exception.getType());
     }
 
     @Test
@@ -701,7 +715,7 @@ class ThunkExpressionGeneratorTest {
         );
 
         assertEquals("price", exception.getFilterName().getValue());
-        assertEquals(Type.DOUBLE, exception.getType());
+        assertEquals(DataType.of(Type.DOUBLE), exception.getType());
     }
 
     @Test
@@ -715,7 +729,7 @@ class ThunkExpressionGeneratorTest {
         );
 
         assertEquals("description", exception.getFilterName().getValue());
-        assertEquals(Type.TEXT, exception.getType());
+        assertEquals(DataType.of(Type.TEXT), exception.getType());
     }
 
     @ParameterizedTest
@@ -730,7 +744,7 @@ class ThunkExpressionGeneratorTest {
         );
 
         assertEquals("event_date~after", exception.getFilterName().getValue());
-        assertEquals(Type.DATE, exception.getType());
+        assertEquals(DataType.of(Type.DATE), exception.getType());
     }
 
     @ParameterizedTest
@@ -745,7 +759,7 @@ class ThunkExpressionGeneratorTest {
         );
 
         assertEquals("arrival_timestamp~after", exception.getFilterName().getValue());
-        assertEquals(Type.DATETIME, exception.getType());
+        assertEquals(DataType.of(Type.DATETIME), exception.getType());
     }
 
     @Test
@@ -759,7 +773,7 @@ class ThunkExpressionGeneratorTest {
         );
 
         assertEquals("id", exception.getFilterName().getValue());
-        assertEquals(Type.UUID, exception.getType());
+        assertEquals(DataType.of(Type.UUID), exception.getType());
     }
 
     @Test
@@ -954,6 +968,44 @@ class ThunkExpressionGeneratorTest {
         assertEquals(2, setValue.getValue().size());
         assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
         assertTrue(setValue.getValue().contains(Scalar.of("vip")));
+    }
+
+    @Test
+    void multivalueExactUsesArraySearch() {
+        Map<String, List<String>> params = Map.of("keywords", List.of("urgent"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var arraySearch = assertInstanceOf(ContentGridArraySearch.class, result);
+        assertEquals(
+                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("keywords")),
+                arraySearch.getLeftTerm()
+        );
+        var setValue = assertInstanceOf(SetValue.class, arraySearch.getRightTerm());
+        assertEquals(1, setValue.getValue().size());
+        assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
+    }
+
+    @Test
+    void multivalueExactMultipleValuesUseOneArraySearch() {
+        Map<String, List<String>> params = Map.of("keywords", List.of("urgent", "vip"));
+
+        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
+
+        var arraySearch = assertInstanceOf(ContentGridArraySearch.class, result);
+        var setValue = assertInstanceOf(SetValue.class, arraySearch.getRightTerm());
+        assertEquals(2, setValue.getValue().size());
+        assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
+        assertTrue(setValue.getValue().contains(Scalar.of("vip")));
+    }
+
+    @Test
+    void multivalueExactRejectsNulByte() {
+        Map<String, List<String>> params = Map.of("keywords", List.of("a\u0000b"));
+
+        var exception = assertThrows(InvalidFilterParameterException.class,
+                () -> ThunkExpressionGenerator.from(testApplication, testEntity, params));
+        assertEquals("string_set", exception.getType().getTechnicalName());
     }
 
     @Test

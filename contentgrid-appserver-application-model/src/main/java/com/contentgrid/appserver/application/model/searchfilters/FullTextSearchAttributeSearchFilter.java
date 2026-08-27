@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
+import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
@@ -41,8 +42,8 @@ public class FullTextSearchAttributeSearchFilter extends BaseAttributeSearchFilt
     }
 
     @Override
-    public boolean supports(SimpleAttribute attribute) {
-        return attribute.getType() == Type.TEXT;
+    public boolean supports(Attribute attribute) {
+        return attribute instanceof SimpleAttribute simpleAttribute && simpleAttribute.getType() == Type.TEXT;
     }
 
     public static FullTextSearchAttributeSearchFilterBuilder builder() {

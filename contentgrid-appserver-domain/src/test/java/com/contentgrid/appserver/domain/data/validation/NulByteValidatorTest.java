@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain.data.validation;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
@@ -38,6 +39,12 @@ class NulByteValidatorTest {
             .type(Type.TEXT_SET)
             .build();
 
+    private static final MultivalueAttribute KEYWORDS_ATTR = MultivalueAttribute.builder()
+            .name(AttributeName.of("keywords"))
+            .column(ColumnName.of("keywords"))
+            .itemType(Type.TEXT)
+            .build();
+
     private static final SimpleAttributePath PATH = new SimpleAttributePath(AttributeName.of("description"));
 
     @Test
@@ -61,6 +68,19 @@ class NulByteValidatorTest {
     @Test
     void textSetWithoutNulBytePasses() {
         assertDoesNotThrow(() -> validator.validate(PATH, TAGS_ATTR, new ListDataEntry(List.of(
+                new StringDataEntry("foo"), new StringDataEntry("bar")))));
+    }
+
+    @Test
+    void multivalueAttributeWithNulByteElementThrows() {
+        assertThrows(InvalidDataFormatException.class,
+                () -> validator.validate(PATH, KEYWORDS_ATTR, new ListDataEntry(List.of(
+                        new StringDataEntry("foo"), new StringDataEntry("bar\u0000baz")))));
+    }
+
+    @Test
+    void multivalueAttributeWithoutNulBytePasses() {
+        assertDoesNotThrow(() -> validator.validate(PATH, KEYWORDS_ATTR, new ListDataEntry(List.of(
                 new StringDataEntry("foo"), new StringDataEntry("bar")))));
     }
 

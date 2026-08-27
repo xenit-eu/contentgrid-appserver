@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
@@ -27,22 +28,26 @@ public class NulByteValidator implements AttributeValidationDataMapper.Validator
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
-        if (!(attribute instanceof SimpleAttribute simpleAttribute)) {
-            return;
+        switch (attribute) {
+            case SimpleAttribute simpleAttribute
+                    when simpleAttribute.getType() == Type.TEXT || simpleAttribute.getType() == Type.TEXT_SET ->
+                    validateEntry(DataType.of(simpleAttribute.getType()), dataEntry);
+            case MultivalueAttribute multivalueAttribute ->
+                    validateEntry(DataType.of(multivalueAttribute), dataEntry);
+            default -> {
+                // Only text values can carry a NUL character
+            }
         }
-        if (simpleAttribute.getType() == Type.TEXT
-                && dataEntry instanceof StringDataEntry stringDataEntry
-                && containsNul(stringDataEntry)) {
-            throw new InvalidDataFormatException(DataType.of(simpleAttribute.getType()),
-                    new IllegalArgumentException(ERROR_MESSAGE));
+    }
+
+    private static void validateEntry(DataType attributeType, DataEntry dataEntry) throws InvalidDataException {
+        if (dataEntry instanceof StringDataEntry stringDataEntry && containsNul(stringDataEntry)) {
+            throw new InvalidDataFormatException(attributeType, new IllegalArgumentException(ERROR_MESSAGE));
         }
-        if (simpleAttribute.getType() == Type.TEXT_SET
-                && dataEntry instanceof ListDataEntry listDataEntry
-                && listDataEntry.getItems().stream()
-                        .anyMatch(item -> item instanceof StringDataEntry stringDataEntry
-                                && containsNul(stringDataEntry))) {
-            throw new InvalidDataFormatException(DataType.of(simpleAttribute.getType()),
-                    new IllegalArgumentException(ERROR_MESSAGE));
+        if (dataEntry instanceof ListDataEntry listDataEntry) {
+            for (var item : listDataEntry.getItems()) {
+                validateEntry(attributeType, item);
+            }
         }
     }
 

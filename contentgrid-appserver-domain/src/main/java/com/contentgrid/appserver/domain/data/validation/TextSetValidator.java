@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
@@ -28,17 +29,21 @@ public class TextSetValidator implements AttributeValidationDataMapper.Validator
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
-        if (attribute instanceof SimpleAttribute simpleAttribute
-                && simpleAttribute.getType() == Type.TEXT_SET
-                && dataEntry instanceof ListDataEntry listDataEntry) {
-            validateSet(simpleAttribute, listDataEntry.getItems());
+        if (isMultiValueText(attribute) && dataEntry instanceof ListDataEntry listDataEntry) {
+            validateSet(DataType.of(attribute), listDataEntry.getItems());
         }
     }
 
-    private static void validateSet(SimpleAttribute attribute, List<PlainDataEntry> items)
+    private static boolean isMultiValueText(Attribute attribute) {
+        return attribute instanceof MultivalueAttribute
+                || (attribute instanceof SimpleAttribute simpleAttribute
+                        && simpleAttribute.getType() == Type.TEXT_SET);
+    }
+
+    private static void validateSet(DataType attributeType, List<PlainDataEntry> items)
             throws InvalidDataException {
         if (items.size() > MAX_ELEMENTS) {
-            throw new InvalidDataFormatException(DataType.of(attribute.getType()),
+            throw new InvalidDataFormatException(attributeType,
                     new IllegalArgumentException(
                             "A multi-value attribute can contain at most %d elements".formatted(MAX_ELEMENTS)));
         }

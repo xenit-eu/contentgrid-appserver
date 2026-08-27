@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -211,10 +212,12 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
     }
 
     private static void checkSortable(SortableField sortableField, Attribute attribute) {
-        if (attribute instanceof SimpleAttribute simpleAttribute && simpleAttribute.getType() == Type.TEXT_SET) {
+        if (attribute instanceof MultivalueAttribute
+                || (attribute instanceof SimpleAttribute simpleAttribute
+                        && simpleAttribute.getType() == Type.TEXT_SET)) {
             throw new InvalidArgumentModelException(
                     "SortableField %s references multi-value attribute %s, which cannot be sorted on"
-                            .formatted(sortableField.getName(), simpleAttribute.getName()));
+                            .formatted(sortableField.getName(), attribute.getName()));
         }
     }
 

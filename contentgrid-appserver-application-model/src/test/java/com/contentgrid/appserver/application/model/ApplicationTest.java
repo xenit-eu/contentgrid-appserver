@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.contentgrid.appserver.application.model.Entity.EntityBuilder;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -471,6 +472,90 @@ class ApplicationTest {
                 .build();
 
         assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
+    }
+
+    @Test
+    void application_exactSearchFilterOnMultivalueAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.EXACT)
+                        .name(FilterName.of("tags"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
+    }
+
+    @Test
+    void application_prefixSearchFilterOnMultivalueAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.PREFIX)
+                        .name(FilterName.of("tags~prefix"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_fullTextSearchFilterOnMultivalueAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("tags~fts"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .locale(Locale.ENGLISH)
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
     }
 
     @ParameterizedTest

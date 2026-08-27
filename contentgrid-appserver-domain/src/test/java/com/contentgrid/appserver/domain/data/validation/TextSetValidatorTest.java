@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
@@ -32,6 +33,12 @@ class TextSetValidatorTest {
             .name(AttributeName.of("description"))
             .column(ColumnName.of("description"))
             .type(Type.TEXT)
+            .build();
+
+    private static final MultivalueAttribute KEYWORDS_ATTR = MultivalueAttribute.builder()
+            .name(AttributeName.of("keywords"))
+            .column(ColumnName.of("keywords"))
+            .itemType(Type.TEXT)
             .build();
 
     private static final SimpleAttributePath PATH = new SimpleAttributePath(AttributeName.of("tags"));
@@ -71,6 +78,27 @@ class TextSetValidatorTest {
                 .toArray(String[]::new);
         assertThrows(InvalidDataFormatException.class,
                 () -> validator.validate(PATH, TAGS_ATTR, listOf(overLimit)));
+    }
+
+    @Test
+    void multivalueAttributeDistinctElementsPass() {
+        assertDoesNotThrow(() -> validator.validate(PATH, KEYWORDS_ATTR, listOf("urgent", "vip")));
+    }
+
+    @Test
+    void multivalueAttributeDuplicateElementsThrow() {
+        var exception = assertThrows(DuplicateElementInvalidDataException.class,
+                () -> validator.validate(PATH, KEYWORDS_ATTR, listOf("urgent", "vip", "urgent")));
+        assertEquals("urgent", exception.getDuplicateValue());
+    }
+
+    @Test
+    void multivalueAttributeElementCountIsCapped() {
+        var overLimit = IntStream.rangeClosed(0, TextSetValidator.MAX_ELEMENTS)
+                .mapToObj("value-%d"::formatted)
+                .toArray(String[]::new);
+        assertThrows(InvalidDataFormatException.class,
+                () -> validator.validate(PATH, KEYWORDS_ATTR, listOf(overLimit)));
     }
 
     @Test
