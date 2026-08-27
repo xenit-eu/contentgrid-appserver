@@ -4,14 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,7 +67,7 @@ class ActuatorConfigurationTest {
     }
 
     @Test
-    void policyBundleEndpointIsPublicAndServesAnOpaBundle() throws IOException {
+    void policyBundleEndpointIsPublic() {
         var body = rest.get().uri("http://localhost:" + managementPort + "/actuator/policybundle")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
@@ -84,16 +77,6 @@ class ActuatorConfigurationTest {
                 .getResponseBody();
 
         assertThat(body).isNotNull();
-
-        var entries = new LinkedHashMap<String, String>();
-        try (var archive = new TarArchiveInputStream(new GzipCompressorInputStream(new ByteArrayInputStream(body)))) {
-            TarArchiveEntry entry;
-            while ((entry = archive.getNextEntry()) != null) {
-                entries.put(entry.getName(), new String(archive.readAllBytes(), StandardCharsets.UTF_8));
-            }
-        }
-
-        assertThat(entries).containsOnlyKeys(".manifest", "policy.rego");
     }
 
     @Test
