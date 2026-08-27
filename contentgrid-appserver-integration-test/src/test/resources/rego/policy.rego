@@ -1,5 +1,6 @@
-# Policy used by OpaResidualAuthorizationTest, which loads it into its OPA container and exercises the
-# residual-authorization behavior of the second rule below.
+# Policy used by OpaResidualAuthorizationTest to exercise the residual-authorization behavior of the second
+# rule below. It lives at the blueprint artifact's rego/policy.rego, so the OPA container in that test pulls it
+# as a bundle from /actuator/policybundle rather than being handed it by the test.
 package ${system.policy.package}
 
 import rego.v1
