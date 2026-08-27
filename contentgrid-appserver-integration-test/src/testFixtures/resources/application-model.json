@@ -1088,7 +1088,7 @@
             }
           ],
           "title": "Tags",
-          "type": "exact"
+          "type": "contains"
         }
       ],
       "sortableFields": [

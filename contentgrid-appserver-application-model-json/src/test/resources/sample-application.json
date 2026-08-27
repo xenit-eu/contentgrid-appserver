@@ -107,7 +107,7 @@
           "name": "labels",
           "title": "Labels",
           "attributePath": [{"name": "labels", "type": "attr"}],
-          "type": "exact"
+          "type": "contains"
         },
         {
           "name": "projects.description",

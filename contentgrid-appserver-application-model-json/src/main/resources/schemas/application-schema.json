@@ -742,6 +742,7 @@
               "description": "The type of filter.",
               "enum": [
                 "exact",
+                "contains",
                 "prefix",
                 "greater",
                 "greater-or-equal",

@@ -376,7 +376,7 @@
             }
           ],
           "title": "String set attribute",
-          "type": "exact"
+          "type": "contains"
         }
       ],
       "sortableFields": [

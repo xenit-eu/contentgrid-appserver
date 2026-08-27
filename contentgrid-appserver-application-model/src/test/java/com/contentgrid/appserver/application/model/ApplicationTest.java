@@ -447,7 +447,7 @@ class ApplicationTest {
     }
 
     @Test
-    void application_exactSearchFilterOnMultivalueAttribute() {
+    void application_containsSearchFilterOnMultivalueAttribute() {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
                 .table(TableName.of("test"))
@@ -460,7 +460,7 @@ class ApplicationTest {
                         .build()
                 )
                 .searchFilter(AttributeSearchFilter.builder()
-                        .operation(Operation.EXACT)
+                        .operation(Operation.CONTAINS)
                         .name(FilterName.of("tags"))
                         .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
                         .build())
@@ -472,6 +472,65 @@ class ApplicationTest {
                 .build();
 
         assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "EXACT", "PREFIX", "GREATER_THAN", "LESS_THAN"
+    })
+    void application_otherSearchFiltersOnMultivalueAttribute(Operation operation) {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(operation)
+                        .name(FilterName.of("tags"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_containsSearchFilterOnScalarAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("name"))
+                        .column(ColumnName.of("name"))
+                        .type(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.CONTAINS)
+                        .name(FilterName.of("name"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("name")))
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
     }
 
     @Test
