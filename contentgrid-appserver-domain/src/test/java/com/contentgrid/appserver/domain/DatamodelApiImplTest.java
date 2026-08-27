@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -255,16 +256,16 @@ class DatamodelApiImplTest {
     @Nested
     class TextSetAttribute {
 
-        private static final SimpleAttribute DOCUMENT_TAGS = SimpleAttribute.builder()
+        private static final MultivalueAttribute DOCUMENT_TAGS = MultivalueAttribute.builder()
                 .name(AttributeName.of("tags"))
                 .column(ColumnName.of("tags"))
-                .type(Type.TEXT_SET)
+                .itemType(Type.TEXT)
                 .build();
 
-        private static final SimpleAttribute DOCUMENT_LABELS = SimpleAttribute.builder()
+        private static final MultivalueAttribute DOCUMENT_LABELS = MultivalueAttribute.builder()
                 .name(AttributeName.of("labels"))
                 .column(ColumnName.of("labels"))
-                .type(Type.TEXT_SET)
+                .itemType(Type.TEXT)
                 .constraint(Constraint.allowedValues(List.of("hr", "it", "finance")))
                 .build();
 

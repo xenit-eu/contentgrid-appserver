@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -96,11 +97,11 @@ public class ModelTestFixtures {
             .constraint(Constraint.allowedValues(List.of("female", "male")))
             .build();
 
-    public static final SimpleAttribute PERSON_TAGS = SimpleAttribute.builder()
+    public static final MultivalueAttribute PERSON_TAGS = MultivalueAttribute.builder()
             .name(AttributeName.of("tags"))
             .column(ColumnName.of("tags"))
             .translationsBy(Locale.ENGLISH, t -> t.withName("Tags"))
-            .type(Type.TEXT_SET)
+            .itemType(Type.TEXT)
             .build();
 
     public static final EntityLink PERSON_VAT_LINK = EntityLink.builder()

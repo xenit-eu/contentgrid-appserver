@@ -262,34 +262,17 @@ public final class BodyObjectMapper {
 
     private static BodyValue getBodyValue(Context context, SourceType sourceType, Attribute attribute) {
         var bodyValue = switch (attribute) {
-            case SimpleAttribute sa -> {
-                var simpleValue = SimpleBodyValue.builder()
-                        .sourceType(sourceType)
-                        .nullable(!sa.hasConstraint(RequiredConstraint.class))
-                        .type(sa.getType())
-                        .constraints(sa.getConstraints().stream()
-                                // Filter out required & unique constraints.
-                                // required is already reflected in 'nullable',
-                                // and unique has nothing to do with body structure
-                                .filter(c -> !(c instanceof RequiredConstraint || c instanceof UniqueConstraint))
-                                .toList()
-                        )
-                        .build();
-                if (sa.getType() == SimpleAttribute.Type.TEXT_SET) {
-                    // A multi-value attribute is a set of text elements: the element type carries the
-                    // constraints, the array itself is always present and never null
-                    yield ArrayBodyValue.builder()
-                            .sourceType(sourceType)
-                            .items(simpleValue.toBuilder()
-                                    .type(SimpleAttribute.Type.TEXT)
-                                    .nullable(false)
-                                    .build())
-                            .uniqueItems(true)
-                            .nullable(false)
-                            .build();
-                }
-                yield simpleValue;
-            }
+            case SimpleAttribute sa -> SimpleBodyValue.builder()
+                    .sourceType(sourceType)
+                    .nullable(!sa.hasConstraint(RequiredConstraint.class))
+                    .type(sa.getType())
+                    .constraints(sa.getConstraints().stream()
+                            // Filter out required & unique constraints.
+                            // required is already reflected in 'nullable', and unique has nothing to do with body structure
+                            .filter(c -> !(c instanceof RequiredConstraint || c instanceof UniqueConstraint))
+                            .toList()
+                    )
+                    .build();
             case MultivalueAttribute ma ->
                     // A multi-value attribute is a set of elements: the element type carries the
                     // constraints, the array itself is always present and never null

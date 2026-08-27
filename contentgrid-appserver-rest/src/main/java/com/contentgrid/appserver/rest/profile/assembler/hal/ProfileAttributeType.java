@@ -17,7 +17,6 @@ public enum ProfileAttributeType {
     public static ProfileAttributeType from(SimpleAttribute.Type type) {
         return switch (type) {
             case TEXT, UUID -> STRING;
-            case TEXT_SET -> STRING_SET;
             case LONG -> LONG;
             case DOUBLE -> DOUBLE;
             case BOOLEAN -> BOOLEAN;

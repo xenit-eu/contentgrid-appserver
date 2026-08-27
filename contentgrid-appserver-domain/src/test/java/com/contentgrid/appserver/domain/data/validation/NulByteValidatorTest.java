@@ -33,15 +33,9 @@ class NulByteValidatorTest {
             .type(Type.LONG)
             .build();
 
-    private static final SimpleAttribute TAGS_ATTR = SimpleAttribute.builder()
+    private static final MultivalueAttribute TAGS_ATTR = MultivalueAttribute.builder()
             .name(AttributeName.of("tags"))
             .column(ColumnName.of("tags"))
-            .type(Type.TEXT_SET)
-            .build();
-
-    private static final MultivalueAttribute KEYWORDS_ATTR = MultivalueAttribute.builder()
-            .name(AttributeName.of("keywords"))
-            .column(ColumnName.of("keywords"))
             .itemType(Type.TEXT)
             .build();
 
@@ -68,19 +62,6 @@ class NulByteValidatorTest {
     @Test
     void textSetWithoutNulBytePasses() {
         assertDoesNotThrow(() -> validator.validate(PATH, TAGS_ATTR, new ListDataEntry(List.of(
-                new StringDataEntry("foo"), new StringDataEntry("bar")))));
-    }
-
-    @Test
-    void multivalueAttributeWithNulByteElementThrows() {
-        assertThrows(InvalidDataFormatException.class,
-                () -> validator.validate(PATH, KEYWORDS_ATTR, new ListDataEntry(List.of(
-                        new StringDataEntry("foo"), new StringDataEntry("bar\u0000baz")))));
-    }
-
-    @Test
-    void multivalueAttributeWithoutNulBytePasses() {
-        assertDoesNotThrow(() -> validator.validate(PATH, KEYWORDS_ATTR, new ListDataEntry(List.of(
                 new StringDataEntry("foo"), new StringDataEntry("bar")))));
     }
 

@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -80,10 +82,10 @@ class JOOQTableCreatorTest {
             .constraint(Constraint.unique())
             .build();
 
-    private static final SimpleAttribute PERSON_TAGS = SimpleAttribute.builder()
+    private static final MultivalueAttribute PERSON_TAGS = MultivalueAttribute.builder()
             .name(AttributeName.of("tags"))
             .column(ColumnName.of("tags"))
-            .type(Type.TEXT_SET)
+            .itemType(Type.TEXT)
             .build();
 
     private static final Entity PERSON = Entity.builder()
@@ -374,7 +376,7 @@ class JOOQTableCreatorTest {
 
         // A row created without tags gets the empty array, not null
         jdbcTemplate.update("INSERT INTO person (id, name, vat) VALUES (?, ?, ?)",
-                java.util.UUID.randomUUID(), "Alice", "BE0123456789");
+                UUID.randomUUID(), "Alice", "BE0123456789");
         var tags = jdbcTemplate.queryForObject("SELECT tags::text FROM person", String.class);
         assertEquals("{}", tags);
 

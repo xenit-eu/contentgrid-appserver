@@ -91,17 +91,13 @@ public class AttributeDataToDataEntryMapper implements
 
     private PlainDataEntry mapSimpleAttribute(@NonNull SimpleAttribute.Type type, Object data) {
         if(data == null) {
-            // A multi-value attribute is always an array in responses, even when the column value is null
-            return type == SimpleAttribute.Type.TEXT_SET ? new ListDataEntry(List.of()) : NullDataEntry.INSTANCE;
+            return NullDataEntry.INSTANCE;
         }
         return switch (type) {
             case LONG -> new LongDataEntry((Long) data);
             case DOUBLE -> new DecimalDataEntry((BigDecimal) data);
             case BOOLEAN -> new BooleanDataEntry((Boolean) data);
             case TEXT, UUID -> new StringDataEntry(data.toString());
-            case TEXT_SET -> new ListDataEntry(((List<?>) data).stream()
-                    .map(element -> (PlainDataEntry) new StringDataEntry((String) element))
-                    .toList());
             case DATE -> new LocalDateDataEntry((LocalDate) data);
             case DATETIME -> new InstantDataEntry((Instant) data);
         };

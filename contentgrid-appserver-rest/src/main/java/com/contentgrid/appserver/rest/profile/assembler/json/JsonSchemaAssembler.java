@@ -147,7 +147,6 @@ public class JsonSchemaAssembler {
                     case DOUBLE -> property.withType(JsonSchemaType.NUMBER);
                     case BOOLEAN -> property.withType(JsonSchemaType.BOOLEAN);
                     case TEXT -> property.withType(JsonSchemaType.STRING);
-                    case TEXT_SET -> throw new IllegalArgumentException("TEXT_SET is not a scalar type");
                     case DATE -> property.withType(JsonSchemaType.STRING).withFormat(JsonSchemaFormat.DATE);
                     case DATETIME -> property.withType(JsonSchemaType.STRING).withFormat(JsonSchemaFormat.DATE_TIME);
                     case UUID -> property.withType(JsonSchemaType.STRING).withFormat(JsonSchemaFormat.UUID);

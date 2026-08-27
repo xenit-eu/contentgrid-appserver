@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -441,6 +442,25 @@ class JOOQQueryEngineTest {
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
     private static final ThunkExpression<Boolean> TRUE_EXPRESSION = Scalar.of(true);
+
+    private static final MultivalueAttribute DOCUMENT_TAGS = MultivalueAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .itemType(Type.TEXT)
+            .build();
+
+    private static final Entity DOCUMENT = Entity.builder()
+            .name(EntityName.of("document"))
+            .table(TableName.of("document"))
+            .pathSegment(PathSegmentName.of("documents"))
+            .linkName(LinkName.of("documents"))
+            .attribute(DOCUMENT_TAGS)
+            .build();
+
+    private static final Application TEXT_SET_APPLICATION = Application.builder()
+            .name(ApplicationName.of("text-set-application"))
+            .entity(DOCUMENT)
+            .build();
 
     @MockitoBean
     private CreateEventConsumer createEventConsumer;
@@ -1056,25 +1076,6 @@ class JOOQQueryEngineTest {
             }
         }
     }
-
-    private static final SimpleAttribute DOCUMENT_TAGS = SimpleAttribute.builder()
-            .name(AttributeName.of("tags"))
-            .column(ColumnName.of("tags"))
-            .type(Type.TEXT_SET)
-            .build();
-
-    private static final Entity DOCUMENT = Entity.builder()
-            .name(EntityName.of("document"))
-            .table(TableName.of("document"))
-            .pathSegment(PathSegmentName.of("documents"))
-            .linkName(LinkName.of("documents"))
-            .attribute(DOCUMENT_TAGS)
-            .build();
-
-    private static final Application TEXT_SET_APPLICATION = Application.builder()
-            .name(ApplicationName.of("text-set-application"))
-            .entity(DOCUMENT)
-            .build();
 
     @Test
     void createEntityWithTextSetAttribute() {

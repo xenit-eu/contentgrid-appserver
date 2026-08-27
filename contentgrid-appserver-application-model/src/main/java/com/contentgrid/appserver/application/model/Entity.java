@@ -199,7 +199,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                         checkSortable(sortableField, attribute);
                     } else if (sortableField.getPropertyPath() instanceof CompositeAttributePath compositeAttributePath) {
                         // throws if invalid
-                        checkSortable(sortableField, resolveAttributePath(compositeAttributePath));
+                        resolveAttributePath(compositeAttributePath);
                     } else {
                         throw new InvalidArgumentModelException("SortableField %s references non-existent attribute %s"
                                 .formatted(sortableField.getName(), sortableField.getPropertyPath().getFirst()));
@@ -212,9 +212,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
     }
 
     private static void checkSortable(SortableField sortableField, Attribute attribute) {
-        if (attribute instanceof MultivalueAttribute
-                || (attribute instanceof SimpleAttribute simpleAttribute
-                        && simpleAttribute.getType() == Type.TEXT_SET)) {
+        if (attribute instanceof MultivalueAttribute) {
             throw new InvalidArgumentModelException(
                     "SortableField %s references multi-value attribute %s, which cannot be sorted on"
                             .formatted(sortableField.getName(), attribute.getName()));

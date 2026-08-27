@@ -81,12 +81,6 @@ class ThunkExpressionGeneratorTest {
             .type(Type.TEXT)
             .build();
 
-    private static final SimpleAttribute TAGS_ATTR = SimpleAttribute.builder()
-            .name(AttributeName.of("tags"))
-            .column(ColumnName.of("tags"))
-            .type(Type.TEXT_SET)
-            .build();
-
     private static final MultivalueAttribute KEYWORDS_ATTR = MultivalueAttribute.builder()
             .name(AttributeName.of("keywords"))
             .column(ColumnName.of("keywords"))
@@ -146,16 +140,10 @@ class ThunkExpressionGeneratorTest {
             .attribute(DOUBLE_ATTR)
             .attribute(BOOLEAN_ATTR)
             .attribute(TEXT_ATTR)
-            .attribute(TAGS_ATTR)
             .attribute(KEYWORDS_ATTR)
             .attribute(DATE_ATTR)
             .attribute(DATETIME_ATTR)
             .attribute(COMP_ATTR)
-            .searchFilter(AttributeSearchFilter.builder()
-                    .operation(Operation.EXACT)
-                    .name(FilterName.of("tags"))
-                    .attribute(TAGS_ATTR)
-                    .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .name(FilterName.of("keywords"))
@@ -939,35 +927,6 @@ class ThunkExpressionGeneratorTest {
         assertTrue(setValue.getValue().contains(Scalar.of(1L)));
         assertTrue(setValue.getValue().contains(Scalar.of(2L)));
         assertTrue(setValue.getValue().contains(Scalar.of(3L)));
-    }
-
-    @Test
-    void textSetExactUsesArraySearch() {
-        Map<String, List<String>> params = Map.of("tags", List.of("urgent"));
-
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
-
-        var arraySearch = assertInstanceOf(ContentGridArraySearch.class, result);
-        assertEquals(
-                SymbolicReference.of(Variable.named("entity"), SymbolicReference.path("tags")),
-                arraySearch.getLeftTerm()
-        );
-        var setValue = assertInstanceOf(SetValue.class, arraySearch.getRightTerm());
-        assertEquals(1, setValue.getValue().size());
-        assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
-    }
-
-    @Test
-    void textSetExactMultipleValuesUseOneArraySearch() {
-        Map<String, List<String>> params = Map.of("tags", List.of("urgent", "vip"));
-
-        ThunkExpression<Boolean> result = ThunkExpressionGenerator.from(testApplication, testEntity, params);
-
-        var arraySearch = assertInstanceOf(ContentGridArraySearch.class, result);
-        var setValue = assertInstanceOf(SetValue.class, arraySearch.getRightTerm());
-        assertEquals(2, setValue.getValue().size());
-        assertTrue(setValue.getValue().contains(Scalar.of("urgent")));
-        assertTrue(setValue.getValue().contains(Scalar.of("vip")));
     }
 
     @Test

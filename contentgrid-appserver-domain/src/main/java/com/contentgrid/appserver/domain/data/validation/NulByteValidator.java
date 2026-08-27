@@ -29,8 +29,7 @@ public class NulByteValidator implements AttributeValidationDataMapper.Validator
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
         switch (attribute) {
-            case SimpleAttribute simpleAttribute
-                    when simpleAttribute.getType() == Type.TEXT || simpleAttribute.getType() == Type.TEXT_SET ->
+            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
                     validateEntry(DataType.of(simpleAttribute.getType()), dataEntry);
             case MultivalueAttribute multivalueAttribute ->
                     validateEntry(DataType.of(multivalueAttribute), dataEntry);

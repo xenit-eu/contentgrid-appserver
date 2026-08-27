@@ -109,16 +109,16 @@ public class JOOQUtils {
     }
 
     private static DataType<?> resolveType(SimpleAttribute.Type type, boolean required) {
-        return switch (type) {
-            case UUID -> SQLDataType.UUID.nullable(!required);
-            case TEXT -> SQLDataType.CLOB.nullable(!required);
-            case LONG -> SQLDataType.BIGINT.nullable(!required);
-            case DOUBLE -> SQLDataType.DECIMAL.nullable(!required);
-            case BOOLEAN -> SQLDataType.BOOLEAN.nullable(!required);
-            case DATE -> SQLDataType.LOCALDATE.nullable(!required);
-            case DATETIME -> SQLDataType.INSTANT.nullable(!required);
-            case TEXT_SET -> textSetDataType();
+        var dataType = switch (type) {
+            case UUID -> SQLDataType.UUID;
+            case TEXT -> SQLDataType.CLOB;
+            case LONG -> SQLDataType.BIGINT;
+            case DOUBLE -> SQLDataType.DECIMAL;
+            case BOOLEAN -> SQLDataType.BOOLEAN;
+            case DATE -> SQLDataType.LOCALDATE;
+            case DATETIME -> SQLDataType.INSTANT;
         };
+        return dataType.nullable(!required);
     }
 
     private static DataType<String[]> textSetDataType() {

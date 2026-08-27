@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -114,10 +115,10 @@ class JOOQThunkExpressionResolverTest {
             .type(Type.TEXT)
             .build();
 
-    private static final SimpleAttribute PERSON_TAGS = SimpleAttribute.builder()
+    private static final MultivalueAttribute PERSON_TAGS = MultivalueAttribute.builder()
             .name(AttributeName.of("tags"))
             .column(ColumnName.of("tags"))
-            .type(Type.TEXT_SET)
+            .itemType(Type.TEXT)
             .build();
 
     private static final Entity PERSON = Entity.builder()
@@ -270,10 +271,10 @@ class JOOQThunkExpressionResolverTest {
             .flag(ETagFlag.INSTANCE)
             .build();
 
-    private static final SimpleAttribute INVOICE_LABELS = SimpleAttribute.builder()
+    private static final MultivalueAttribute INVOICE_LABELS = MultivalueAttribute.builder()
             .name(AttributeName.of("labels"))
             .column(ColumnName.of("labels"))
-            .type(Type.TEXT_SET)
+            .itemType(Type.TEXT)
             .build();
 
     private static final Entity INVOICE = Entity.builder()

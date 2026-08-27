@@ -2,8 +2,6 @@ package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
@@ -29,15 +27,10 @@ public class TextSetValidator implements AttributeValidationDataMapper.Validator
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
-        if (isMultiValueText(attribute) && dataEntry instanceof ListDataEntry listDataEntry) {
-            validateSet(DataType.of(attribute), listDataEntry.getItems());
+        if (attribute instanceof MultivalueAttribute multivalueAttribute
+                && dataEntry instanceof ListDataEntry listDataEntry) {
+            validateSet(DataType.of(multivalueAttribute), listDataEntry.getItems());
         }
-    }
-
-    private static boolean isMultiValueText(Attribute attribute) {
-        return attribute instanceof MultivalueAttribute
-                || (attribute instanceof SimpleAttribute simpleAttribute
-                        && simpleAttribute.getType() == Type.TEXT_SET);
     }
 
     private static void validateSet(DataType attributeType, List<PlainDataEntry> items)
