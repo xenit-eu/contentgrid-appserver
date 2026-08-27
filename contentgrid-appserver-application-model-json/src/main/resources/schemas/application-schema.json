@@ -382,38 +382,7 @@
         "dataType",
         "columnName"
       ],
-      "additionalProperties": false,
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "dataType": {
-                "const": "text_set"
-              }
-            },
-            "required": [
-              "dataType"
-            ]
-          },
-          "then": {
-            "properties": {
-              "constraints": {
-                "description": "A multi-value text attribute only supports the allowedValues constraint.",
-                "items": {
-                  "properties": {
-                    "type": {
-                      "const": "allowedValues"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      ]
+      "additionalProperties": false
     },
     "attributeFlag": {
       "type": "string",

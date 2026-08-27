@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.json;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,6 +21,7 @@ import com.contentgrid.appserver.application.model.attributes.MultivalueAttribut
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -33,6 +35,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.application.model.json.exceptions.SchemaValidationException;
 import java.io.ByteArrayInputStream;
@@ -300,9 +303,133 @@ class DefaultApplicationSchemaConverterTest {
                 """.formatted(constraint);
 
         var converter = new DefaultApplicationSchemaConverter();
-        assertThrows(SchemaValidationException.class, () -> converter.convert(
+        assertThrows(InvalidConstraintException.class, () -> converter.convert(
                 new ByteArrayInputStream(jsonWithForbiddenConstraint.getBytes(StandardCharsets.UTF_8))),
-                "expected schema validation to reject text_set with constraint " + constraint);
+                "expected the model to reject text_set with constraint " + constraint);
+    }
+
+    private static final String MULTIVALUE_APPLICATION_JSON = """
+            {
+                "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                "applicationName": "HR application",
+                "version": "1.0.0",
+                "entities": [
+                    {
+                        "name": "Employee",
+                        "table": "employees",
+                        "pathSegment": "employee",
+                        "linkName": "employee",
+                        "primaryKey":
+                            {
+                                "name": "id",
+                                "type": "simple",
+                                "dataType": "uuid",
+                                "columnName": "id",
+                                "flags": ["readOnly"]
+                            },
+                        "attributes": [
+                            {
+                                "name": "skills",
+                                "type": "simple",
+                                "dataType": "text_set",
+                                "columnName": "skills",
+                                "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
+                            }
+                        ]
+                    }
+                ]
+            }
+            """;
+
+    @Test
+    void testMultivalueAttributeDeserialization() throws Exception {
+        var app = new DefaultApplicationSchemaConverter().convert(
+                new ByteArrayInputStream(MULTIVALUE_APPLICATION_JSON.getBytes(StandardCharsets.UTF_8)));
+
+        var entity = app.getRequiredEntityByName(EntityName.of("Employee"));
+        var attribute = entity.getAttributeByName(AttributeName.of("skills")).orElseThrow();
+        var multivalueAttribute = assertInstanceOf(MultivalueAttribute.class, attribute);
+        assertEquals(Type.TEXT, multivalueAttribute.getItemType());
+        assertEquals(ColumnName.of("skills"), multivalueAttribute.getColumn());
+        assertEquals(List.of("java", "sql"),
+                multivalueAttribute.getConstraint(Constraint.AllowedValuesConstraint.class).orElseThrow().getValues());
+    }
+
+    @Test
+    void testMultivalueAttributeWireRoundTrip() throws Exception {
+        var converter = new DefaultApplicationSchemaConverter();
+        var app = converter.convert(
+                new ByteArrayInputStream(MULTIVALUE_APPLICATION_JSON.getBytes(StandardCharsets.UTF_8)));
+
+        var out = new ByteArrayOutputStream();
+        converter.toJson(app, out);
+
+        assertThat(out.toString(StandardCharsets.UTF_8), sameJSONAs("""
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "HR application",
+                    "version": "1.0.0",
+                    "relations": [],
+                    "settings": {},
+                    "entities": [
+                        {
+                            "name": "Employee",
+                            "table": "employees",
+                            "pathSegment": "employee",
+                            "linkName": "employee",
+                            "primaryKey":
+                                {
+                                    "name": "id",
+                                    "type": "simple",
+                                    "dataType": "uuid",
+                                    "columnName": "id",
+                                    "flags": ["readOnly"]
+                                },
+                            "attributes": [
+                                {
+                                    "name": "skills",
+                                    "type": "simple",
+                                    "dataType": "text_set",
+                                    "columnName": "skills",
+                                    "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
+                                }
+                            ]
+                        }
+                    ]
+                }
+                """).allowingExtraUnexpectedFields());
+    }
+
+    @Test
+    void testMultivaluePrimaryKeyRejected() {
+        var jsonWithMultivaluePrimaryKey = """
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "HR application",
+                    "version": "1.0.0",
+                    "entities": [
+                        {
+                            "name": "Employee",
+                            "table": "employees",
+                            "pathSegment": "employee",
+                            "linkName": "employee",
+                            "primaryKey":
+                                {
+                                    "name": "id",
+                                    "type": "simple",
+                                    "dataType": "text_set",
+                                    "columnName": "id",
+                                    "flags": ["readOnly"]
+                                }
+                        }
+                    ]
+                }
+                """;
+
+        var converter = new DefaultApplicationSchemaConverter();
+        var exception = assertThrows(InvalidAttributeTypeException.class, () -> converter.convert(
+                new ByteArrayInputStream(jsonWithMultivaluePrimaryKey.getBytes(StandardCharsets.UTF_8))));
+        assertTrue(exception.getMessage().contains("must be a scalar attribute"));
     }
 
     @Test
