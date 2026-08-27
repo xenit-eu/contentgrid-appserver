@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
@@ -376,7 +377,7 @@ public class Application {
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
             if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                    var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                    var resolvedAttribute = resolveAttribute(entity, attributeSearchFilter.getAttributePath());
                     if(!attributeSearchFilter.supports(resolvedAttribute)) {
                         throw new InvalidSearchFilterException(
                             "SearchFilter %s does not support the attribute %s".formatted(
@@ -435,19 +436,17 @@ public class Application {
     }
 
     /**
-     * @deprecated use the {@link #getPropertyPathResolver()} instead
+     * Resolves a property path against an entity to the attribute it references.
      */
-    @Deprecated(forRemoval = true, since = "0.1.1")
-    public SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
+    public Attribute resolveAttribute(Entity entity, PropertyPath path) {
         try {
-            var attributeResult = propertyPathResolver.resolveAttribute(entity.getName(), path.as(ResolvesToAttribute.class));
-            if (attributeResult.getAttribute() instanceof SimpleAttribute simpleAttribute) {
-                return simpleAttribute;
-            }
+            return propertyPathResolver.resolveAttribute(entity.getName(), path.as(ResolvesToAttribute.class))
+                    .getAttribute();
         } catch (InvalidPropertyPathException e) {
-            throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()), e);
+            throw new InvalidArgumentModelException(
+                    "Resolving path '%s' against entity '%s' did not reach an attribute".formatted(path,
+                            entity.getName()), e);
         }
-        throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()));
     }
 
 }

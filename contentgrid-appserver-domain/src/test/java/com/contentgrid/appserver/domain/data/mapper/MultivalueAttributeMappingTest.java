@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -20,6 +21,7 @@ import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper.Mode;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
+import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.time.Clock;
@@ -177,5 +179,20 @@ class MultivalueAttributeMappingTest {
 
         assertThat(seen).containsExactly(TAGS);
         assertThat(result).contains(listOf("a"));
+    }
+
+    @Test
+    void allowedValuesConstraintFiresOnMultivalueAttribute() throws InvalidPropertyDataException {
+        var constrained = MultivalueAttribute.builder()
+                .name(AttributeName.of("tags"))
+                .column(ColumnName.of("tags"))
+                .itemType(Type.TEXT)
+                .constraint(Constraint.allowedValues(List.of("urgent", "vip")))
+                .build();
+        var mapper = new AttributeValidationDataMapper(new AllowedValuesConstraintValidator());
+
+        assertThat(mapper.mapAttribute(constrained, listOf("urgent"))).contains(listOf("urgent"));
+        assertThatThrownBy(() -> mapper.mapAttribute(constrained, listOf("nope")))
+                .isInstanceOf(InvalidPropertyDataException.class);
     }
 }

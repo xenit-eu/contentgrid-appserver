@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
@@ -52,7 +54,7 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
     }
 
     @Override
-    public boolean supports(SimpleAttribute attribute) {
+    public boolean supports(Attribute attribute) {
         return operation.supports(attribute);
     }
 
@@ -71,8 +73,14 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
             this.supportedTypes = supportedTypes;
         }
 
-        public boolean supports(SimpleAttribute attribute) {
-            return supportedTypes.contains(attribute.getType());
+        public boolean supports(Attribute attribute) {
+            return switch (attribute) {
+                case SimpleAttribute simpleAttribute -> supportedTypes.contains(simpleAttribute.getType());
+                // Exact search matches any element of a multi-value attribute against the value
+                case MultivalueAttribute multivalueAttribute ->
+                        this == EXACT && multivalueAttribute.getItemType() == Type.TEXT;
+                default -> false;
+            };
         }
     }
 
@@ -82,6 +90,11 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
         }
 
         public AttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
+            this.attributePath = new SimpleAttributePath(attribute.getName());
+            return this;
+        }
+
+        public AttributeSearchFilterBuilder attribute(@NonNull MultivalueAttribute attribute) {
             this.attributePath = new SimpleAttributePath(attribute.getName());
             return this;
         }

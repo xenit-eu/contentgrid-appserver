@@ -190,12 +190,12 @@ public class ProblemDetailsExceptionHandler {
                 problemFactory.createProblem(
                                 ProblemType.INVALID_QUERY_PARAMETER_FILTER_FORMAT,
                                 exception.getFilterName().getValue(),
-                                DataType.of(exception.getType()).getHumanDescription()
+                                exception.getType().getHumanDescription()
                         )
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withProperties(Map.of(
                                 "query_parameter", exception.getFilterName().getValue(),
-                                "expected_type", DataType.of(exception.getType()).getTechnicalName(),
+                                "expected_type", exception.getType().getTechnicalName(),
                                 "format_error",  exception.getCause().getMessage()
                         ))
         ).apply(mainException));

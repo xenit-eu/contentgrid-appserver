@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
-import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SearchFilterFlag;
@@ -70,6 +70,6 @@ public abstract class BaseAttributeSearchFilter implements SearchFilter {
      * @param attribute the attribute to check support for
      * @return true if the attribute is supported, false otherwise
      */
-    public abstract boolean supports(SimpleAttribute attribute);
+    public abstract boolean supports(Attribute attribute);
 
 }

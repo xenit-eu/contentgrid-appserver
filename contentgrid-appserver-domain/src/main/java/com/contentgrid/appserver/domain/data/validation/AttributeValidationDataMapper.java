@@ -97,12 +97,15 @@ public class AttributeValidationDataMapper extends AbstractDescendingAttributeMa
         @Override
         public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
                 throws InvalidDataException {
-            if(attribute instanceof SimpleAttribute simpleAttribute) {
-                var maybeConstraint = simpleAttribute.getConstraint(constraintValidator.getConstraintType());
-                if(maybeConstraint.isPresent()) {
-                    constraintValidator.validate(maybeConstraint.get(), dataEntry);
-                }
-
+            var maybeConstraint = switch (attribute) {
+                case SimpleAttribute simpleAttribute ->
+                        simpleAttribute.getConstraint(constraintValidator.getConstraintType());
+                case MultivalueAttribute multivalueAttribute ->
+                        multivalueAttribute.getConstraint(constraintValidator.getConstraintType());
+                case CompositeAttribute ignored -> Optional.<T>empty();
+            };
+            if (maybeConstraint.isPresent()) {
+                constraintValidator.validate(maybeConstraint.get(), dataEntry);
             }
         }
     }
