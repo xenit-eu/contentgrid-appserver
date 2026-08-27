@@ -87,8 +87,6 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             case DOUBLE -> mapScalarAttribute(simpleAttribute, DecimalDataEntry.class, inputData);
             case BOOLEAN -> mapScalarAttribute(simpleAttribute, BooleanDataEntry.class, inputData);
             case TEXT, UUID -> mapScalarAttribute(simpleAttribute, StringDataEntry.class, inputData);
-            case TEXT_SET -> mapMultiValueAttribute(simpleAttribute.getName(),
-                    DataType.of(simpleAttribute.getType()), inputData);
             case DATE -> mapScalarAttribute(simpleAttribute, LocalDateDataEntry.class, inputData);
             case DATETIME -> mapScalarAttribute(simpleAttribute, InstantDataEntry.class, inputData);
         };

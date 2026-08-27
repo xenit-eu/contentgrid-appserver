@@ -613,7 +613,6 @@ public class OpenApiSpecConverter {
                     case DOUBLE -> new JsonSchemaNumber().setFormat(JsonSchemaNumber.Format.DOUBLE);
                     case BOOLEAN -> new JsonSchemaBoolean();
                     case TEXT -> new JsonSchemaString();
-                    case TEXT_SET -> throw new IllegalArgumentException("TEXT_SET is not a scalar type");
                     case UUID -> new JsonSchemaString().setFormat(Format.UUID);
                     case DATE -> new JsonSchemaString().setFormat(Format.DATE);
                     case DATETIME -> new JsonSchemaString().setFormat(Format.DATE_TIME);

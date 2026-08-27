@@ -71,12 +71,7 @@ public class EntityDataConverter {
     private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, SimpleAttribute attribute) {
         checkType(attribute.getType(), data.getValue());
         var field = (Field<Object>) JOOQUtils.resolveField(attribute);
-        var value = data.getValue();
-        if (attribute.getType() == SimpleAttribute.Type.TEXT_SET && value instanceof List<?> list) {
-            // The text[] column binds as String[]; the query-engine API carries List<String>
-            value = list.toArray(String[]::new);
-        }
-        return List.of(new JOOQPair<>(field, value));
+        return List.of(new JOOQPair<>(field, data.getValue()));
     }
 
     private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, MultivalueAttribute attribute) {
@@ -129,7 +124,6 @@ public class EntityDataConverter {
                             .formatted(String.class.getSimpleName(), value.getClass().getSimpleName()));
                 }
             }
-            case TEXT_SET -> checkMultivalueType(value);
             case LONG -> {
                 var longTypes = Stream.of(int.class, long.class, Integer.class, Long.class);
                 if (longTypes.noneMatch(clazz -> clazz.isInstance(value))) {

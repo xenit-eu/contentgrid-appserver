@@ -115,13 +115,6 @@ public class EntityDataMapper {
                 }
                 throw new IllegalStateException("Value of attribute '%s' is not a string".formatted(attribute.getName()));
             }
-            case TEXT_SET -> {
-                if (value instanceof String[] strings) {
-                    yield Arrays.stream(strings).toList();
-                }
-                throw new IllegalStateException(
-                        "Value of attribute '%s' is not a text array".formatted(attribute.getName()));
-            }
             case LONG -> {
                 if (value instanceof Number number) {
                     yield number.longValue();

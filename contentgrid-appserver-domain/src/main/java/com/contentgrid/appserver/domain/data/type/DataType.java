@@ -52,7 +52,6 @@ public sealed interface DataType permits ObjectDataType, RelationDataType, Relat
             case DOUBLE -> TechnicalDataType.DECIMAL;
             case BOOLEAN -> TechnicalDataType.BOOLEAN;
             case TEXT, UUID -> TechnicalDataType.STRING;
-            case TEXT_SET -> TechnicalDataType.STRING_SET;
             case DATE -> TechnicalDataType.DATE;
             case DATETIME -> TechnicalDataType.DATETIME;
         };

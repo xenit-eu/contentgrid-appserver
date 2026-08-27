@@ -54,9 +54,6 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
         }
         try {
             return switch (attribute) {
-                case SimpleAttribute simpleAttribute when simpleAttribute.getType() == SimpleAttribute.Type.TEXT_SET ->
-                        mapMultiValueAttribute(simpleAttribute.getName(), DataType.of(simpleAttribute.getType()),
-                                inputData);
                 case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData)
                         .map(entry -> new SimpleAttributeData<>(attribute.getName(), entry.getValue()));
                 case MultivalueAttribute multivalueAttribute ->
@@ -129,7 +126,6 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
             case DOUBLE -> DecimalDataEntry.class;
             case BOOLEAN -> BooleanDataEntry.class;
             case TEXT, UUID -> StringDataEntry.class;
-            case TEXT_SET -> throw new IllegalStateException("TEXT_SET is mapped by mapMultiValueAttribute");
             case DATE -> LocalDateDataEntry.class;
             case DATETIME -> InstantDataEntry.class;
         };

@@ -662,33 +662,8 @@ class DefaultApplicationSchemaConverterTest {
     }
 
     @Test
-    void testMultivalueAttributeSerializesLikeLegacyTextSet() {
-        var multivalueApp = applicationWithTagsAttribute(MultivalueAttribute.builder()
-                .name(AttributeName.of("tags"))
-                .column(ColumnName.of("tags"))
-                .itemType(Type.TEXT)
-                .constraint(Constraint.allowedValues(List.of("urgent", "vip")))
-                .build());
-        var legacyApp = applicationWithTagsAttribute(SimpleAttribute.builder()
-                .name(AttributeName.of("tags"))
-                .column(ColumnName.of("tags"))
-                .type(Type.TEXT_SET)
-                .constraint(Constraint.allowedValues(List.of("urgent", "vip")))
-                .build());
-
-        var multivalueOut = new ByteArrayOutputStream();
-        new DefaultApplicationSchemaConverter().toJson(multivalueApp, multivalueOut);
-        var legacyOut = new ByteArrayOutputStream();
-        new DefaultApplicationSchemaConverter().toJson(legacyApp, legacyOut);
-
-        var multivalueJson = multivalueOut.toString(StandardCharsets.UTF_8);
-        assertEquals(legacyOut.toString(StandardCharsets.UTF_8), multivalueJson);
-        assertTrue(multivalueJson.contains("\"dataType\":\"text_set\""));
-    }
-
-    private static Application applicationWithTagsAttribute(
-            com.contentgrid.appserver.application.model.attributes.Attribute tagsAttribute) {
-        return Application.builder()
+    void testMultivalueAttributeSerialization() {
+        var app = Application.builder()
                 .name(ApplicationName.of("test"))
                 .entity(Entity.builder()
                         .name(EntityName.of("document"))
@@ -696,9 +671,19 @@ class DefaultApplicationSchemaConverterTest {
                         .pathSegment(PathSegmentName.of("document"))
                         .linkName(LinkName.of("document"))
                         .primaryKey(getPrimaryKey())
-                        .attribute(tagsAttribute)
+                        .attribute(MultivalueAttribute.builder()
+                                .name(AttributeName.of("tags"))
+                                .column(ColumnName.of("tags"))
+                                .itemType(Type.TEXT)
+                                .constraint(Constraint.allowedValues(List.of("urgent", "vip")))
+                                .build())
                         .build())
                 .build();
+
+        var out = new ByteArrayOutputStream();
+        new DefaultApplicationSchemaConverter().toJson(app, out);
+
+        assertTrue(out.toString(StandardCharsets.UTF_8).contains("\"dataType\":\"text_set\""));
     }
 
     private static Entity getEntity(String name, String description, String table) {

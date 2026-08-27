@@ -41,7 +41,6 @@ public class HalFormsProperty {
     public HalFormsProperty withAttributeType(SimpleAttribute.Type type) {
         var inputType = switch (type) {
             case TEXT, UUID -> HtmlInputType.TEXT_VALUE;
-            case TEXT_SET -> throw new IllegalArgumentException("TEXT_SET is not a scalar type");
             case LONG, DOUBLE -> HtmlInputType.NUMBER_VALUE;
             case BOOLEAN -> HtmlInputType.CHECKBOX_VALUE;
             case DATE -> HtmlInputType.DATE_VALUE;

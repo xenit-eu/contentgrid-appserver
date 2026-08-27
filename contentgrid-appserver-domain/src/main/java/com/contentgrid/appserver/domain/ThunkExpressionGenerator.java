@@ -108,12 +108,6 @@ public class ThunkExpressionGenerator {
         };
     }
 
-    private static boolean isMultiValued(Attribute attribute) {
-        return attribute instanceof MultivalueAttribute
-                || (attribute instanceof SimpleAttribute simpleAttribute
-                        && simpleAttribute.getType() == SimpleAttribute.Type.TEXT_SET);
-    }
-
     private static Scalar<?> parseValueToScalar(SimpleAttribute.Type type, String value) {
         if (value == null) {
             throw new IllegalArgumentException("null is not supported");
@@ -123,8 +117,7 @@ public class ThunkExpressionGenerator {
             case LONG -> Scalar.of(Long.parseLong(value));
             case DOUBLE -> Scalar.of(new BigDecimal(value));
             case BOOLEAN -> Scalar.of(Boolean.parseBoolean(value));
-            // A TEXT_SET filter value is a single string: it is compared against each element
-            case TEXT, TEXT_SET -> {
+            case TEXT -> {
                 if (value.indexOf('\u0000') >= 0) {
                     throw new IllegalArgumentException(NulByteValidator.ERROR_MESSAGE);
                 }
@@ -160,7 +153,7 @@ public class ThunkExpressionGenerator {
             return switch (attrFilter.getOperation()) {
                 case EXACT -> {
                     var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
-                    if (isMultiValued(attribute)) {
+                    if (attribute instanceof MultivalueAttribute) {
                         // Any element matches any of the values: one overlap expression carries all values
                         yield StringComparison.contentGridArraySearchMatch(attr,
                                 new SetValue(new LinkedHashSet<>(values)));
