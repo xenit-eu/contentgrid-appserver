@@ -4,7 +4,6 @@ import static org.springframework.boot.security.autoconfigure.web.servlet.Securi
 
 import com.contentgrid.appserver.actuator.policy.PolicyBundleActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyBundleEtagFilter;
-import com.contentgrid.appserver.actuator.policy.PolicyBundleSource;
 import org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration;
 import org.springframework.boot.actuate.endpoint.EndpointId;
 import org.springframework.boot.actuate.endpoint.web.PathMappedEndpoints;
@@ -34,10 +33,10 @@ public class PolicyBundleEtagManagementContextConfiguration {
     private static final int FILTER_ORDER = DEFAULT_FILTER_ORDER + 10;
 
     @Bean
-    @ConditionalOnBean(PolicyBundleSource.class)
+    @ConditionalOnBean(PolicyBundleActuator.class)
     FilterRegistrationBean<PolicyBundleEtagFilter> policyBundleEtagFilterRegistration(
-            PolicyBundleSource policyBundleSource, PathMappedEndpoints pathMappedEndpoints) {
-        var registration = new FilterRegistrationBean<>(new PolicyBundleEtagFilter(policyBundleSource));
+            PathMappedEndpoints pathMappedEndpoints) {
+        var registration = new FilterRegistrationBean<>(new PolicyBundleEtagFilter());
         registration.setOrder(FILTER_ORDER);
 
         var path = pathMappedEndpoints.getPath(EndpointId.of(PolicyBundleActuator.ENDPOINT_ID));

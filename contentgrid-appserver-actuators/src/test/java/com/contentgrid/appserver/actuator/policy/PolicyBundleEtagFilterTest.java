@@ -2,10 +2,8 @@ package com.contentgrid.appserver.actuator.policy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
-import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -16,15 +14,11 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 class PolicyBundleEtagFilterTest {
 
-    private PolicyBundleSource policyBundleSource;
     private PolicyBundleEtagFilter filter;
 
     @BeforeEach
     void setUp() {
-        var blueprintArtifact = new ClassPathBlueprintArtifact(getClass().getClassLoader(),
-                Path.of("blueprint-artifact"));
-        policyBundleSource = new PolicyBundleSource(blueprintArtifact, null);
-        filter = new PolicyBundleEtagFilter(policyBundleSource);
+        filter = new PolicyBundleEtagFilter();
     }
 
     @Test
@@ -43,15 +37,15 @@ class PolicyBundleEtagFilterTest {
 
     @Test
     void repeatRequestIsNotModifiedAndNeverReachesTheEndpoint() throws Exception {
-        var etag = policyBundleSource.load().etag();
+        var etag = etagOf(getResponse());
         var response = new MockHttpServletResponse();
         var chain = new MockFilterChain();
 
-        filter.doFilter(request("\"%s\"".formatted(etag)), response, chain);
+        filter.doFilter(request(etag), response, chain);
 
         assertThat(response.getStatus()).isEqualTo(HttpStatus.NOT_MODIFIED.value());
         assertThat(response.getContentLength()).isZero();
-        assertThat(response.getHeader(HttpHeaders.ETAG)).isEqualTo("\"%s\"".formatted(etag));
+        assertThat(response.getHeader(HttpHeaders.ETAG)).isEqualTo(etag);
         assertThat(chain.getRequest()).as("the endpoint should not have been reached").isNull();
     }
 
@@ -67,10 +61,10 @@ class PolicyBundleEtagFilterTest {
 
     @Test
     void etagIsStableAcrossRequests() throws ServletException, IOException {
-        assertThat(etagOf(firstResponse())).isEqualTo(etagOf(firstResponse()));
+        assertThat(etagOf(getResponse())).isEqualTo(etagOf(getResponse()));
     }
 
-    private MockHttpServletResponse firstResponse() throws ServletException, IOException {
+    private MockHttpServletResponse getResponse() throws ServletException, IOException {
         var response = new MockHttpServletResponse();
         filter.doFilter(request(null), response, new MockFilterChain());
         return response;

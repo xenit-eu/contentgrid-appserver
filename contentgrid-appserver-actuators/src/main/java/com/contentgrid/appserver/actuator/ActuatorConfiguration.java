@@ -3,7 +3,6 @@ package com.contentgrid.appserver.actuator;
 import com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
 import com.contentgrid.appserver.actuator.policy.PolicyBundleActuator;
-import com.contentgrid.appserver.actuator.policy.PolicyBundleSource;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
@@ -32,14 +31,9 @@ public class ActuatorConfiguration {
     }
 
     @Bean
-    PolicyBundleSource policyBundleSource(BlueprintArtifact blueprintArtifact,
+    PolicyBundleActuator policyBundleActuator(BlueprintArtifact blueprintArtifact,
             ContentgridApplicationProperties properties) {
-        return new PolicyBundleSource(blueprintArtifact, properties.getSystem().getPolicyPackage());
-    }
-
-    @Bean
-    PolicyBundleActuator policyBundleActuator(PolicyBundleSource policyBundleSource) {
-        return new PolicyBundleActuator(policyBundleSource);
+        return new PolicyBundleActuator(blueprintArtifact, properties.getSystem().getPolicyPackage());
     }
 
     @Bean
