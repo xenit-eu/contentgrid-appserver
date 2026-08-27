@@ -761,6 +761,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many"
@@ -860,6 +861,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many_bidirectional"
@@ -1428,6 +1430,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many"
@@ -1527,6 +1530,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many_bidirectional"
@@ -2541,6 +2545,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as many_to_many_inverse"
@@ -2818,6 +2823,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as one_to_many_inverse"
@@ -3603,6 +3609,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -3626,6 +3633,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         many_to_many_bidirectional:
           type: "array"
           title: "Many to many bidirectional"
@@ -3635,6 +3643,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_bidirectional:
           type:
           - "string"
@@ -3680,6 +3689,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3698,6 +3708,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -3721,6 +3732,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         many_to_many_bidirectional:
           type: "array"
           title: "Many to many bidirectional"
@@ -3730,6 +3742,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_bidirectional:
           type: "string"
           format: "uri"
@@ -3767,6 +3780,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3785,6 +3799,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -3808,6 +3823,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         many_to_many_bidirectional:
           type: "array"
           title: "Many to many bidirectional"
@@ -3817,6 +3833,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_bidirectional:
           type: "string"
           format: "uri"
@@ -3854,6 +3871,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3962,6 +3980,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_inverse:
           type:
           - "string"
@@ -3978,6 +3997,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
     entity-bPostFormBody:
       type: "object"
       title: "Entity b"
@@ -3998,6 +4018,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_inverse:
           type: "string"
           format: "uri"
@@ -4012,6 +4033,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
     entity-bPostMultipartFormDataBody:
       type: "object"
       title: "Entity b"
@@ -4032,6 +4054,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_inverse:
           type: "string"
           format: "uri"
@@ -4046,6 +4069,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
     entity-bPutBody:
       type: "object"
       title: "Entity b"

@@ -23,8 +23,7 @@ public class ArrayBodyValue extends BodyValue {
     BodyValue items;
 
     /**
-     * The array is a set: it never contains the same value twice. Only set for multi-value attributes,
-     * not for to-many relations.
+     * The array is a set: it never contains the same value twice.
      */
     @Builder.Default
     boolean uniqueItems = false;

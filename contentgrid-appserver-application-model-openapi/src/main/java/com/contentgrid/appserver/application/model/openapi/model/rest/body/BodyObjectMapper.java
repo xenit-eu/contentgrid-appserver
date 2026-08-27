@@ -147,9 +147,11 @@ public final class BodyObjectMapper {
                 // Multi-valued relations are an array
                 if (relation instanceof OneToManyRelation
                         || relation instanceof ManyToManyRelation) {
-                    // The array for to-many relations can't contain null values, and can not be null itself (it can be left out)
+                    // The array for to-many relations can't contain null values, can't contain the
+                    // same relation target twice, and can not be null itself (it can be left out)
                     relationValue = ArrayBodyValue.builder()
                             .items(relationValue.withNullable(false))
+                            .uniqueItems(true)
                             .nullable(false)
                             .build();
                 } else {

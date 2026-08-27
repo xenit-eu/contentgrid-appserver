@@ -99,19 +99,15 @@ public class JsonSchemaAssembler {
 
 
         return switch (entry.getValue()) {
-            case ArrayBodyValue arrayBodyValue -> {
-                if (arrayBodyValue.getItems() instanceof RelationBodyValue) {
-                    yield property.asAssociationArray();
-                }
-                if (arrayBodyValue.getItems() instanceof SimpleBodyValue itemValue
-                        && itemValue.getType() == SimpleAttribute.Type.TEXT) {
-                    var allowedValues = itemValue.getConstraint(AllowedValuesConstraint.class)
-                            .map(AllowedValuesConstraint::getValues)
-                            .orElse(null);
-                    yield property.asStringArray(allowedValues);
-                }
-                throw new IllegalArgumentException("Array value with non-relation body is not supported");
-            }
+            case ArrayBodyValue arrayBodyValue -> switch (arrayBodyValue.getItems()) {
+                case RelationBodyValue ignored -> property.asAssociationArray();
+                case SimpleBodyValue itemValue when itemValue.getType() == SimpleAttribute.Type.TEXT ->
+                        property.asStringArray(itemValue.getConstraint(AllowedValuesConstraint.class)
+                                .map(AllowedValuesConstraint::getValues)
+                                .orElse(null));
+                default -> throw new IllegalArgumentException(
+                        "Array value with items %s is not supported".formatted(arrayBodyValue.getItems()));
+            };
             case RelationBodyValue relationBodyValue -> property.asAssociation();
             case ContentBodyValue contentBodyValue -> throw new IllegalArgumentException("Content value is not supported");
             case ObjectBodyValue objectBodyValue -> {
