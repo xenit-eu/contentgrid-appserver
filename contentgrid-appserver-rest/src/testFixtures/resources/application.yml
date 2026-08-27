@@ -8,6 +8,8 @@ spring:
       max-request-size: -1
   datasource:
     url: jdbc:tc:postgresql:15:///
+    hikari:
+      maximum-pool-size: 4
 server:
   tomcat:
     max-part-count: 200
