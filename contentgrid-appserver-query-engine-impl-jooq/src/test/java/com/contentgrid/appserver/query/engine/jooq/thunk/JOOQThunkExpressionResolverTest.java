@@ -1475,5 +1475,24 @@ class JOOQThunkExpressionResolverTest {
         var condition = RESOLVER.resolveExpression(expression, context);
         assertEquals(DSL.falseCondition(), condition);
     }
+
+    static Stream<Arguments> arrayAttributeComparisonExpressions() {
+        return Stream.of(
+                Arguments.argumentSet("STRING_SET = STRING_SET",
+                        Comparison.areEqual(SymbolicReference.parse("entity.labels"),
+                                SymbolicReference.parse("entity.labels"))),
+                Arguments.argumentSet("STRING_SET != STRING_SET",
+                        Comparison.notEqual(SymbolicReference.parse("entity.labels"),
+                                SymbolicReference.parse("entity.labels")))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrayAttributeComparisonExpressions")
+    void arrayAttributeComparisonIsFalse(ThunkExpression<Boolean> expression) {
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        var condition = RESOLVER.resolveExpression(expression, context);
+        assertEquals(DSL.falseCondition(), condition);
+    }
 }
 
