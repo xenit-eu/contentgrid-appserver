@@ -90,7 +90,7 @@ public class JOOQThunkExpressionResolver {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (!sameType(left, right)) {
+                    if (isArray(left) || isArray(right) || !sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
                         yield DSL.falseCondition();
                     }
@@ -104,7 +104,7 @@ public class JOOQThunkExpressionResolver {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (!sameType(left, right)) {
+                    if (isArray(left) || isArray(right) || !sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
                         yield DSL.falseCondition();
                     }
@@ -340,6 +340,15 @@ public class JOOQThunkExpressionResolver {
             if (terms.size() != 2) {
                 throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
             }
+        }
+
+        /**
+         * SQL array equality is order- and duplicate-sensitive, which is not the set semantics of a
+         * multi-value attribute, so equality over arrays degrades to a non-matching condition until
+         * multi-value policy semantics are defined (ACC-3095).
+         */
+        private static boolean isArray(Field<?> field) {
+            return field.getDataType().isArray();
         }
 
         private static boolean sameType(Field<?> left, Field<?> right) {
