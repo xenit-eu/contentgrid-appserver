@@ -5,26 +5,34 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
-import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
+import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
+import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.authorization.AuthorizationManager;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
@@ -36,14 +44,16 @@ import org.springframework.web.util.UriTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-@SpringBootTest(properties = {
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
         "contentgrid.events.rabbitmq.enabled=false",
         "contentgrid.thunx.abac.source=opa",
         "opa.query=data.contentgrid.appserver.allow == true",
+        "management.endpoints.web.exposure.include=*",
 })
 @ContextConfiguration(classes = {InvoicingApiApplication.class, OpaResidualAuthorizationTest.NoOpJwtDecoderConfiguration.class})
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
@@ -53,18 +63,61 @@ class OpaResidualAuthorizationTest {
 
     private static final String JWT_ISSUER = "https://tenant.example.com";
 
+    /**
+     * Fixed so it can be handed to OPA before the application binds it. OPA retries its bundle poll, so it
+     * tolerates the port not listening yet when the container starts.
+     */
+    private static final int MANAGEMENT_PORT = freePort();
+
+    static {
+        // Makes the host's management port reachable from inside the OPA container as host.testcontainers.internal.
+        org.testcontainers.Testcontainers.exposeHostPorts(MANAGEMENT_PORT);
+    }
+
     @Container
     static GenericContainer<?> opa = new GenericContainer<>("openpolicyagent/opa:1.15.2-static")
+            .withCopyToContainer(Transferable.of("""
+                    services:
+                      - name: appserver
+                        url: http://host.testcontainers.internal:%d/actuator
+                    bundles:
+                      contentgrid:
+                        service: appserver
+                        resource: policybundle
+                        polling:
+                          min_delay_seconds: 1
+                          max_delay_seconds: 10
+                    """.formatted(MANAGEMENT_PORT)), "/config.yaml")
             .withCommand("run", "--server", "--log-format=json-pretty", "--set=decision_logs.console=true",
-                    "--addr", "0.0.0.0:8181")
+                    "--config-file=/config.yaml", "--addr", "0.0.0.0:8181")
             .withExposedPorts(8181)
             .withLogConsumer(new Slf4jLogConsumer(logger))
+            // Only wait for health, not bundles since bundles requires the appserver application
             .waitingFor(Wait.forHttp("/health").forPort(8181));
 
     @DynamicPropertySource
     static void opaProperties(DynamicPropertyRegistry registry) {
         registry.add("opa.service.url",
                 () -> "http://%s:%d".formatted(opa.getHost(), opa.getMappedPort(8181)));
+        registry.add("management.server.port", () -> MANAGEMENT_PORT);
+    }
+
+    /**
+     * Waits until OPA reports every configured bundle as activated, which it can only do once it has pulled
+     * the bundle from {@code /actuator/policybundle}. This cannot be the container's wait strategy: the
+     * application only starts after the container does, so the container would never become ready.
+     * <p>
+     * This is {@code @BeforeEach} rather than {@code @BeforeAll} because the spring context is created during
+     * test instance post-processing, which runs after {@code @BeforeAll}. Only the first call actually waits.
+     */
+    @BeforeEach
+    void awaitBundleActivation() {
+        try (var client = HttpClient.newHttpClient()) {
+            Awaitility.await("OPA to activate the bundle pulled from the policy bundle endpoint")
+                    .atMost(Duration.ofSeconds(10))
+                    .pollInterval(Duration.ofMillis(800))
+                    .until(() -> bundlesAreActivated(client));
+        }
     }
 
     @Autowired
@@ -154,14 +207,34 @@ class OpaResidualAuthorizationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    private static boolean bundlesAreActivated(HttpClient client) {
+        try {
+            return client.send(HttpRequest.newBuilder()
+                    .uri(URI.create("http://%s:%d%s".formatted(opa.getHost(), opa.getMappedPort(8181),
+                            "/health?bundles=true")))
+                    .build(), BodyHandlers.discarding()).statusCode() == 200;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static int freePort() {
+        try (var socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        } catch (IOException e) {
+            throw new IllegalStateException("no free port for the management server", e);
+        }
+    }
+
     @TestConfiguration(proxyBeanMethods = false)
     static class NoOpJwtDecoderConfiguration {
 
         /**
-         * Only needs to exist so {@link com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration#opaSecurityFilterChain(HttpSecurity, AuthorizationManager)}'s
-         * {@code @ConditionalOnBean(JwtDecoder.class)} activates. Every request here authenticates via
-         * {@code jwtRequestProcessor()}, which injects the {@code Authentication} directly,
-         * so this decoder is never actually invoked.
+         * Only needs to exist so {@link com.contentgrid.appserver.autoconfigure.security.DefaultSecurityAutoConfiguration#securityFilterChain}'s
+         * {@code ObjectProvider<JwtDecoder.class>} is satisfied.
          */
         @Bean
         JwtDecoder jwtDecoder() {

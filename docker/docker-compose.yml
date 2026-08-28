@@ -7,5 +7,16 @@ services:
       - "--addr=0.0.0.0:8181"
       - "--log-format=json-pretty"
       - "--set=decision_logs.console=true"
+      - "--config-file=/config/opa-config.yaml"
+    volumes:
+      - ./opa/config.yaml:/config/opa-config.yaml:ro
+    environment:
+      # Host the bundle service is reached on, substituted into opa/config.yaml.
+      # Defaults to the linux docker0 bridge; on docker desktop / rancher desktop,
+      # export DOCKER_HOST_IP=host.docker.internal
+      DOCKER_HOST_IP: ${DOCKER_HOST_IP:-172.17.0.1}
+    extra_hosts:
+      # allows the bundle service url to reach the appserver management port on the host
+      - "host.docker.internal:host-gateway"
     ports:
       - "8181:8181"

@@ -52,7 +52,8 @@ public class DefaultSecurityAutoConfiguration {
     /**
      * Fails application startup outright if thunx is configured to authorize through OPA while
      * {@code contentgrid.system.policyPackage} is also set (i.e. centralized/Solon mode).
-     * In the centralized OPA mode, no policy is pushed to OPA. So it would be inconsistent to authorize through OPA.
+     * In the centralized OPA mode, the policy is collected by Solon and served from a central OPA,
+     * so it would be inconsistent to authorize through a sidecar OPA.
      */
     @Bean
     @ConditionalOnProperty(IsOpaSidecarModeCondition.PROPERTY_POLICY_PACKAGE)

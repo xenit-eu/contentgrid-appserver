@@ -9,15 +9,6 @@ spring:
       enabled: true
       file: ../docker/docker-compose.yml
 
-management:
-  endpoint:
-    health:
-      group:
-        readiness:
-          include:
-            - readinessState
-            - opa
-
 opa:
   service:
     url: http://localhost:8181

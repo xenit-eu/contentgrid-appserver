@@ -26,7 +26,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
         }
 )
 @AutoConfigureRestTestClient
-public class ActuatorConfigurationTest {
+class ActuatorConfigurationTest {
     @Autowired
     private RestTestClient rest;
 
@@ -64,6 +64,19 @@ public class ActuatorConfigurationTest {
                         "application/vnd.cncf.openpolicyagent.policy.layer.v1+rego;charset=UTF-8")
                 .expectBody(String.class)
                 .value(body -> assertThat(body).contains("xfb0")); // templating works
+    }
+
+    @Test
+    void policyBundleEndpointIsPublic() {
+        var body = rest.get().uri("http://localhost:" + managementPort + "/actuator/policybundle")
+                .exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectHeader().valueEquals("Content-Type", "application/gzip")
+                .expectBody(byte[].class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(body).isNotNull();
     }
 
     @Test

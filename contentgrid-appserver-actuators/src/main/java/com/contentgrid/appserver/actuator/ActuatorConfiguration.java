@@ -2,6 +2,7 @@ package com.contentgrid.appserver.actuator;
 
 import com.contentgrid.appserver.actuator.policy.IsOpaSidecarModeCondition;
 import com.contentgrid.appserver.actuator.policy.PolicyActuator;
+import com.contentgrid.appserver.actuator.policy.PolicyBundleActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookConfigActuator;
 import com.contentgrid.appserver.actuator.webhooks.WebhookVariables;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
@@ -27,6 +28,17 @@ public class ActuatorConfiguration {
     @ConditionalOnBean(PolicyActuator.class)
     ExposedActuatorEndpoint exposedPolicyActuatorEndpoint() {
         return new ExposedActuatorEndpoint(PolicyActuator.class);
+    }
+
+    @Bean
+    PolicyBundleActuator policyBundleActuator(BlueprintArtifact blueprintArtifact,
+            ContentgridApplicationProperties properties) {
+        return new PolicyBundleActuator(blueprintArtifact, properties.getSystem().getPolicyPackage());
+    }
+
+    @Bean
+    ExposedActuatorEndpoint exposedPolicyBundleActuatorEndpoint() {
+        return new ExposedActuatorEndpoint(PolicyBundleActuator.class);
     }
 
     @Bean

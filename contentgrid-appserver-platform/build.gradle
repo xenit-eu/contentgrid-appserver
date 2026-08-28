@@ -27,5 +27,6 @@ dependencies {
         api 'uk.co.datumedge:hamcrest-json:0.3'
 
         api 'commons-io:commons-io:2.22.0'
+        api 'org.apache.commons:commons-compress:1.28.0'
     }
 }

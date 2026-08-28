@@ -1,0 +1,18 @@
+# OPA management config: pull the policy bundle from the appserver actuator endpoint
+# instead of having the appserver push the policy via the OPA policy API.
+services:
+  - name: appserver
+    # OPA fetches <url>/<resource>, i.e. http://<host>:8081/actuator/policybundle.
+    # OPA only substitutes plain ${VAR}, so the default for DOCKER_HOST_IP is applied by docker compose.
+    url: http://${DOCKER_HOST_IP}:8081/actuator
+
+bundles:
+  contentgrid:
+    service: appserver
+    resource: policybundle
+    polling:
+      min_delay_seconds: 10
+      max_delay_seconds: 60
+
+status:
+  console: true
