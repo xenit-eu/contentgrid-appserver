@@ -6,6 +6,7 @@ import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import java.time.Duration;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -23,6 +24,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
         NettyNioAsyncHttpClient.class})
 @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "s3")
 @EnableConfigurationProperties(S3Properties.class)
+@Slf4j
 public class S3ContentStoreAutoConfiguration {
 
     @ConfigurationProperties(prefix = "contentgrid.appserver.content.s3")
@@ -40,6 +42,7 @@ public class S3ContentStoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     S3AsyncClient s3AsyncClient(S3Properties properties) {
+        var started = System.nanoTime();
         // connection-pool-size 0 (the default) means connections must not be re-used at all (ACC-2696):
         // no-reuse is enforced with a `Connection: close` header on every request. With a pool, its size
         // caps the number of concurrent connections, and idle connections are kept around for the
@@ -52,7 +55,7 @@ public class S3ContentStoreAutoConfiguration {
                     .connectionMaxIdleTime(Duration.ofSeconds(properties.connectionPoolKeepAliveSeconds()));
         }
 
-        return S3ClientFactory.createS3AsyncClient(
+        var client = S3ClientFactory.createS3AsyncClient(
                 properties.url(),
                 properties.accessKey(),
                 properties.secretKey(),
@@ -61,6 +64,9 @@ public class S3ContentStoreAutoConfiguration {
                 httpClientBuilder,
                 reuseConnections
         );
+        log.info("Startup timing: created content-store S3 client in {} ms",
+                (System.nanoTime() - started) / 1_000_000);
+        return client;
     }
 
     @Bean
