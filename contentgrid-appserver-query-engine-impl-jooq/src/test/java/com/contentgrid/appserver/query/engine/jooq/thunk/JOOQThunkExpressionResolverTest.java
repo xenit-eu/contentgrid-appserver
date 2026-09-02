@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -62,11 +63,14 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -111,6 +115,12 @@ class JOOQThunkExpressionResolverTest {
             .type(Type.TEXT)
             .build();
 
+    private static final MultivalueAttribute PERSON_TAGS = MultivalueAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .itemType(Type.TEXT)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -119,6 +129,12 @@ class JOOQThunkExpressionResolverTest {
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .attribute(PERSON_COMMENT)
+            .attribute(PERSON_TAGS)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.CONTAINS)
+                    .attribute(PERSON_TAGS)
+                    .name(FilterName.of("tags"))
+                    .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -255,6 +271,12 @@ class JOOQThunkExpressionResolverTest {
             .flag(ETagFlag.INSTANCE)
             .build();
 
+    private static final MultivalueAttribute INVOICE_LABELS = MultivalueAttribute.builder()
+            .name(AttributeName.of("labels"))
+            .column(ColumnName.of("labels"))
+            .itemType(Type.TEXT)
+            .build();
+
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
@@ -267,6 +289,7 @@ class JOOQThunkExpressionResolverTest {
             .attribute(INVOICE_PAY_BEFORE)
             .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
+            .attribute(INVOICE_LABELS)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .searchFilter(AttributeSearchFilter.builder()
@@ -469,11 +492,16 @@ class JOOQThunkExpressionResolverTest {
                         DSL.field(DSL.name("id"), UUID.class),
                         DSL.field(DSL.name("name"), String.class),
                         DSL.field(DSL.name("vat"), String.class),
-                        DSL.field(DSL.name("comment"), String.class))
-                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.")
-                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.")
-                .values(JOHN_ID, "john", "vat_3", "Just a random comment.")
-                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.")
+                        DSL.field(DSL.name("comment"), String.class),
+                        DSL.field(DSL.name("tags"), String[].class))
+                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.",
+                        new String[] {"urgent", "vip"})
+                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.",
+                        new String[] {"vip"})
+                .values(JOHN_ID, "john", "vat_3", "Just a random comment.",
+                        new String[] {})
+                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.",
+                        new String[] {"file"})
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("french-person")),
                         DSL.field(DSL.name("id"), UUID.class),
@@ -660,6 +688,52 @@ class JOOQThunkExpressionResolverTest {
                 .fetch()
                 .intoSet("name", String.class);
         assertEquals(Set.of("Thĳs"), results);
+    }
+
+    private Set<String> findPersonsWithArraySearch(String... values) {
+        var searchValues = Arrays.stream(values).<Scalar<?>>map(value -> Scalar.of(value))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
+                new SetValue(searchValues)
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = RESOLVER.resolveExpression(expression, context);
+        return dslContext.selectFrom(table)
+                .where(condition)
+                .fetch()
+                .intoSet("name", String.class);
+    }
+
+    static Stream<Arguments> findWithArraySearch() {
+        return Stream.of(
+                Arguments.argumentSet("any element matches the value",
+                        Set.of("alice"), new String[] {"urgent"}),
+                Arguments.argumentSet("multiple values are a disjunction: any element matches any value",
+                        Set.of("alice", "bob"), new String[] {"urgent", "vip"}),
+                Arguments.argumentSet("search normalizes NFKC only: case and accents are significant",
+                        Set.of(), new String[] {"URGENT"}),
+                Arguments.argumentSet("the ﬁ ligature NFKC-normalizes to fi, matching the stored element 'file'",
+                        Set.of("Thĳs"), new String[] {"ﬁle"})
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void findWithArraySearch(Set<String> expectedNames, String[] searchValues) {
+        assertEquals(expectedNames, findPersonsWithArraySearch(searchValues));
+    }
+
+    @Test
+    void arraySearchOnScalarAttributeIsFalse() {
+        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                new SetValue(Set.of(Scalar.of("alice")))
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var condition = RESOLVER.resolveExpression(expression, context);
+        assertEquals(DSL.falseCondition(), condition);
     }
 
     @Test
@@ -1322,6 +1396,7 @@ class JOOQThunkExpressionResolverTest {
 
     private static final Map<String, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
             "STRING", SymbolicReference.parse("entity.number"),
+            "STRING_SET", SymbolicReference.parse("entity.labels"),
             "NUMBER", SymbolicReference.parse("entity.amount"),
             "BOOLEAN", SymbolicReference.parse("entity.is_paid"),
             "DATE", SymbolicReference.parse("entity.received"),
@@ -1392,6 +1467,25 @@ class JOOQThunkExpressionResolverTest {
     @ParameterizedTest
     @MethodSource("incompatibleExpressions")
     void findExpressionWithFaultyIamConfig(ThunkExpression<Boolean> expression) {
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        var condition = RESOLVER.resolveExpression(expression, context);
+        assertEquals(DSL.falseCondition(), condition);
+    }
+
+    static Stream<Arguments> arrayAttributeComparisonExpressions() {
+        return Stream.of(
+                Arguments.argumentSet("STRING_SET = STRING_SET",
+                        Comparison.areEqual(SymbolicReference.parse("entity.labels"),
+                                SymbolicReference.parse("entity.labels"))),
+                Arguments.argumentSet("STRING_SET != STRING_SET",
+                        Comparison.notEqual(SymbolicReference.parse("entity.labels"),
+                                SymbolicReference.parse("entity.labels")))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("arrayAttributeComparisonExpressions")
+    void arrayAttributeComparisonIsFalse(ThunkExpression<Boolean> expression) {
         var context = new JOOQContext(APPLICATION, INVOICE);
         var condition = RESOLVER.resolveExpression(expression, context);
         assertEquals(DSL.falseCondition(), condition);

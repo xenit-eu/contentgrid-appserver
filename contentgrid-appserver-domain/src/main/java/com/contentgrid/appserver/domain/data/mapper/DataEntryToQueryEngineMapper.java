@@ -2,7 +2,9 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -12,6 +14,7 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
@@ -25,12 +28,15 @@ import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.type.DataType;
+import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +56,9 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData)
                         .map(entry -> new SimpleAttributeData<>(attribute.getName(), entry.getValue()));
+                case MultivalueAttribute multivalueAttribute ->
+                        mapMultiValueAttribute(multivalueAttribute.getName(), DataType.of(multivalueAttribute),
+                                inputData);
                 case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
             };
         } catch (InvalidDataException e) {
@@ -91,6 +100,24 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
             return Optional.of((ScalarDataEntry) inputData);
         }
         throw new InvalidDataTypeException(DataType.of(expectedType), DataType.of(inputData));
+    }
+
+    private Optional<AttributeData> mapMultiValueAttribute(AttributeName attributeName, DataType attributeType,
+            DataEntry inputData) throws InvalidDataTypeException {
+        if(inputData instanceof NullDataEntry) {
+            return Optional.of(new SimpleAttributeData<>(attributeName, List.<String>of()));
+        }
+        if(inputData instanceof ListDataEntry listDataEntry) {
+            var values = new ArrayList<String>(listDataEntry.getItems().size());
+            for (var item : listDataEntry.getItems()) {
+                if (!(item instanceof StringDataEntry stringDataEntry)) {
+                    throw new InvalidDataTypeException(TechnicalDataType.STRING, DataType.of(item));
+                }
+                values.add(stringDataEntry.getValue());
+            }
+            return Optional.of(new SimpleAttributeData<>(attributeName, List.copyOf(values)));
+        }
+        throw new InvalidDataTypeException(attributeType, DataType.of(inputData));
     }
 
     private Class<ScalarDataEntry> getTypeForAttribute(@NonNull SimpleAttribute.Type type) {

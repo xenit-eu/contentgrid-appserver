@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.entity;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.problemDetails;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -40,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -368,6 +370,192 @@ class EntityRestControllerTest {
                                     .withField("field", "name")
                                     .withField("expected_type", "string")
                                     .withField("format_error", "Text must not contain the NUL character (0x00)")
+                            ));
+        }
+
+        @Test
+        void testCreateEntityWithTextSetAttribute() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-1");
+            person.put("tags", List.of("urgent", "ethias"));
+
+            var location = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "ethias")))
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "ethias")));
+        }
+
+        @Test
+        void testCreateEntityWithoutTextSetAttributeReturnsEmptyArray() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-2");
+
+            mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testCreateEntityWithRepeatedTextSetFormField() throws Exception {
+            mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("name", "Alice")
+                            .param("vat", "vat-tags-3")
+                            .param("tags", "urgent", "vip"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
+        }
+
+        @Test
+        void testFailToCreateEntityWithDuplicateTextSetElement() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-4");
+            person.put("tags", List.of("urgent", "vip", "urgent"));
+
+            mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e
+                                    .withType("https://contentgrid.cloud/problems/input/validation/duplicate-element")
+                                    .withTitle("Duplicate value in list")
+                                    .withDetail("The value 'urgent' is present more than once")
+                                    .withField("field", "tags")
+                                    .withField("duplicate_value", "urgent")
+                            ));
+        }
+
+        @Test
+        void testPutWithoutTextSetAttributeClearsSet() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-6");
+            person.put("tags", List.of("urgent", "vip"));
+
+            var location = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            person.remove("tags");
+            mockMvc.perform(put(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testPatchTextSetAttribute() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-7");
+            person.put("tags", List.of("urgent", "vip"));
+
+            var location = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            // Omitting the attribute on PATCH keeps the value
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"name": "Bob"}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("Bob"))
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
+
+            // A new value on PATCH replaces the whole set
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"tags": ["billing"]}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("billing")));
+
+            // An explicit null on PATCH clears the set
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"tags": null}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testCreateEntityWithExplicitEmptyTextSetList() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-9");
+            person.put("tags", List.of());
+
+            mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testCreateEntityWithRepeatedTextSetMultipartField() throws Exception {
+            mockMvc.perform(multipart("/persons")
+                            .param("name", "Alice")
+                            .param("vat", "vat-tags-8")
+                            .param("tags", "urgent", "vip"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
+        }
+
+        @Test
+        void testFailToCreateEntityWithNullTextSetElement() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-5");
+            person.put("tags", Arrays.asList("urgent", null));
+
+            mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/type")
+                                    .withField("field", "tags")
+                                    .withField("expected_type", "string")
+                                    .withField("actual_type", "null")
                             ));
         }
 
@@ -787,6 +975,10 @@ class EntityRestControllerTest {
                                             {
                                                 name: "gender",
                                                 prompt: "gender"
+                                            },
+                                            {
+                                                name: "tags",
+                                                prompt: "Tags"
                                             }
                                         ]
                                     }
@@ -1072,6 +1264,43 @@ class EntityRestControllerTest {
                     .getResponse();
 
             mockMvc.perform(get("/invoices" + queryParams))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$._embedded.item.length()", is(results)));
+        }
+
+        static Stream<Arguments> testListPersons_withTagsFilter() {
+            return Stream.of(
+                    Arguments.of("?tags=urgent", 1),
+                    // Repeated parameters are a disjunction: any element matches any value
+                    Arguments.of("?tags=urgent&tags=vip", 2),
+                    // Exact search normalizes NFKC only: case is significant
+                    Arguments.of("?tags=URGENT", 0)
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void testListPersons_withTagsFilter(String queryParams, int results) throws Exception {
+            var alice = new HashMap<String, Object>();
+            alice.put("name", "Alice");
+            alice.put("vat", "vat-tags-list-1");
+            alice.put("tags", List.of("urgent", "vip"));
+            var bob = new HashMap<String, Object>();
+            bob.put("name", "Bob");
+            bob.put("vat", "vat-tags-list-2");
+            bob.put("tags", List.of("vip"));
+            var carol = new HashMap<String, Object>();
+            carol.put("name", "Carol");
+            carol.put("vat", "vat-tags-list-3");
+
+            for (var person : List.of(alice, bob, carol)) {
+                mockMvc.perform(post("/persons")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(jsonMapper.writeValueAsString(person)))
+                        .andExpect(status().isCreated());
+            }
+
+            mockMvc.perform(get("/persons" + queryParams))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$._embedded.item.length()", is(results)));
         }

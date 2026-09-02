@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
@@ -34,6 +35,8 @@ public abstract class AbstractDescendingAttributeMapper implements AttributeMapp
         try {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute -> mapSimpleAttribute(path, simpleAttribute, inputData);
+                case MultivalueAttribute multivalueAttribute ->
+                        mapMultivalueAttribute(path, multivalueAttribute, inputData);
                 case CompositeAttribute compositeAttribute -> mapCompositeAttribute(path, compositeAttribute, inputData);
             };
         } catch (InvalidDataException e) {
@@ -43,6 +46,9 @@ public abstract class AbstractDescendingAttributeMapper implements AttributeMapp
 
     protected abstract Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData)
             throws InvalidDataException;
+
+    protected abstract Optional<DataEntry> mapMultivalueAttribute(AttributePath path, MultivalueAttribute multivalueAttribute,
+            DataEntry inputData) throws InvalidDataException;
 
     protected abstract Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(AttributePath path, CompositeAttribute attribute,
             DataEntry inputData) throws InvalidDataException;

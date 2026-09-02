@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -48,6 +49,14 @@ public class EntityDataConverter {
                             .formatted(data.getName(), SimpleAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
                 }
             }
+            case MultivalueAttribute multivalueAttribute -> {
+                if (data instanceof SimpleAttributeData<?> simpleAttributeData) {
+                    yield convert(simpleAttributeData, multivalueAttribute);
+                } else {
+                    throw new IllegalInputDataException("Expected attribute '%s' to be of type %s, got %s"
+                            .formatted(data.getName(), SimpleAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
+                }
+            }
             case CompositeAttribute compositeAttribute -> {
                 if (data instanceof CompositeAttributeData compositeAttributeData) {
                     yield convert(compositeAttributeData, compositeAttribute);
@@ -65,6 +74,16 @@ public class EntityDataConverter {
         return List.of(new JOOQPair<>(field, data.getValue()));
     }
 
+    private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, MultivalueAttribute attribute) {
+        checkMultivalueType(data.getValue());
+        var field = (Field<Object>) JOOQUtils.resolveField(attribute);
+        var value = data.getValue();
+        if (value instanceof List<?> list) {
+            value = list.toArray(String[]::new);
+        }
+        return List.of(new JOOQPair<>(field, value));
+    }
+
     private List<JOOQPair<Object>> convert(CompositeAttributeData data, CompositeAttribute attribute) {
         var result = new ArrayList<JOOQPair<Object>>();
         for (var attributeData : data.getAttributes()) {
@@ -75,6 +94,23 @@ public class EntityDataConverter {
             result.addAll(converted);
         }
         return result;
+    }
+
+    private void checkMultivalueType(Object value) {
+        if (value == null) {
+            return;
+        }
+        if (!(value instanceof List<?> list)) {
+            throw new IllegalInputDataException("Expected value to be of type %s, got %s"
+                    .formatted(List.class.getSimpleName(), value.getClass().getSimpleName()));
+        }
+        for (var element : list) {
+            if (!(element instanceof String)) {
+                throw new IllegalInputDataException("Expected all elements to be of type %s, got %s"
+                        .formatted(String.class.getSimpleName(),
+                                element == null ? "null" : element.getClass().getSimpleName()));
+            }
+        }
     }
 
     private void checkType(SimpleAttribute.Type type, Object value) {

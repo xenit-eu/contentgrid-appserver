@@ -3,7 +3,9 @@ package com.contentgrid.appserver.domain.data.mapper;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -14,6 +16,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
@@ -28,10 +31,12 @@ import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.RequestInputData.DataResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.MissingResult;
 import com.contentgrid.appserver.domain.data.RequestInputData.NullResult;
+import com.contentgrid.appserver.domain.data.RequestInputData.Result;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.type.DataType;
+import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,6 +57,8 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         }
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
+            case MultivalueAttribute multivalueAttribute ->
+                    mapMultiValueAttribute(multivalueAttribute.getName(), DataType.of(multivalueAttribute), inputData);
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, inputData);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
         };
@@ -75,19 +82,59 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
 
     private Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute,
             RequestInputData inputData) throws InvalidPropertyDataException{
-        var attributeName = simpleAttribute.getName();
-        var entryType = switch (simpleAttribute.getType()) {
-            case LONG -> LongDataEntry.class;
-            case DOUBLE -> DecimalDataEntry.class;
-            case BOOLEAN -> BooleanDataEntry.class;
-            case TEXT, UUID -> StringDataEntry.class;
-            case DATE -> LocalDateDataEntry.class;
-            case DATETIME -> InstantDataEntry.class;
+        return switch (simpleAttribute.getType()) {
+            case LONG -> mapScalarAttribute(simpleAttribute, LongDataEntry.class, inputData);
+            case DOUBLE -> mapScalarAttribute(simpleAttribute, DecimalDataEntry.class, inputData);
+            case BOOLEAN -> mapScalarAttribute(simpleAttribute, BooleanDataEntry.class, inputData);
+            case TEXT, UUID -> mapScalarAttribute(simpleAttribute, StringDataEntry.class, inputData);
+            case DATE -> mapScalarAttribute(simpleAttribute, LocalDateDataEntry.class, inputData);
+            case DATETIME -> mapScalarAttribute(simpleAttribute, InstantDataEntry.class, inputData);
         };
+    }
+
+    private Optional<DataEntry> mapScalarAttribute(SimpleAttribute simpleAttribute,
+            Class<? extends DataEntry> entryType, RequestInputData inputData) throws InvalidPropertyDataException {
+        var attributeName = simpleAttribute.getName();
         try {
             return Optional.of(inputData.get(attributeName.getValue(), entryType));
         } catch (InvalidDataException e) {
             throw e.withinProperty(attributeName);
+        }
+    }
+
+    private Optional<DataEntry> mapMultiValueAttribute(AttributeName attributeName, DataType attributeType,
+            RequestInputData inputData) throws InvalidPropertyDataException {
+        try {
+            var listResult = getMultiValueList(attributeName, attributeType, inputData);
+            return switch (listResult) {
+                case DataResult<List<? extends DataEntry>> data -> {
+                    var builder = ListDataEntry.builder();
+                    for (var item : data.get()) {
+                        if (!(item instanceof StringDataEntry stringDataEntry)) {
+                            // A set of strings has no null (or non-string) members
+                            throw new InvalidDataTypeException(TechnicalDataType.STRING, DataType.of(item));
+                        }
+                        builder.item(stringDataEntry);
+                    }
+                    yield Optional.of(builder.build());
+                }
+                case MissingResult<List<? extends DataEntry>> ignored -> Optional.of(MissingDataEntry.INSTANCE);
+                case NullResult<List<? extends DataEntry>> ignored -> Optional.of(NullDataEntry.INSTANCE);
+            };
+        } catch (InvalidDataException e) {
+            throw e.withinProperty(attributeName);
+        }
+    }
+
+    private Result<List<? extends DataEntry>> getMultiValueList(AttributeName attributeName, DataType attributeType,
+            RequestInputData inputData) throws InvalidDataException {
+        try {
+            return inputData.getList(attributeName.getValue(), StringDataEntry.class);
+        } catch (InvalidDataException e) {
+            if (e instanceof ExceptionWithExpectedType<?> withExpectedType) {
+                throw withExpectedType.withSpecializedExpectedType(attributeType);
+            }
+            throw e;
         }
     }
 

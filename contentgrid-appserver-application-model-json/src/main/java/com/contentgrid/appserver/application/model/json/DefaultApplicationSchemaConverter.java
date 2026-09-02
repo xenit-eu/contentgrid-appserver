@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDate
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidEntityLinkTemplateException;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidPropertyPathException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
@@ -116,6 +117,8 @@ import java.util.stream.Stream;
 public class DefaultApplicationSchemaConverter implements ApplicationSchemaConverter {
 
     private static final String FTS_TYPE = "full-text";
+
+    private static final Map<String, Type> MULTIVALUE_DATA_TYPES = Map.of("text_set", Type.TEXT);
 
     private final JsonMapper mapper = ApplicationSchemaJsonMapperFactory.createJsonMapper();
     private final ApplicationSchemaValidator validator = new ApplicationSchemaValidator();
@@ -218,6 +221,11 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.Entity fromJsonEntity(
             Entity jsonEntity) throws InvalidJsonException {
+        if (isMultivalueDataType(jsonEntity.getPrimaryKey().getDataType())) {
+            throw new InvalidAttributeTypeException(
+                    "Primary key of entity '%s' must be a scalar attribute, got data type '%s'"
+                            .formatted(jsonEntity.getName(), jsonEntity.getPrimaryKey().getDataType()));
+        }
         com.contentgrid.appserver.application.model.attributes.SimpleAttribute primaryKey = fromJsonSimpleAttribute(
                 jsonEntity.getPrimaryKey());
         List<com.contentgrid.appserver.application.model.attributes.Attribute> attributes;
@@ -271,11 +279,26 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private com.contentgrid.appserver.application.model.attributes.Attribute fromJsonAttribute(Attribute jsonAttr)
             throws UnknownFlagException {
         return switch (jsonAttr) {
-            case SimpleAttribute sa -> fromJsonSimpleAttribute(sa);
+            case SimpleAttribute sa -> isMultivalueDataType(sa.getDataType())
+                    ? fromJsonMultivalueAttribute(sa)
+                    : fromJsonSimpleAttribute(sa);
             case CompositeAttribute ca -> fromJsonCompositeAttribute(ca);
             case ContentAttribute ca -> fromJsonContentAttribute(ca);
             case UserAttribute ua -> fromJsonUserAttribute(ua);
         };
+    }
+
+    private static boolean isMultivalueDataType(String dataType) {
+        return MULTIVALUE_DATA_TYPES.containsKey(dataType);
+    }
+
+    private static String toJsonMultivalueDataType(Type itemType) {
+        return MULTIVALUE_DATA_TYPES.entrySet().stream()
+                .filter(entry -> entry.getValue() == itemType)
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No wire data type for multi-value item type " + itemType));
     }
 
     private com.contentgrid.appserver.application.model.attributes.SimpleAttribute fromJsonSimpleAttribute(
@@ -288,6 +311,23 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 .name(AttributeName.of(jsonAttr.getName()))
                 .column(ColumnName.of(jsonAttr.getColumnName()))
                 .type(Type.valueOf(jsonAttr.getDataType().toUpperCase()))
+                .flags(fromJsonAttributeFlags(jsonAttr.getFlags()))
+                .constraints(constraints)
+                .build();
+    }
+
+    private com.contentgrid.appserver.application.model.attributes.MultivalueAttribute fromJsonMultivalueAttribute(
+            SimpleAttribute jsonAttr) throws UnknownFlagException {
+        List<Constraint> constraints =
+                jsonAttr.getConstraints() == null ? List.of() : jsonAttr.getConstraints().stream()
+                        .map(this::fromJsonAttributeConstraint)
+                        .toList();
+        var itemType = MULTIVALUE_DATA_TYPES.get(jsonAttr.getDataType());
+        return ATTRIBUTE_TRANSLATIONS.mapInto(jsonAttr,
+                        com.contentgrid.appserver.application.model.attributes.MultivalueAttribute.builder())
+                .name(AttributeName.of(jsonAttr.getName()))
+                .column(ColumnName.of(jsonAttr.getColumnName()))
+                .itemType(itemType)
                 .flags(fromJsonAttributeFlags(jsonAttr.getFlags()))
                 .constraints(constraints)
                 .build();
@@ -415,6 +455,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var operation = switch (type) {
             case "prefix" -> Operation.PREFIX;
             case "exact" -> Operation.EXACT;
+            case "contains" -> Operation.CONTAINS;
             case "greater" -> Operation.GREATER_THAN;
             case "greater-or-equal" -> Operation.GREATER_THAN_OR_EQUAL;
             case "less" -> Operation.LESS_THAN;
@@ -636,6 +677,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private Attribute toJsonAttribute(com.contentgrid.appserver.application.model.attributes.Attribute attr) {
         var jsonAttr = switch (attr) {
             case com.contentgrid.appserver.application.model.attributes.SimpleAttribute sa -> toJsonSimpleAttribute(sa);
+            case com.contentgrid.appserver.application.model.attributes.MultivalueAttribute ma ->
+                    toJsonMultivalueAttribute(ma);
             case CompositeAttributeImpl ca -> toJsonCompositeAttribute(ca);
             case com.contentgrid.appserver.application.model.attributes.ContentAttribute ca ->
                     toJsonContentAttribute(ca);
@@ -654,6 +697,16 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         var jsonAttr = new SimpleAttribute();
         jsonAttr.setColumnName(attr.getColumn().getValue());
         jsonAttr.setDataType(attr.getType().name().toLowerCase());
+        jsonAttr.setFlags(attr.getFlags().stream().map(this::toJsonAttribute).toList());
+        jsonAttr.setConstraints(attr.getConstraints().stream().map(this::toJsonConstraint).toList());
+        return jsonAttr;
+    }
+
+    private SimpleAttribute toJsonMultivalueAttribute(
+            com.contentgrid.appserver.application.model.attributes.MultivalueAttribute attr) {
+        var jsonAttr = new SimpleAttribute();
+        jsonAttr.setColumnName(attr.getColumn().getValue());
+        jsonAttr.setDataType(toJsonMultivalueDataType(attr.getItemType()));
         jsonAttr.setFlags(attr.getFlags().stream().map(this::toJsonAttribute).toList());
         jsonAttr.setConstraints(attr.getConstraints().stream().map(this::toJsonConstraint).toList());
         return jsonAttr;
@@ -739,6 +792,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 case AttributeSearchFilter attributeSearchFilter ->
                     type = switch (attributeSearchFilter.getOperation()) {
                         case EXACT -> "exact";
+                        case CONTAINS -> "contains";
                         case PREFIX -> "prefix";
                         case GREATER_THAN -> "greater";
                         case GREATER_THAN_OR_EQUAL -> "greater-or-equal";

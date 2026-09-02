@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -29,6 +30,12 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
 
     @Override
     protected Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData) {
+        return Optional.of(inputData);
+    }
+
+    @Override
+    protected Optional<DataEntry> mapMultivalueAttribute(AttributePath path, MultivalueAttribute multivalueAttribute,
+            DataEntry inputData) {
         return Optional.of(inputData);
     }
 

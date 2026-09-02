@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.relations.Relation;
@@ -28,6 +29,8 @@ import org.jooq.impl.SQLDataType;
 @UtilityClass
 public class JOOQUtils {
 
+    private static final DataType<String[]> TEXT_ARRAY = SQLDataType.CLOB.getArrayDataType();
+
     public static Table<?> resolveTable(Entity entity) {
         return resolveTable(entity.getTable());
     }
@@ -50,6 +53,14 @@ public class JOOQUtils {
 
     public static Field<?> resolveField(SimpleAttribute attribute) {
         return resolveField(attribute.getColumn(), attribute.getType(), attribute.hasConstraint(RequiredConstraint.class));
+    }
+
+    public static Field<?> resolveField(MultivalueAttribute attribute) {
+        return DSL.field(DSL.name(attribute.getColumn().getValue()), textSetDataType());
+    }
+
+    public static Field<?> resolveField(TableName alias, MultivalueAttribute attribute) {
+        return DSL.field(DSL.name(alias.getValue(), attribute.getColumn().getValue()), textSetDataType());
     }
 
     public static Field<?> resolveField(ColumnName column, SimpleAttribute.Type type, boolean required) {
@@ -91,6 +102,7 @@ public class JOOQUtils {
                 entity.nestedAttributes()
                         .flatMap(entry -> switch (entry.getAttribute()) {
                             case SimpleAttribute simpleAttribute -> Stream.of(resolveField(simpleAttribute));
+                            case MultivalueAttribute multivalueAttribute -> Stream.of(resolveField(multivalueAttribute));
                             case CompositeAttribute ignored -> Stream.of();
                         })
         ).toArray(Field[]::new);
@@ -109,6 +121,10 @@ public class JOOQUtils {
         return dataType.nullable(!required);
     }
 
+    private static DataType<String[]> textSetDataType() {
+        return TEXT_ARRAY.nullable(false).defaultValue(DSL.inline(new String[0], TEXT_ARRAY));
+    }
+
     @Allow.PlainSQL
     public static Condition generateFTSCondition(@NonNull Field<?> left, @NonNull Field<?> right, @NonNull String language) {
         var langParam = DSL.inline(language);
@@ -123,6 +139,10 @@ public class JOOQUtils {
     @Allow.PlainSQL
     public static Field<String> prefixSearchNormalize(Field<?> field) {
         return DSL.field(DSL.sql("extensions.contentgrid_prefix_search_normalize(?)", field), String.class);
+    }
+
+    public static Field<String[]> arraySearchNormalize(Field<?> field) {
+        return DSL.function(DSL.name("extensions", "contentgrid_array_search_normalize"), TEXT_ARRAY, field);
     }
 
     public static Field<?>[] resolveRelationFields(@NonNull Application application, @NonNull Entity entity) {

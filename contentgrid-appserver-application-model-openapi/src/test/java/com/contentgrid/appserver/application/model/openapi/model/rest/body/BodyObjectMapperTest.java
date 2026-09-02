@@ -10,13 +10,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.assertj.core.condition.AllOf.allOf;
 
+import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
+import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper.Context;
+import com.contentgrid.appserver.application.model.values.ApplicationName;
+import com.contentgrid.appserver.application.model.values.AttributeName;
+import com.contentgrid.appserver.application.model.values.ColumnName;
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.LinkName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -158,6 +171,46 @@ class BodyObjectMapperTest {
             });
         }
 
+
+        @Test
+        void multivalueAttribute() {
+            var application = Application.builder()
+                    .name(ApplicationName.of("test"))
+                    .entity(Entity.builder()
+                            .name(EntityName.of("document"))
+                            .table(TableName.of("document"))
+                            .pathSegment(PathSegmentName.of("document"))
+                            .linkName(LinkName.of("document"))
+                            .primaryKey(SimpleAttribute.builder()
+                                    .name(AttributeName.of("id"))
+                                    .column(ColumnName.of("id"))
+                                    .type(Type.UUID)
+                                    .flag(ReadOnlyFlag.INSTANCE)
+                                    .build())
+                            .attribute(MultivalueAttribute.builder()
+                                    .name(AttributeName.of("tags"))
+                                    .column(ColumnName.of("tags"))
+                                    .itemType(Type.TEXT)
+                                    .constraint(Constraint.allowedValues(List.of("urgent", "vip")))
+                                    .build())
+                            .build())
+                    .build();
+
+            var result = BodyObjectMapper.forBody(new Context(application, BodyType.POST, MediaType.JSON, ENGLISH),
+                    EntityName.of("document"));
+
+            assertThat(result.getField("tags")).hasValueSatisfying(value ->
+                    assertThat(value).isInstanceOfSatisfying(ArrayBodyValue.class, arrayBodyValue -> {
+                        assertThat(arrayBodyValue.isNullable()).isFalse();
+                        assertThat(arrayBodyValue.isUniqueItems()).isTrue();
+                        assertThat(arrayBodyValue.getItems()).isInstanceOfSatisfying(SimpleBodyValue.class, items -> {
+                            assertThat(items.getType()).isEqualTo(Type.TEXT);
+                            assertThat(items.isNullable()).isFalse();
+                            assertThat(items.getConstraints())
+                                    .hasExactlyElementsOfTypes(AllowedValuesConstraint.class);
+                        });
+                    }));
+        }
 
         @ParameterizedTest
         @EnumSource(SupportedCombination.class)

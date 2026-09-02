@@ -5,6 +5,7 @@ import org.springframework.lang.Nullable;
 
 public enum ProfileAttributeType {
     STRING,
+    STRING_SET,
     LONG,
     DOUBLE,
     BOOLEAN,

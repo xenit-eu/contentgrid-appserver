@@ -3,11 +3,13 @@ package com.contentgrid.appserver.domain.data.mapper;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LocalDateDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
@@ -32,10 +34,15 @@ public class AttributeDataToDataEntryMapper implements
     public PlainDataEntry mapAttribute(Attribute attribute, Optional<AttributeData> inputData) {
         return inputData.map(data -> switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute.getType(), ((SimpleAttributeData<?>)data).getValue());
+            case MultivalueAttribute ignored -> mapMultivalueAttribute(((SimpleAttributeData<?>) data).getValue());
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, (CompositeAttributeData)data);
             case UserAttribute userAttribute -> mapUserAttribute(userAttribute, (CompositeAttributeData)data);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, (CompositeAttributeData)data);
-        }).orElse(NullDataEntry.INSTANCE);
+        }).orElseGet(() -> switch (attribute) {
+            case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute.getType(), null);
+            case MultivalueAttribute ignored -> mapMultivalueAttribute(null);
+            case CompositeAttribute ignored -> NullDataEntry.INSTANCE;
+        });
     }
 
     private PlainDataEntry mapUserAttribute(UserAttribute userAttribute, CompositeAttributeData data) {
@@ -71,6 +78,15 @@ public class AttributeDataToDataEntryMapper implements
             map.put(attribute.getName().getValue(), value);
         }
         return new MapDataEntry(map);
+    }
+
+    private PlainDataEntry mapMultivalueAttribute(Object data) {
+        if (data == null) {
+            return new ListDataEntry(List.of());
+        }
+        return new ListDataEntry(((List<?>) data).stream()
+                .map(element -> (PlainDataEntry) new StringDataEntry((String) element))
+                .toList());
     }
 
     private PlainDataEntry mapSimpleAttribute(@NonNull SimpleAttribute.Type type, Object data) {

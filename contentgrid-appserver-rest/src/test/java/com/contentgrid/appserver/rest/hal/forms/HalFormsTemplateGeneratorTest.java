@@ -202,6 +202,20 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isOne();
                     });
                 },
+                tags -> {
+                    assertThat(tags.getName()).isEqualTo("tags");
+                    assertThat(tags.getPrompt()).isEqualTo("Tags");
+                    assertThat(tags.isReadOnly()).isFalse();
+                    // A multi-value attribute can always be omitted (a missing value is the empty set)
+                    assertThat(tags.isRequired()).isFalse();
+                    assertThat(tags.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    // The options without maxItems mark the property as multi-valued, without a value list
+                    assertThat(tags.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
+                        assertThat(options.getInline()).isNullOrEmpty();
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
+                },
                 invoices -> {
                     assertThat(invoices.getName()).isEqualTo("invoices");
                     assertThat(invoices.isReadOnly()).isFalse();
@@ -534,6 +548,16 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(name.getName()).isEqualTo("name~prefix");
                     assertThat(name.getPrompt()).isEqualTo("Name starts with");
                     assertThat(name.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
+                tags -> {
+                    assertThat(tags.getName()).isEqualTo("tags");
+                    assertThat(tags.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    // The filter accepts repeated values: options without maxItems
+                    assertThat(tags.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                        assertThat(options.getInline()).isNullOrEmpty();
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
                 },
                 vat -> {
                     assertThat(vat.getName()).isEqualTo("vat");

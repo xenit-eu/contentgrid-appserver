@@ -3,12 +3,14 @@ package com.contentgrid.appserver.application.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Entity.EntityBuilder;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -32,6 +34,7 @@ import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelat
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
@@ -49,13 +52,16 @@ import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ApplicationTest {
@@ -410,9 +416,7 @@ class ApplicationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-            "UUID", "LONG", "DOUBLE", "BOOLEAN", "DATETIME"
-    })
+    @EnumSource(value = Type.class, mode = Mode.EXCLUDE, names = "TEXT")
     void application_prefixSearchFilterInvalidAttributeType(Type type) {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
@@ -442,8 +446,207 @@ class ApplicationTest {
         });
     }
 
+    @Test
+    void application_containsSearchFilterOnMultivalueAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.CONTAINS)
+                        .name(FilterName.of("tags"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = Operation.class, mode = Mode.EXCLUDE, names = "CONTAINS")
+    void application_otherSearchFiltersOnMultivalueAttribute(Operation operation) {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(operation)
+                        .name(FilterName.of("tags"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_containsSearchFilterOnScalarAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("name"))
+                        .column(ColumnName.of("name"))
+                        .type(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.CONTAINS)
+                        .name(FilterName.of("name"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("name")))
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_prefixSearchFilterOnMultivalueAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(AttributeSearchFilter.builder()
+                        .operation(Operation.PREFIX)
+                        .name(FilterName.of("tags~prefix"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_fullTextSearchFilterOnMultivalueAttribute() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("tags~fts"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
+                        .locale(Locale.ENGLISH)
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = Type.class, mode = Mode.EXCLUDE, names = "TEXT")
+    void application_fullTextSearchFilterInvalidAttributeType(Type type) {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(type)
+                        .build()
+                )
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("filter~fts"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .locale(Locale.ENGLISH)
+                        .build())
+                .build();
+
+        assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_fullTextSearchFilterOnText() {
+        var entity = Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(Type.TEXT)
+                        .build()
+                )
+                .searchFilter(FullTextSearchAttributeSearchFilter.builder()
+                        .name(FilterName.of("filter~fts"))
+                        .attributePath(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .locale(Locale.ENGLISH)
+                        .build())
+                .build();
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertNotNull(application.getRequiredEntityByName(EntityName.of("test")));
+    }
+
     static Stream<Arguments> application_orderedSearchFilterInvalidAttributeType() {
-        var types = Stream.of(Type.TEXT, Type.UUID, Type.BOOLEAN);
+        // Every type that is not orderable; new types are automatically included
+        var types = EnumSet.complementOf(EnumSet.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)).stream();
         var operations = List.of(Operation.GREATER_THAN, Operation.GREATER_THAN_OR_EQUAL, Operation.LESS_THAN, Operation.LESS_THAN_OR_EQUAL);
         return types.flatMap(type -> operations.stream().map(operation -> Arguments.of(type, operation)));
     }

@@ -3,6 +3,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -17,6 +18,7 @@ import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.Temporal;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import lombok.NonNull;
@@ -62,8 +64,17 @@ public class EntityDataMapper {
     public AttributeData from(@NonNull Attribute attribute, Map<String, Object> data) {
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> from(simpleAttribute, data);
+            case MultivalueAttribute multivalueAttribute -> from(multivalueAttribute, data);
             case CompositeAttribute compositeAttribute -> from(compositeAttribute, data);
         };
+    }
+
+    public SimpleAttributeData<?> from(@NonNull MultivalueAttribute attribute, Map<String, Object> data) {
+        var value = convert(attribute, data.get(attribute.getColumn().getValue()));
+        return SimpleAttributeData.builder()
+                .name(attribute.getName())
+                .value(value)
+                .build();
     }
 
     public SimpleAttributeData<?> from(@NonNull SimpleAttribute attribute, Map<String, Object> data) {
@@ -80,6 +91,17 @@ public class EntityDataMapper {
             builder.attribute(from(child, data));
         }
         return builder.build();
+    }
+
+    private Object convert(MultivalueAttribute attribute, Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String[] strings) {
+            return Arrays.stream(strings).toList();
+        }
+        throw new IllegalStateException(
+                "Value of attribute '%s' is not a text array".formatted(attribute.getName()));
     }
 
     private Object convert(SimpleAttribute attribute, Object value) {

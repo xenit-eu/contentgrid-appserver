@@ -10,8 +10,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -44,17 +46,22 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.RelationDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
+import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
+import com.contentgrid.appserver.domain.data.validation.DuplicateElementInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
+import com.contentgrid.appserver.domain.data.validation.TextSetValidator;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
@@ -99,7 +106,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +116,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -241,6 +251,176 @@ class DatamodelApiImplTest {
             );
         });
 
+    }
+
+    @Nested
+    class TextSetAttribute {
+
+        private static final MultivalueAttribute DOCUMENT_TAGS = MultivalueAttribute.builder()
+                .name(AttributeName.of("tags"))
+                .column(ColumnName.of("tags"))
+                .itemType(Type.TEXT)
+                .build();
+
+        private static final MultivalueAttribute DOCUMENT_LABELS = MultivalueAttribute.builder()
+                .name(AttributeName.of("labels"))
+                .column(ColumnName.of("labels"))
+                .itemType(Type.TEXT)
+                .constraint(Constraint.allowedValues(List.of("hr", "it", "finance")))
+                .build();
+
+        private static final Entity DOCUMENT = Entity.builder()
+                .name(EntityName.of("document"))
+                .table(TableName.of("document"))
+                .pathSegment(PathSegmentName.of("documents"))
+                .linkName(LinkName.of("documents"))
+                .attribute(DOCUMENT_TAGS)
+                .attribute(DOCUMENT_LABELS)
+                .build();
+
+        private static final Application TEXT_SET_APPLICATION = Application.builder()
+                .name(ApplicationName.of("text-set-application"))
+                .entity(DOCUMENT)
+                .build();
+
+        private EntityCreateData createDocument(Map<String, Object> data) throws InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
+            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+                    .thenReturn(EntityData.builder().name(DOCUMENT.getName()).id(EntityId.of(UUID.randomUUID()))
+                            .build());
+            datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(), MapRequestInputData.fromMap(data),
+                    AuthorizationContext.allowAll());
+            return createDataCaptor.getValue();
+        }
+
+        private void expectCreateFailure(Map<String, Object> data, Class<? extends Exception> causeType) {
+            assertThatThrownBy(() -> datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(),
+                    MapRequestInputData.fromMap(data), AuthorizationContext.allowAll()))
+                    .isInstanceOfSatisfying(InvalidPropertyDataException.class, exception ->
+                            assertThat(exception.allExceptions())
+                                    .isNotEmpty()
+                                    .allSatisfy(ex -> assertThat(ex.getCause()).isInstanceOf(causeType)));
+            Mockito.verifyNoInteractions(queryEngine, contentStore);
+        }
+
+        @Test
+        void writeElements_succeeds() throws InvalidPropertyDataException {
+            var createData = createDocument(Map.of(
+                    "tags", List.of("urgent", "vip"),
+                    "labels", List.of("hr", "it")
+            ));
+            assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "vip")),
+                    new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of("hr", "it"))
+            );
+        }
+
+        @Test
+        void omittedValue_becomesEmptyList() throws InvalidPropertyDataException {
+            var createData = createDocument(Map.of());
+            assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of()),
+                    new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
+            );
+        }
+
+        @Test
+        void nullValue_becomesEmptyList() throws InvalidPropertyDataException {
+            var data = new HashMap<String, Object>();
+            data.put("tags", null);
+            var createData = createDocument(data);
+            assertThat(createData.getAttributes()).contains(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of())
+            );
+        }
+
+        @Test
+        void duplicateElements_fails() {
+            expectCreateFailure(Map.of("tags", List.of("urgent", "vip", "urgent")),
+                    DuplicateElementInvalidDataException.class);
+        }
+
+        @Test
+        void nfkcEquivalentElements_fails() {
+            // The same value in composed (NFC) and decomposed (NFD) encoding is a duplicate
+            expectCreateFailure(Map.of("tags", List.of("café", "café")),
+                    DuplicateElementInvalidDataException.class);
+        }
+
+        @Test
+        void tooManyElements_fails() {
+            var overLimit = IntStream.rangeClosed(0, TextSetValidator.MAX_ELEMENTS)
+                    .mapToObj("value-%d"::formatted)
+                    .toList();
+            expectCreateFailure(Map.of("tags", overLimit), InvalidDataFormatException.class);
+        }
+
+        @Test
+        void scalarValue_fails() {
+            assertThatThrownBy(() -> datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(),
+                    MapRequestInputData.fromMap(Map.of("tags", "urgent")), AuthorizationContext.allowAll()))
+                    .isInstanceOfSatisfying(InvalidPropertyDataException.class, exception ->
+                            assertThat(exception.allExceptions()).singleElement().satisfies(ex -> {
+                                var invalidType = (InvalidDataTypeException) ex.getCause();
+                                assertThat(invalidType.getExpectedType().getTechnicalName()).isEqualTo("string_set");
+                                assertThat(ex.getPath().toString()).isEqualTo("tags");
+                            }));
+            Mockito.verifyNoInteractions(queryEngine, contentStore);
+        }
+
+        @Test
+        void nullElement_fails() {
+            expectCreateFailure(Map.of("tags", Arrays.asList("urgent", null)),
+                    InvalidDataTypeException.class);
+        }
+
+        @Test
+        void nonStringElement_fails() {
+            expectCreateFailure(Map.of("tags", List.of("urgent", 123)),
+                    InvalidDataTypeException.class);
+        }
+
+        @Test
+        void elementOutsideAllowedValues_fails() {
+            expectCreateFailure(Map.of("labels", List.of("hr", "legal")),
+                    AllowedValuesConstraintViolationInvalidDataException.class);
+        }
+
+        private EntityInstance findDocument(List<AttributeData> attributes) {
+            Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
+                var request = args.getArgument(1, EntityRequest.class);
+                return Optional.of(new EntityData(
+                        EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
+                        attributes
+                ));
+            });
+            return datamodelApi.findById(TEXT_SET_APPLICATION,
+                            EntityRequest.forEntity(DOCUMENT.getName(), EntityId.of(UUID.randomUUID())),
+                            AuthorizationContext.allowAll())
+                    .orElseThrow();
+        }
+
+        @Test
+        void readValues_returnsJsonArrayEntries() {
+            var result = findDocument(List.of(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "ethias")),
+                    new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
+            ));
+            assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of(
+                    new StringDataEntry("urgent"), new StringDataEntry("ethias"))));
+            assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
+        }
+
+        @Test
+        void readNullOrAbsentValue_returnsEmptyList() {
+            // Defensive: the column is NOT NULL, but data predating the type must still read as an array
+            var result = findDocument(List.of(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), null)
+                    // no data for labels at all
+            ));
+            assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of()));
+            assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
+        }
     }
 
     @Nested
@@ -499,7 +679,8 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_NAME.getName(), "test"),
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
-                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null)
+                        new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
+                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of())
                 );
 
                 assertThat(createData.getRelations()).isEmpty();

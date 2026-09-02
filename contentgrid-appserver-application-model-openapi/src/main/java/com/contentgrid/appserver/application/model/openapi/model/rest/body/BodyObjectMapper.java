@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
@@ -67,7 +68,7 @@ public final class BodyObjectMapper {
             var translations = searchFilter.getTranslations(context.userLocales());
             var bodyValue = switch (searchFilter) {
                 case BaseAttributeSearchFilter attributeSearchFilter -> {
-                    var attribute = context.application().resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                    var attribute = context.application().resolveAttribute(entity, attributeSearchFilter.getAttributePath());
                     yield getBodyValue(
                             context,
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
@@ -146,8 +147,13 @@ public final class BodyObjectMapper {
                 // Multi-valued relations are an array
                 if (relation instanceof OneToManyRelation
                         || relation instanceof ManyToManyRelation) {
-                    // The array for to-many relations can't contain null values, and can not be null itself (it can be left out)
-                    relationValue = new ArrayBodyValue(relationValue.withNullable(false)).withNullable(false);
+                    // The array for to-many relations can't contain null values, can't contain the
+                    // same relation target twice, and can not be null itself (it can be left out)
+                    relationValue = ArrayBodyValue.builder()
+                            .items(relationValue.withNullable(false))
+                            .uniqueItems(true)
+                            .nullable(false)
+                            .build();
                 } else {
                     relationValue = relationValue
                             // For to-one relations that are required, they are required.
@@ -269,6 +275,20 @@ public final class BodyObjectMapper {
                             .toList()
                     )
                     .build();
+            case MultivalueAttribute ma ->
+                    // A multi-value attribute is a set of elements: the element type carries the
+                    // constraints, the array itself is always present and never null
+                    ArrayBodyValue.builder()
+                            .sourceType(sourceType)
+                            .items(SimpleBodyValue.builder()
+                                    .sourceType(sourceType)
+                                    .type(ma.getItemType())
+                                    .nullable(false)
+                                    .constraints(ma.getConstraints())
+                                    .build())
+                            .uniqueItems(true)
+                            .nullable(false)
+                            .build();
             case ContentAttribute ca -> {
                 if (context.mediaType().canTransportContent()) {
                     // For multipart forms, use a special type for content upload
@@ -330,8 +350,11 @@ public final class BodyObjectMapper {
         if (bodyValue != null) {
             bodyValue = switch (context.bodyType()) {
                 case RESPONSE -> bodyValue.withMandatory(true); // All items are always present in the response
-                case PUT, POST -> bodyValue.isNullable() ? bodyValue : bodyValue.withMandatory(
-                        true); // All non-nullable values are required when POST or PUT (keys that are left out are set to null)
+                // An array can always be left out: a missing multi-value attribute is the empty array.
+                // All non-nullable values are required when POST or PUT (keys left out are set to null)
+                case PUT, POST -> bodyValue.isNullable() || bodyValue instanceof ArrayBodyValue
+                        ? bodyValue
+                        : bodyValue.withMandatory(true);
                 case PATCH -> bodyValue.withMandatory(false); // No items are mandatory for PATCH (keys that are left out are kept as-is)
             };
 

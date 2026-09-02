@@ -80,6 +80,20 @@
           "flags": [
             "modifiedDate"
           ]
+        },
+        {
+          "name": "labels",
+          "title": "Labels",
+          "description": "Labels of the department",
+          "type": "simple",
+          "columnName": "dept_labels",
+          "dataType": "text_set",
+          "constraints": [
+            {
+              "type": "allowedValues",
+              "values": ["hr", "it", "finance"]
+            }
+          ]
         }
       ],
       "searchFilters": [
@@ -88,6 +102,12 @@
           "title": "Name",
           "attributePath": [{"name": "name", "type": "attr"}],
           "type": "prefix"
+        },
+        {
+          "name": "labels",
+          "title": "Labels",
+          "attributePath": [{"name": "labels", "type": "attr"}],
+          "type": "contains"
         },
         {
           "name": "projects.description",

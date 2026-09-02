@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.type;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -64,6 +65,13 @@ public sealed interface DataType permits ObjectDataType, RelationDataType, Relat
     }
 
     /**
+     * Construct a type based on a {@link MultivalueAttribute}
+     */
+    static DataType of(@NonNull MultivalueAttribute multivalueAttribute) {
+        return TechnicalDataType.STRING_SET;
+    }
+
+    /**
      * Construct a type based on an {@link Attribute}.
      * <p>
      * This automatically determines the type of attribute and creates a data type from it.
@@ -72,6 +80,7 @@ public sealed interface DataType permits ObjectDataType, RelationDataType, Relat
     static DataType of(@NonNull Attribute attribute) {
         return switch (attribute) {
             case CompositeAttribute compositeAttribute -> of(compositeAttribute);
+            case MultivalueAttribute multivalueAttribute -> of(multivalueAttribute);
             case SimpleAttribute simpleAttribute -> of(simpleAttribute.getType());
         };
     }

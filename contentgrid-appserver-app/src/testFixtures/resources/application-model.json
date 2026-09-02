@@ -56,6 +56,13 @@
           "dataType": "date",
           "columnName": "birth_date",
           "title": "Birth date"
+        },
+        {
+          "type": "simple",
+          "name": "tags",
+          "dataType": "text_set",
+          "columnName": "tags",
+          "title": "Tags"
         }
       ],
       "searchFilters": [
@@ -69,6 +76,17 @@
           ],
           "title": "First name",
           "type": "exact"
+        },
+        {
+          "name": "tags",
+          "attributePath": [
+            {
+              "name": "tags",
+              "type": "attr"
+            }
+          ],
+          "title": "Tags",
+          "type": "contains"
         },
         {
           "name": "last_name",

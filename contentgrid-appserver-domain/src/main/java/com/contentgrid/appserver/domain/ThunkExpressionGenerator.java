@@ -2,6 +2,9 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.CrossesRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -11,8 +14,10 @@ import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSe
 import com.contentgrid.appserver.application.model.searchfilters.FullTextSearchAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
+import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.validation.NulByteValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
@@ -57,20 +62,21 @@ public class ThunkExpressionGenerator {
 
                 // currently only handle attribute search filters
                 if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                    var attribute = application.resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+                    var attribute = application.resolveAttribute(entity, attributeSearchFilter.getAttributePath());
                     List<Scalar<?>> parsedValues = new ArrayList<>();
 
                     for (String value : entry.getValue()) {
                         try {
-                            parsedValues.add(parseValueToScalar(attribute.getType(), value));
+                            parsedValues.add(parseValueToScalar(attribute, value));
                         } catch (Exception e) {
                             throw new InvalidFilterParameterException(entity.getName(), attributeSearchFilter.getName(),
-                                    attribute.getType(), e);
+                                    DataType.of(attribute), e);
                         }
                     }
 
                     if (!parsedValues.isEmpty()) {
-                        expressions.add(createExpression(variableGenerator, application, entity, attributeSearchFilter, parsedValues));
+                        expressions.add(createExpression(variableGenerator, application, entity, attributeSearchFilter,
+                                attribute, parsedValues));
                     }
                 }
             }
@@ -91,6 +97,16 @@ public class ThunkExpressionGenerator {
         return LogicalOperation.conjunction(expressions.stream());
     }
 
+
+    private static Scalar<?> parseValueToScalar(Attribute attribute, String value) {
+        return switch (attribute) {
+            case SimpleAttribute simpleAttribute -> parseValueToScalar(simpleAttribute.getType(), value);
+            // A multi-value filter value is a single element: it is compared against each element
+            case MultivalueAttribute multivalueAttribute -> parseValueToScalar(multivalueAttribute.getItemType(), value);
+            case CompositeAttribute ignored ->
+                    throw new IllegalArgumentException("Search filters cannot target a composite attribute");
+        };
+    }
 
     private static Scalar<?> parseValueToScalar(SimpleAttribute.Type type, String value) {
         if (value == null) {
@@ -118,6 +134,7 @@ public class ThunkExpressionGenerator {
             Application application,
             Entity entity,
             BaseAttributeSearchFilter filter,
+            Attribute attribute,
             List<Scalar<?>> values) {
 
         if (filter instanceof FullTextSearchAttributeSearchFilter ftsFilter) {
@@ -135,11 +152,17 @@ public class ThunkExpressionGenerator {
         if (filter instanceof AttributeSearchFilter attrFilter) {
             return switch (attrFilter.getOperation()) {
                 case EXACT -> {
-                    // EXACT can use in when there are multiple values
                     var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
+                    // EXACT can use in when there are multiple values
                     yield values.size() == 1
                             ? Comparison.areEqual(attr, values.getFirst())
                             : Comparison.in(attr, new SetValue(new LinkedHashSet<>(values)));
+                }
+                case CONTAINS -> {
+                    var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
+                    // Any element matches any of the values: one overlap expression carries all values
+                    yield StringComparison.contentGridArraySearchMatch(attr,
+                            new SetValue(new LinkedHashSet<>(values)));
                 }
                 case PREFIX -> {
                     // PREFIX keeps a disjunction; each term gets its own path so to-many wildcards stay independent
@@ -208,7 +231,7 @@ public class ThunkExpressionGenerator {
                 case AttributePath attributePath -> {
                     // If the remaining path is just (composite) attributes, validate the path via the current entity
                     // This throws if there is an invalid link
-                    currentEntity.resolveAttributePath(attributePath);
+                    PropertyPathResolver.resolveAttributePath(currentEntity, attributePath);
 
                     // Convert the rest of the path using toList()
                     return Stream.concat(

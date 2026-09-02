@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -12,6 +13,7 @@ import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundE
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
@@ -399,7 +401,7 @@ class EntityTest {
                 .name(ApplicationName.of("testApp"))
                 .entity(entity);
 
-        assertThrows(InvalidArgumentModelException.class, applicationBuilder::build);
+        assertThrows(InvalidSearchFilterException.class, applicationBuilder::build);
     }
 
     @Test
@@ -473,6 +475,24 @@ class EntityTest {
                 .searchFilter(FILTER1)
                 .sortableField(SORTABLE1)
                 .sortableField(sortable2);
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
+    void entity_sortableOnMultivalueAttribute() {
+        var keywords = MultivalueAttribute.builder().name(AttributeName.of("keywords"))
+                .column(ColumnName.of("keywords")).itemType(Type.TEXT).build();
+        var sortableKeywords = SortableField.builder().name(SortableName.of("keywords"))
+                .propertyPath(PropertyPath.toAttribute(keywords.getName())).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .attribute(keywords)
+                .searchFilter(FILTER1)
+                .sortableField(sortableKeywords);
         assertThrows(InvalidArgumentModelException.class, builder::build);
     }
 

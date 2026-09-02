@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
@@ -30,6 +31,13 @@ public class AllowedValuesConstraintValidator implements ConstraintValidator<All
                 return;
             }
             throw new AllowedValuesConstraintViolationInvalidDataException(stringValue, constraint.getValues());
+        }
+        if(dataEntry instanceof ListDataEntry listDataEntry) {
+            // A multi-value attribute is valid when every element is an allowed value
+            for (var item : listDataEntry.getItems()) {
+                validate(constraint, item);
+            }
+            return;
         }
 
         throw new IllegalArgumentException(
