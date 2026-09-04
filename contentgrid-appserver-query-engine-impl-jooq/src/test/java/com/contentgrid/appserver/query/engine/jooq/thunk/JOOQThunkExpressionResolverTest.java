@@ -693,19 +693,20 @@ class JOOQThunkExpressionResolverTest {
     static Stream<Arguments> findWithArraySearch() {
         return Stream.of(
                 Arguments.argumentSet("any element matches the value",
-                        Set.of("alice"), new String[] {"urgent"}),
+                        Set.of(ALICE_ID), new String[] {"urgent"}),
                 Arguments.argumentSet("multiple values are a disjunction: any element matches any value",
-                        Set.of("alice", "bob"), new String[] {"urgent", "vip"}),
+                        Set.of(ALICE_ID, BOB_ID), new String[] {"urgent", "vip"}),
                 Arguments.argumentSet("search normalizes NFKC only: case and accents are significant",
                         Set.of(), new String[] {"URGENT"}),
-                Arguments.argumentSet("the ﬁ ligature NFKC-normalizes to fi, matching the stored element 'file'",
-                        Set.of("Thĳs"), new String[] {"ﬁle"})
+                // U+FB01 is the fi ligature; NFKC-normalized it matches the stored element "file"
+                Arguments.argumentSet("a ligature in the search value normalizes to its expansion",
+                        Set.of(THIJS_ID), new String[] {"\ufb01le"})
         );
     }
 
     @ParameterizedTest
     @MethodSource
-    void findWithArraySearch(Set<String> expectedNames, String[] searchValues) {
+    void findWithArraySearch(Set<UUID> expectedIds, String[] searchValues) {
         var values = Arrays.stream(searchValues).<Scalar<?>>map(value -> Scalar.of(value))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
@@ -718,9 +719,9 @@ class JOOQThunkExpressionResolverTest {
         var results = dslContext.selectFrom(table)
                 .where(condition)
                 .fetch()
-                .intoSet("name", String.class);
+                .intoSet("id", UUID.class);
 
-        assertEquals(expectedNames, results);
+        assertEquals(expectedIds, results);
     }
 
     @Test

@@ -108,6 +108,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1093,7 +1094,9 @@ class JOOQQueryEngineTest {
                     .orElseThrow();
             var actualTags = assertInstanceOf(SimpleAttributeData.class,
                     actual.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
-            assertEquals(List.of("urgent", "ethias"), actualTags.getValue());
+            // A set has no defined order, so the elements are compared order-agnostically
+            assertThat(actualTags.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
+                    .containsExactlyInAnyOrder("urgent", "ethias");
 
             // A row created without tags reads back as the empty list (the column default)
             var createdEmpty = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()

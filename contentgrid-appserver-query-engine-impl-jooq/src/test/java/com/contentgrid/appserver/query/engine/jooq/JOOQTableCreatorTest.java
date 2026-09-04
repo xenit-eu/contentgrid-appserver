@@ -462,9 +462,8 @@ class JOOQTableCreatorTest {
         }
     }
 
-    // The JDBC metadata reports a text[] column as _text
     static void assertTextArray(String columnType) {
-        if (! (columnType.equals("_text") || columnType.equals("text[]"))) {
+        if (! columnType.equals("_text")) {
             Assertions.fail("Type is not a text array: " + columnType);
         }
     }

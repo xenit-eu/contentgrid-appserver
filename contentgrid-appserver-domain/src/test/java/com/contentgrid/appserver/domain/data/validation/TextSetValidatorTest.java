@@ -55,9 +55,10 @@ class TextSetValidatorTest {
 
     @Test
     void duplicatesAreComparedNfkcNormalized() {
-        // The same value in composed (NFC) and decomposed (NFD) encoding is a duplicate
+        var composed = "caf\u00e9";
+        var decomposed = "cafe\u0301";
         assertThrows(DuplicateElementInvalidDataException.class,
-                () -> validator.validate(PATH, TAGS_ATTR, listOf("café", "café")));
+                () -> validator.validate(PATH, TAGS_ATTR, listOf(composed, decomposed)));
     }
 
     @Test

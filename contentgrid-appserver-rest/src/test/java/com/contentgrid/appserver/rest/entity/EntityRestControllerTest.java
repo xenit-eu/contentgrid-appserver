@@ -373,16 +373,16 @@ class EntityRestControllerTest {
                             ));
         }
 
-        @Test
-        void testCreateEntityWithTextSetAttribute() throws Exception {
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
+        void testCreateEntityWithTextSetAttribute(MediaTypeConfiguration mediaTypeConfiguration)
+                throws Exception {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
             person.put("vat", "vat-tags-1");
             person.put("tags", List.of("urgent", "ethias"));
 
-            var location = mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
+            var location = mockMvc.perform(mediaTypeConfiguration.configure(post("/persons"), person))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "ethias")))
                     .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
