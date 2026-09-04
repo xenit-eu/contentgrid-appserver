@@ -497,6 +497,22 @@ class EntityTest {
     }
 
     @Test
+    void entity_sortableOnCompositeAttribute() {
+        var sortableComposite = SortableField.builder().name(SortableName.of("composite"))
+                .propertyPath(PropertyPath.toAttribute(COMPOSITE.getName())).build();
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(ATTRIBUTE1)
+                .attribute(COMPOSITE)
+                .searchFilter(FILTER1)
+                .sortableField(sortableComposite);
+        assertThrows(InvalidArgumentModelException.class, builder::build);
+    }
+
+    @Test
     void entity_translations() {
         var entity = Entity.builder()
                 .name(EntityName.of("color"))
