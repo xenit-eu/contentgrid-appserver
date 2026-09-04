@@ -34,13 +34,14 @@ public class AttributeDataToDataEntryMapper implements
     public PlainDataEntry mapAttribute(Attribute attribute, Optional<AttributeData> inputData) {
         return inputData.map(data -> switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute.getType(), ((SimpleAttributeData<?>)data).getValue());
-            case MultivalueAttribute ignored -> mapMultivalueAttribute(((SimpleAttributeData<?>) data).getValue());
+            case MultivalueAttribute multivalueAttribute -> mapMultivalueAttribute(multivalueAttribute.getItemType(),
+                    ((SimpleAttributeData<?>) data).getValue());
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, (CompositeAttributeData)data);
             case UserAttribute userAttribute -> mapUserAttribute(userAttribute, (CompositeAttributeData)data);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, (CompositeAttributeData)data);
         }).orElseGet(() -> switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute.getType(), null);
-            case MultivalueAttribute ignored -> mapMultivalueAttribute(null);
+            case MultivalueAttribute multivalueAttribute -> mapMultivalueAttribute(multivalueAttribute.getItemType(), null);
             case CompositeAttribute ignored -> NullDataEntry.INSTANCE;
         });
     }
@@ -80,12 +81,12 @@ public class AttributeDataToDataEntryMapper implements
         return new MapDataEntry(map);
     }
 
-    private PlainDataEntry mapMultivalueAttribute(Object data) {
+    private PlainDataEntry mapMultivalueAttribute(@NonNull SimpleAttribute.Type itemType, Object data) {
         if (data == null) {
             return new ListDataEntry(List.of());
         }
         return new ListDataEntry(((List<?>) data).stream()
-                .map(element -> (PlainDataEntry) new StringDataEntry((String) element))
+                .map(element -> mapSimpleAttribute(itemType, element))
                 .toList());
     }
 

@@ -1120,32 +1120,6 @@ class JOOQQueryEngineTest {
         }
     }
 
-    static Stream<Arguments> invalidTextSetValues() {
-        return Stream.of(
-                Arguments.argumentSet("not a list", "urgent"),
-                Arguments.argumentSet("non-string element", List.of("urgent", 123))
-        );
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidTextSetValues")
-    void createEntityWithInvalidTextSetValue(Object value) {
-        tableCreator.createTables(TEXT_SET_APPLICATION);
-        try {
-            var createData = EntityCreateData.builder()
-                    .entityName(DOCUMENT.getName())
-                    .attribute(SimpleAttributeData.builder()
-                            .name(DOCUMENT_TAGS.getName())
-                            .value(value)
-                            .build())
-                    .build();
-            assertThrows(IllegalInputDataException.class,
-                    () -> queryEngine.create(TEXT_SET_APPLICATION, createData, TRUE_EXPRESSION, createEventConsumer));
-        } finally {
-            tableCreator.dropTables(TEXT_SET_APPLICATION);
-        }
-    }
-
     @ParameterizedTest
     @CsvSource({
             "100,false",

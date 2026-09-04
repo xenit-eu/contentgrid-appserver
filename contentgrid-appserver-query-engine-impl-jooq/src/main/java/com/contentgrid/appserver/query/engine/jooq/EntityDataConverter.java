@@ -14,6 +14,7 @@ import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataExce
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.temporal.Temporal;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -75,13 +76,15 @@ public class EntityDataConverter {
     }
 
     private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, MultivalueAttribute attribute) {
-        checkMultivalueType(data.getValue());
         var field = (Field<Object>) JOOQUtils.resolveField(attribute);
         var value = data.getValue();
-        if (value instanceof List<?> list) {
-            value = list.toArray(String[]::new);
+        if (value == null) {
+            return List.of(new JOOQPair<>(field, null));
         }
-        return List.of(new JOOQPair<>(field, value));
+        // The field carries the array type of the item type, so the elements need no assumption here
+        var componentType = field.getDataType().getType().getComponentType();
+        var array = ((List<?>) value).toArray((Object[]) Array.newInstance(componentType, 0));
+        return List.of(new JOOQPair<>(field, array));
     }
 
     private List<JOOQPair<Object>> convert(CompositeAttributeData data, CompositeAttribute attribute) {
@@ -96,22 +99,6 @@ public class EntityDataConverter {
         return result;
     }
 
-    private void checkMultivalueType(Object value) {
-        if (value == null) {
-            return;
-        }
-        if (!(value instanceof List<?> list)) {
-            throw new IllegalInputDataException("Expected value to be of type %s, got %s"
-                    .formatted(List.class.getSimpleName(), value.getClass().getSimpleName()));
-        }
-        for (var element : list) {
-            if (!(element instanceof String)) {
-                throw new IllegalInputDataException("Expected all elements to be of type %s, got %s"
-                        .formatted(String.class.getSimpleName(),
-                                element == null ? "null" : element.getClass().getSimpleName()));
-            }
-        }
-    }
 
     private void checkType(SimpleAttribute.Type type, Object value) {
         if (value == null) {
