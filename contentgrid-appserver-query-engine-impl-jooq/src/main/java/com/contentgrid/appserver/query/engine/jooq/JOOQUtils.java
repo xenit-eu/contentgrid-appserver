@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.values.ColumnName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.jooq.strategy.HasSourceTableColumnRef;
 import com.contentgrid.appserver.query.engine.jooq.strategy.JOOQRelationStrategyFactory;
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,11 +57,12 @@ public class JOOQUtils {
     }
 
     public static Field<?> resolveField(MultivalueAttribute attribute) {
-        return DSL.field(DSL.name(attribute.getColumn().getValue()), textSetDataType());
+        return DSL.field(DSL.name(attribute.getColumn().getValue()), arrayDataType(attribute.getItemType()));
     }
 
     public static Field<?> resolveField(TableName alias, MultivalueAttribute attribute) {
-        return DSL.field(DSL.name(alias.getValue(), attribute.getColumn().getValue()), textSetDataType());
+        return DSL.field(DSL.name(alias.getValue(), attribute.getColumn().getValue()),
+                arrayDataType(attribute.getItemType()));
     }
 
     public static Field<?> resolveField(ColumnName column, SimpleAttribute.Type type, boolean required) {
@@ -121,8 +123,12 @@ public class JOOQUtils {
         return dataType.nullable(!required);
     }
 
-    private static DataType<String[]> textSetDataType() {
-        return TEXT_ARRAY.nullable(false).defaultValue(DSL.inline(new String[0], TEXT_ARRAY));
+    @SuppressWarnings("unchecked")
+    private static <T> DataType<T[]> arrayDataType(SimpleAttribute.Type itemType) {
+        var arrayType = (DataType<T[]>) (DataType<?>) resolveType(itemType, true).getArrayDataType();
+        var empty = (T[]) Array.newInstance(arrayType.getType().getComponentType(), 0);
+        // The column is never null; an absent value is the empty set
+        return arrayType.nullable(false).defaultValue(DSL.inline(empty, arrayType));
     }
 
     @Allow.PlainSQL

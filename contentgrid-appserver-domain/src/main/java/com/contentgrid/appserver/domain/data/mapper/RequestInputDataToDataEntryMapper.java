@@ -5,7 +5,6 @@ import com.contentgrid.appserver.application.model.attributes.CompositeAttribute
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -36,7 +35,6 @@ import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidDataTypeException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.type.DataType;
-import com.contentgrid.appserver.domain.data.type.TechnicalDataType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,8 +55,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         }
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
-            case MultivalueAttribute multivalueAttribute ->
-                    mapMultiValueAttribute(multivalueAttribute.getName(), DataType.of(multivalueAttribute), inputData);
+            case MultivalueAttribute multivalueAttribute -> mapMultiValueAttribute(multivalueAttribute, inputData);
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, inputData);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);
         };
@@ -80,41 +77,50 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
         return mapCompositeAttribute(contentAttribute, inputData);
     }
 
-    private Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute,
-            RequestInputData inputData) throws InvalidPropertyDataException{
-        return switch (simpleAttribute.getType()) {
-            case LONG -> mapScalarAttribute(simpleAttribute, LongDataEntry.class, inputData);
-            case DOUBLE -> mapScalarAttribute(simpleAttribute, DecimalDataEntry.class, inputData);
-            case BOOLEAN -> mapScalarAttribute(simpleAttribute, BooleanDataEntry.class, inputData);
-            case TEXT, UUID -> mapScalarAttribute(simpleAttribute, StringDataEntry.class, inputData);
-            case DATE -> mapScalarAttribute(simpleAttribute, LocalDateDataEntry.class, inputData);
-            case DATETIME -> mapScalarAttribute(simpleAttribute, InstantDataEntry.class, inputData);
+    private static Class<? extends DataEntry> entryTypeFor(SimpleAttribute.Type type) {
+        return switch (type) {
+            case LONG -> LongDataEntry.class;
+            case DOUBLE -> DecimalDataEntry.class;
+            case BOOLEAN -> BooleanDataEntry.class;
+            case TEXT, UUID -> StringDataEntry.class;
+            case DATE -> LocalDateDataEntry.class;
+            case DATETIME -> InstantDataEntry.class;
         };
     }
 
-    private Optional<DataEntry> mapScalarAttribute(SimpleAttribute simpleAttribute,
-            Class<? extends DataEntry> entryType, RequestInputData inputData) throws InvalidPropertyDataException {
+    private Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute,
+            RequestInputData inputData) throws InvalidPropertyDataException{
         var attributeName = simpleAttribute.getName();
         try {
-            return Optional.of(inputData.get(attributeName.getValue(), entryType));
+            return Optional.of(inputData.get(attributeName.getValue(), entryTypeFor(simpleAttribute.getType())));
         } catch (InvalidDataException e) {
             throw e.withinProperty(attributeName);
         }
     }
 
-    private Optional<DataEntry> mapMultiValueAttribute(AttributeName attributeName, DataType attributeType,
+    private Optional<DataEntry> mapMultiValueAttribute(MultivalueAttribute multivalueAttribute,
             RequestInputData inputData) throws InvalidPropertyDataException {
+        var attributeName = multivalueAttribute.getName();
+        var itemEntryType = entryTypeFor(multivalueAttribute.getItemType());
         try {
-            var listResult = getMultiValueList(attributeName, attributeType, inputData);
+            Result<List<? extends DataEntry>> listResult;
+            try {
+                listResult = inputData.getList(attributeName.getValue(), itemEntryType);
+            } catch (InvalidDataException e) {
+                if (e instanceof ExceptionWithExpectedType<?> withExpectedType) {
+                    throw withExpectedType.withSpecializedExpectedType(DataType.of(multivalueAttribute));
+                }
+                throw e;
+            }
             return switch (listResult) {
                 case DataResult<List<? extends DataEntry>> data -> {
                     var builder = ListDataEntry.builder();
                     for (var item : data.get()) {
-                        if (!(item instanceof StringDataEntry stringDataEntry)) {
-                            // A set of strings has no null (or non-string) members
-                            throw new InvalidDataTypeException(TechnicalDataType.STRING, DataType.of(item));
+                        if (!itemEntryType.isInstance(item) || !(item instanceof PlainDataEntry plainDataEntry)) {
+                            // A set has no null members, and every member is of the item type
+                            throw new InvalidDataTypeException(DataType.of(itemEntryType), DataType.of(item));
                         }
-                        builder.item(stringDataEntry);
+                        builder.item(plainDataEntry);
                     }
                     yield Optional.of(builder.build());
                 }
@@ -123,18 +129,6 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
             };
         } catch (InvalidDataException e) {
             throw e.withinProperty(attributeName);
-        }
-    }
-
-    private Result<List<? extends DataEntry>> getMultiValueList(AttributeName attributeName, DataType attributeType,
-            RequestInputData inputData) throws InvalidDataException {
-        try {
-            return inputData.getList(attributeName.getValue(), StringDataEntry.class);
-        } catch (InvalidDataException e) {
-            if (e instanceof ExceptionWithExpectedType<?> withExpectedType) {
-                throw withExpectedType.withSpecializedExpectedType(attributeType);
-            }
-            throw e;
         }
     }
 

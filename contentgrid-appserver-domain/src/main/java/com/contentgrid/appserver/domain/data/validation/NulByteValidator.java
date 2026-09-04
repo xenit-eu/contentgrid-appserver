@@ -31,7 +31,7 @@ public class NulByteValidator implements AttributeValidationDataMapper.Validator
         switch (attribute) {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
                     validateEntry(DataType.of(simpleAttribute.getType()), dataEntry);
-            case MultivalueAttribute multivalueAttribute ->
+            case MultivalueAttribute multivalueAttribute when multivalueAttribute.getItemType() == Type.TEXT ->
                     validateEntry(DataType.of(multivalueAttribute), dataEntry);
             default -> {
                 // Only text values can carry a NUL character

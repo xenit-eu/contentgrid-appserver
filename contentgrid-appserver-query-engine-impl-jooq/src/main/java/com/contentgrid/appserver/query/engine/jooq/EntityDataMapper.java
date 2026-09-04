@@ -70,10 +70,10 @@ public class EntityDataMapper {
     }
 
     public SimpleAttributeData<?> from(@NonNull MultivalueAttribute attribute, Map<String, Object> data) {
-        var value = convert(attribute, data.get(attribute.getColumn().getValue()));
+        var elements = (Object[]) data.get(attribute.getColumn().getValue());
         return SimpleAttributeData.builder()
                 .name(attribute.getName())
-                .value(value)
+                .value(elements == null ? null : Arrays.asList(elements))
                 .build();
     }
 
@@ -91,17 +91,6 @@ public class EntityDataMapper {
             builder.attribute(from(child, data));
         }
         return builder.build();
-    }
-
-    private Object convert(MultivalueAttribute attribute, Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String[] strings) {
-            return Arrays.stream(strings).toList();
-        }
-        throw new IllegalStateException(
-                "Value of attribute '%s' is not a text array".formatted(attribute.getName()));
     }
 
     private Object convert(SimpleAttribute attribute, Object value) {

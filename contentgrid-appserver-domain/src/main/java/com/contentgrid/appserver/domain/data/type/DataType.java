@@ -16,7 +16,7 @@ import lombok.NonNull;
  * Describes the type of a {@link DataEntry}
  */
 public sealed interface DataType permits ObjectDataType, RelationDataType, RelationListDataType,
-        TechnicalDataType {
+        SetDataType, TechnicalDataType {
 
     /**
      * Construct a type based on the class of a {@link DataEntry}
@@ -68,7 +68,7 @@ public sealed interface DataType permits ObjectDataType, RelationDataType, Relat
      * Construct a type based on a {@link MultivalueAttribute}
      */
     static DataType of(@NonNull MultivalueAttribute multivalueAttribute) {
-        return TechnicalDataType.STRING_SET;
+        return SetDataType.of(of(multivalueAttribute.getItemType()));
     }
 
     /**
