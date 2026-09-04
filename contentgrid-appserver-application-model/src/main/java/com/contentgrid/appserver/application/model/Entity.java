@@ -3,7 +3,6 @@ package com.contentgrid.appserver.application.model;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
-import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -191,19 +190,20 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                                 "Duplicate sortable field named %s".formatted(sortableField.getName()));
                     }
 
-                    if (sortableField.getPropertyPath() instanceof SimpleAttributePath simpleAttributePath) {
-                        var attribute = getAttributeByName(simpleAttributePath.getFirst()).orElseThrow(() ->
-                                new InvalidArgumentModelException(("Sorting across a relation is not implemented."
-                                        + " SortableField %s must reference a single attribute on this entity")
-                                        .formatted(sortableField.getName())));
-                        checkSortable(sortableField, attribute);
-                    } else if (sortableField.getPropertyPath() instanceof CompositeAttributePath compositeAttributePath) {
-                        // throws if invalid
-                        resolveAttributePath(compositeAttributePath);
-                    } else {
-                        throw new InvalidArgumentModelException("SortableField %s references non-existent attribute %s"
-                                .formatted(sortableField.getName(), sortableField.getPropertyPath().getFirst()));
+                    if (!(sortableField.getPropertyPath() instanceof AttributePath attributePath)) {
+                        throw new InvalidArgumentModelException(("Sorting across a relation is not implemented."
+                                + " SortableField %s must reference an attribute on this entity")
+                                .formatted(sortableField.getName()));
                     }
+                    Attribute attribute;
+                    try {
+                        attribute = PropertyPathResolver.resolveAttributePath(this, attributePath);
+                    } catch (AttributeNotFoundException e) {
+                        throw new InvalidArgumentModelException(
+                                "SortableField %s references non-existent attribute %s"
+                                        .formatted(sortableField.getName(), attributePath), e);
+                    }
+                    checkSortable(sortableField, attribute);
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
@@ -212,9 +212,9 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
     }
 
     private static void checkSortable(SortableField sortableField, Attribute attribute) {
-        if (attribute instanceof MultivalueAttribute) {
+        if (!(attribute instanceof SimpleAttribute)) {
             throw new InvalidArgumentModelException(
-                    "SortableField %s references multi-value attribute %s, which cannot be sorted on"
+                    "SortableField %s references attribute %s, which cannot be sorted on"
                             .formatted(sortableField.getName(), attribute.getName()));
         }
     }

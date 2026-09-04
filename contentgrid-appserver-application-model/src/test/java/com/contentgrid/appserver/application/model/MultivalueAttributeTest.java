@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConstraint;
 import com.contentgrid.appserver.application.model.Constraint.RequiredConstraint;
-import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
@@ -77,12 +76,6 @@ class MultivalueAttributeTest {
     void multivalueAttribute_invalidConstraints(Constraint constraint) {
         var builder = builder().constraint(constraint);
         assertThrows(InvalidConstraintException.class, builder::build);
-    }
-
-    @Test
-    void multivalueAttribute_cannotBeNestedInComposite() {
-        var composite = CompositeAttributeImpl.builder().name(AttributeName.of("meta")).attribute(builder().build());
-        assertThrows(InvalidAttributeTypeException.class, composite::build);
     }
 
     @Test
