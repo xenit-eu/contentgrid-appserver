@@ -60,26 +60,28 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
     }
 
     public enum Operation {
-        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME)),
-        CONTAINS(Set.of()),
-        PREFIX(Set.of(Type.TEXT)),
-        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
-        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
-        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
-        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
+        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME), Set.of()),
+        CONTAINS(Set.of(), Set.of(Type.TEXT)),
+        PREFIX(Set.of(Type.TEXT), Set.of()),
+        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
         ;
 
         private final Set<Type> supportedTypes;
+        private final Set<Type> supportedItemTypes;
 
-        Operation(Set<Type> supportedTypes) {
+        Operation(Set<Type> supportedTypes, Set<Type> supportedItemTypes) {
             this.supportedTypes = supportedTypes;
+            this.supportedItemTypes = supportedItemTypes;
         }
 
         public boolean supports(Attribute attribute) {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute -> supportedTypes.contains(simpleAttribute.getType());
                 case MultivalueAttribute multivalueAttribute ->
-                        this == CONTAINS && multivalueAttribute.getItemType() == Type.TEXT;
+                        supportedItemTypes.contains(multivalueAttribute.getItemType());
                 case CompositeAttribute ignored -> false;
             };
         }
