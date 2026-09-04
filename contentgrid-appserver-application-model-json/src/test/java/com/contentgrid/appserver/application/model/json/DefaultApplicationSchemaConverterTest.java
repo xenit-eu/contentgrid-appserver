@@ -13,8 +13,6 @@ import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -40,6 +38,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DefaultApplicationSchemaConverterTest {
 
@@ -85,8 +85,9 @@ class DefaultApplicationSchemaConverterTest {
         });
     }
 
-    @Test
-    void testConvertContentEncryptionEnabled() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testConvertContentEncryption(boolean enabled) throws Exception {
         var json = """
                 {
                     "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
@@ -96,27 +97,25 @@ class DefaultApplicationSchemaConverterTest {
                     "relations": [],
                     "settings": {
                         "contentEncryption": {
-                            "encryptionEngineAlgorithms": ["AES256_CTR"],
-                            "keyWrapperAlgorithms": ["NONE"]
+                            "enabled": %s
                         }
                     }
                 }
-                """;
+                """.formatted(enabled);
         var app = new DefaultApplicationSchemaConverter().convert(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
         var settings = app.getSettings().getContentEncryption();
         assertTrue(settings.isPresent());
-        assertEquals(List.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.get().getEncryptionEngineAlgorithms());
-        assertEquals(List.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.get().getKeyWrapperAlgorithms());
+        assertEquals(enabled, settings.get().isEnabled());
     }
 
-    @Test
-    void testSerializeContentEncryptionEnabled() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSerializeContentEncryption(boolean enabled) {
         var app = Application.builder()
                 .name(ApplicationName.of("test"))
                 .settings(ApplicationSettings.builder()
                         .contentEncryption(ContentEncryptionSettings.builder()
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
-                                .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                                .enabled(enabled)
                                 .build())
                         .build())
                 .build();
@@ -134,12 +133,11 @@ class DefaultApplicationSchemaConverterTest {
                     "relations": [],
                     "settings": {
                         "contentEncryption": {
-                            "encryptionEngineAlgorithms": ["AES256_CTR"],
-                            "keyWrapperAlgorithms": ["NONE"]
+                            "enabled": %s
                         }
                     }
                 }
-                """));
+                """.formatted(enabled)));
     }
 
     @Test

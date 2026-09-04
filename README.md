@@ -79,6 +79,17 @@ The content store type is selected with `contentgrid.appserver.content-store.typ
 | `contentgrid.appserver.content.s3.connection-pool-size` | Maximum number of concurrent HTTP connections. `0` disables connection re-use entirely. | `0` | No |
 | `contentgrid.appserver.content.s3.connection-pool-keep-alive-seconds` | How long idle connections are kept alive (in seconds). | `1` | No |
 
+### Content encryption
+
+Whether content is transparently encrypted before being written to the content store is configured per application, with
+the `settings.contentEncryption.enabled` property of the application blueprint. The algorithms that are used are
+configured on the appserver itself.
+
+| Property | Description | Default | Required |
+|---|---|---|---|
+| `contentgrid.appserver.content.encryption.wrapper.algorithms` | List of key wrapping algorithms to use. Supported value: `NONE` (unencrypted symmetric key). | `NONE` | No |
+| `contentgrid.appserver.content.encryption.engine.algorithms` | List of content encryption algorithms to use. The first algorithm is used for encryption, all algorithms are used for decryption. Supported values: `AES128_CTR`, `AES192_CTR`, `AES256_CTR`, `ALFRESCO` (decryption only). | `AES128_CTR` | No |
+
 ### Query engine
 
 | Property | Description | Default | Required |
