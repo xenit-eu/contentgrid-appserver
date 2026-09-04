@@ -371,47 +371,8 @@ class DefaultApplicationSchemaConverterTest {
         var out = new ByteArrayOutputStream();
         converter.toJson(app, out);
 
-        assertThat(out.toString(StandardCharsets.UTF_8), sameJSONAs("""
-                {
-                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
-                    "applicationName": "HR application",
-                    "version": "1.0.0",
-                    "relations": [],
-                    "settings": {},
-                    "entities": [
-                        {
-                            "name": "Employee",
-                            "table": "employees",
-                            "pathSegment": "employee",
-                            "linkName": "employee",
-                            "primaryKey":
-                                {
-                                    "name": "id",
-                                    "type": "simple",
-                                    "dataType": "uuid",
-                                    "columnName": "id",
-                                    "flags": ["readOnly"]
-                                },
-                            "attributes": [
-                                {
-                                    "name": "skills",
-                                    "type": "simple",
-                                    "dataType": "text_set",
-                                    "columnName": "skills",
-                                    "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
-                                }
-                            ],
-                            "searchFilters": [
-                                {
-                                    "name": "skills",
-                                    "attributePath": [{"name": "skills", "type": "attr"}],
-                                    "type": "contains"
-                                }
-                            ]
-                        }
-                    ]
-                }
-                """).allowingExtraUnexpectedFields());
+        assertThat(out.toString(StandardCharsets.UTF_8),
+                sameJSONAs(MULTIVALUE_APPLICATION_JSON).allowingExtraUnexpectedFields());
     }
 
     @Test
@@ -675,30 +636,6 @@ class DefaultApplicationSchemaConverterTest {
                 """));
     }
 
-    @Test
-    void testMultivalueAttributeSerialization() {
-        var app = Application.builder()
-                .name(ApplicationName.of("test"))
-                .entity(Entity.builder()
-                        .name(EntityName.of("document"))
-                        .table(TableName.of("document"))
-                        .pathSegment(PathSegmentName.of("document"))
-                        .linkName(LinkName.of("document"))
-                        .primaryKey(getPrimaryKey())
-                        .attribute(MultivalueAttribute.builder()
-                                .name(AttributeName.of("tags"))
-                                .column(ColumnName.of("tags"))
-                                .itemType(Type.TEXT)
-                                .constraint(Constraint.allowedValues(List.of("urgent", "vip")))
-                                .build())
-                        .build())
-                .build();
-
-        var out = new ByteArrayOutputStream();
-        new DefaultApplicationSchemaConverter().toJson(app, out);
-
-        assertTrue(out.toString(StandardCharsets.UTF_8).contains("\"dataType\":\"text_set\""));
-    }
 
     private static Entity getEntity(String name, String description, String table) {
         return Entity.builder()

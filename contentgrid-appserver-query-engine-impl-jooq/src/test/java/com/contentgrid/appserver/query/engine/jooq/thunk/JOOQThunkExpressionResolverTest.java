@@ -690,22 +690,6 @@ class JOOQThunkExpressionResolverTest {
         assertEquals(Set.of("Thĳs"), results);
     }
 
-    private Set<String> findPersonsWithArraySearch(String... values) {
-        var searchValues = Arrays.stream(values).<Scalar<?>>map(value -> Scalar.of(value))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
-                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
-                new SetValue(searchValues)
-        );
-        var context = new JOOQContext(APPLICATION, PERSON);
-        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
-        var condition = RESOLVER.resolveExpression(expression, context);
-        return dslContext.selectFrom(table)
-                .where(condition)
-                .fetch()
-                .intoSet("name", String.class);
-    }
-
     static Stream<Arguments> findWithArraySearch() {
         return Stream.of(
                 Arguments.argumentSet("any element matches the value",
@@ -722,7 +706,21 @@ class JOOQThunkExpressionResolverTest {
     @ParameterizedTest
     @MethodSource
     void findWithArraySearch(Set<String> expectedNames, String[] searchValues) {
-        assertEquals(expectedNames, findPersonsWithArraySearch(searchValues));
+        var values = Arrays.stream(searchValues).<Scalar<?>>map(value -> Scalar.of(value))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
+                new SetValue(values)
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = RESOLVER.resolveExpression(expression, context);
+        var results = dslContext.selectFrom(table)
+                .where(condition)
+                .fetch()
+                .intoSet("name", String.class);
+
+        assertEquals(expectedNames, results);
     }
 
     @Test
@@ -1297,12 +1295,26 @@ class JOOQThunkExpressionResolverTest {
         assertTrue(results.stream().anyMatch(result -> INVOICE1_ID.equals(result.get("id"))));
     }
 
+    @Test
+    void multivalueAttributeResolvesToTheAliasedArrayField() {
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+
+        var field = resolver.resolvePath(List.of(SymbolicReference.path("labels")));
+
+        assertEquals(JOOQUtils.resolveField(TableName.of("i0"), INVOICE_LABELS), field);
+    }
+
     static Stream<Arguments> illegalExpressions() {
         return Stream.of(
                 Arguments.argumentSet("null value",
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
                                 Scalar.nullValue()
+                        )),
+                Arguments.argumentSet("path through a multi-value attribute",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("labels"), SymbolicReference.path("nested")),
+                                Scalar.of("x")
                         )),
                 Arguments.argumentSet("null string value",
                         Comparison.areEqual(

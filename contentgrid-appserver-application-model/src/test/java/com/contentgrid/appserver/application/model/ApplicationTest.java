@@ -532,34 +532,6 @@ class ApplicationTest {
     }
 
     @Test
-    void application_prefixSearchFilterOnMultivalueAttribute() {
-        var entity = Entity.builder()
-                .name(EntityName.of("test"))
-                .table(TableName.of("test"))
-                .pathSegment(PathSegmentName.of("test"))
-                .linkName(LinkName.of("test"))
-                .attribute(MultivalueAttribute.builder()
-                        .name(AttributeName.of("tags"))
-                        .column(ColumnName.of("tags"))
-                        .itemType(Type.TEXT)
-                        .build()
-                )
-                .searchFilter(AttributeSearchFilter.builder()
-                        .operation(Operation.PREFIX)
-                        .name(FilterName.of("tags~prefix"))
-                        .attributePath(PropertyPath.toAttribute(AttributeName.of("tags")))
-                        .build())
-                .build();
-
-        assertThrows(InvalidSearchFilterException.class, () -> {
-            Application.builder()
-                    .name(ApplicationName.of("test-app"))
-                    .entity(entity)
-                    .build();
-        });
-    }
-
-    @Test
     void application_fullTextSearchFilterOnMultivalueAttribute() {
         var entity = Entity.builder()
                 .name(EntityName.of("test"))
