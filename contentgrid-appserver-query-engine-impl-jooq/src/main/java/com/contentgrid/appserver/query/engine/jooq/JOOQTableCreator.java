@@ -35,8 +35,7 @@ public class JOOQTableCreator implements TableCreator {
             strategy.make(dslContext, application, relation);
         }
         // Create extensions schema and functions
-        createCGPrefixSearchNormalize(dslContext);
-        createCGArraySearchNormalize(dslContext);
+        createSearchNormalizeFunctions(dslContext);
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
@@ -86,15 +85,12 @@ public class JOOQTableCreator implements TableCreator {
             dslContext.dropTableIfExists(table).execute();
         }
 
-        // Drop extensions schema and functions.
-        // The array function must be dropped first: dropCGPrefixSearchNormalize ends by dropping the
-        // extensions schema without CASCADE, which fails while the schema still contains a function.
-        dropCGArraySearchNormalize(dslContext);
-        dropCGPrefixSearchNormalize(dslContext);
+        // Drop extensions schema and functions
+        dropSearchNormalizeFunctions(dslContext);
     }
 
     @Allow.PlainSQL
-    private void createCGPrefixSearchNormalize(DSLContext dslContext) {
+    private void createSearchNormalizeFunctions(DSLContext dslContext) {
         var schema = DSL.schema("extensions");
         dslContext.createSchemaIfNotExists(schema).execute();
         dslContext.execute(DSL.sql("CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ?;", schema));
@@ -104,20 +100,6 @@ public class JOOQTableCreator implements TableCreator {
                   LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
                 RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
                 """, schema, schema));
-    }
-
-    @Allow.PlainSQL
-    private void dropCGPrefixSearchNormalize(DSLContext dslContext) {
-        var schema = DSL.schema("extensions");
-        dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_prefix_search_normalize(text);", schema));
-        dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
-        dslContext.dropSchemaIfExists(schema).execute();
-    }
-
-    @Allow.PlainSQL
-    private void createCGArraySearchNormalize(DSLContext dslContext) {
-        var schema = DSL.schema("extensions");
-        dslContext.createSchemaIfNotExists(schema).execute();
         dslContext.execute(DSL.sql("""
                 CREATE OR REPLACE FUNCTION ?.contentgrid_array_search_normalize(arr text[])
                   RETURNS text[]
@@ -127,9 +109,12 @@ public class JOOQTableCreator implements TableCreator {
     }
 
     @Allow.PlainSQL
-    private void dropCGArraySearchNormalize(DSLContext dslContext) {
+    private void dropSearchNormalizeFunctions(DSLContext dslContext) {
         var schema = DSL.schema("extensions");
         dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_array_search_normalize(text[]);", schema));
+        dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_prefix_search_normalize(text);", schema));
+        dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
+        dslContext.dropSchemaIfExists(schema).execute();
     }
 
 }

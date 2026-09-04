@@ -86,7 +86,7 @@ import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFou
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -783,25 +783,25 @@ class JOOQQueryEngineTest {
                         Scalar.of(1.0)
                 ),
                 // normalize
-                StringComparison.normalizedEqual(
+                SearchComparison.normalizedEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_¹") // invoice_1
                 ),
                 // contentgrid prefix search
-                StringComparison.contentGridPrefixSearchMatch(
+                SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                         Scalar.of("Bö") // bob
                 ),
                 // across relation, to one
-                StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                SearchComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                         Scalar.of("alice")
                 ),
                 // across relation, to many
-                StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
+                SearchComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
                         Scalar.of("code_1")
                 ),
                 // across relation, to many, id
-                StringComparison.areEqual(
+                SearchComparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")),
                         Scalar.of(PRODUCT1_ID.getValue())
                 )
@@ -2707,17 +2707,17 @@ class JOOQQueryEngineTest {
                 // false
                 Arguments.of(Scalar.of(false), 0),
                 // expression that holds for all products
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                Arguments.of(SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_")
                 ), 3),
                 // expression that holds for none of the products
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                Arguments.of(SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code__")
                 ), 0),
                 // expression that holds for exactly one product
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                Arguments.of(SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_2")
                 ), 1),

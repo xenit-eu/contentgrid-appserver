@@ -7,8 +7,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
@@ -290,7 +290,7 @@ public class JOOQThunkExpressionResolver {
                             var rightField = JOOQUtils.prefixSearchNormalize(right);
                             yield leftField.startsWith(rightField);
                         }
-                        case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
+                        case SearchComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
                             var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
                             var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
 
@@ -307,7 +307,7 @@ public class JOOQThunkExpressionResolver {
 
                             yield generateFTSCondition(leftField, rightField, language);
                         }
-                        case StringComparison.ContentGridArraySearch contentGridArraySearch -> {
+                        case SearchComparison.ContentGridArraySearch contentGridArraySearch -> {
                             var left = contentGridArraySearch.getLeftTerm().accept(this, context);
                             if (!left.getDataType().isArray()) {
                                 logWarning("cg_array_search", left);
