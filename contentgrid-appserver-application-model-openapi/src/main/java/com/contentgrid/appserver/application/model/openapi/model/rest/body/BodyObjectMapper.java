@@ -68,7 +68,9 @@ public final class BodyObjectMapper {
             var translations = searchFilter.getTranslations(context.userLocales());
             var bodyValue = switch (searchFilter) {
                 case BaseAttributeSearchFilter attributeSearchFilter -> {
-                    var attribute = context.application().resolveAttribute(entity, attributeSearchFilter.getAttributePath());
+                    var attribute = context.application().getPropertyPathResolver()
+                            .resolveAttribute(entityName, attributeSearchFilter.getAttributePath())
+                            .getAttribute();
                     yield getBodyValue(
                             context,
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
