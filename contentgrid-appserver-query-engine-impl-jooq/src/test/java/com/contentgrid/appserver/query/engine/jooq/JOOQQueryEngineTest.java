@@ -450,12 +450,24 @@ class JOOQQueryEngineTest {
             .itemType(Type.TEXT)
             .build();
 
+    private static final MultivalueAttribute META_KEYWORDS = MultivalueAttribute.builder()
+            .name(AttributeName.of("keywords"))
+            .column(ColumnName.of("meta_keywords"))
+            .itemType(Type.TEXT)
+            .build();
+
+    private static final CompositeAttribute DOCUMENT_META = CompositeAttributeImpl.builder()
+            .name(AttributeName.of("meta"))
+            .attribute(META_KEYWORDS)
+            .build();
+
     private static final Entity DOCUMENT = Entity.builder()
             .name(EntityName.of("document"))
             .table(TableName.of("document"))
             .pathSegment(PathSegmentName.of("documents"))
             .linkName(LinkName.of("documents"))
             .attribute(DOCUMENT_TAGS)
+            .attribute(DOCUMENT_META)
             .build();
 
     private static final Application TEXT_SET_APPLICATION = Application.builder()
@@ -1075,6 +1087,34 @@ class JOOQQueryEngineTest {
                         TRUE_EXPRESSION
                 ));
             }
+        }
+    }
+
+    @Test
+    void createEntityWithTextSetInsideCompositeAttribute() {
+        tableCreator.createTables(TEXT_SET_APPLICATION);
+        try {
+            var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                    .entityName(DOCUMENT.getName())
+                    .attribute(CompositeAttributeData.builder()
+                            .name(DOCUMENT_META.getName())
+                            .attribute(SimpleAttributeData.builder()
+                                    .name(META_KEYWORDS.getName())
+                                    .value(List.of("alpha", "beta"))
+                                    .build())
+                            .build())
+                    .build(), TRUE_EXPRESSION, createEventConsumer);
+
+            var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(),
+                    TRUE_EXPRESSION).orElseThrow();
+            var meta = assertInstanceOf(CompositeAttributeData.class,
+                    actual.getAttributeByName(DOCUMENT_META.getName()).orElseThrow());
+            var keywords = assertInstanceOf(SimpleAttributeData.class,
+                    meta.getAttributeByName(META_KEYWORDS.getName()).orElseThrow());
+            assertThat(keywords.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
+                    .containsExactlyInAnyOrder("alpha", "beta");
+        } finally {
+            tableCreator.dropTables(TEXT_SET_APPLICATION);
         }
     }
 
