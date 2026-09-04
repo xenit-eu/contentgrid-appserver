@@ -516,6 +516,60 @@ class EntityRestControllerTest {
         }
 
         @Test
+        void testFailToCreateEntityWithDisallowedTextSetElement() throws Exception {
+            var personUrl = createPerson().getRedirectedUrl();
+
+            mockMvc.perform(post("/invoices")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("number", "900")
+                            .param("amount", "10")
+                            .param("confidentiality", "public")
+                            .param("customer", personUrl)
+                            .param("labels", "urgent", "forbidden"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withTitle("Value is not allowed")
+                                    .withDetail("The value must be one of the allowed values [urgent, review]")
+                                    .withField("field", "labels")
+                                    .withField("allowed_values", List.of("urgent", "review"))
+                            ));
+        }
+
+        @Test
+        void testFailToUpdateEntityWithDisallowedTextSetElement() throws Exception {
+            var personUrl = createPerson().getRedirectedUrl();
+            var location = mockMvc.perform(post("/invoices")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("number", "901")
+                            .param("amount", "10")
+                            .param("confidentiality", "public")
+                            .param("customer", personUrl)
+                            .param("labels", "urgent"))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            mockMvc.perform(put(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(Map.of(
+                                    "number", "901",
+                                    "amount", 10,
+                                    "confidentiality", "public",
+                                    "labels", List.of("forbidden")))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withField("field", "labels")
+                            ));
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.labels", containsInAnyOrder("urgent")));
+        }
+
+        @Test
         void testCreateEntityWithExplicitEmptyTextSetList() throws Exception {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
