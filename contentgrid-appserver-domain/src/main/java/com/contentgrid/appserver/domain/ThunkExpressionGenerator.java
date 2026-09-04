@@ -21,7 +21,7 @@ import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.validation.NulByteValidator;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -140,7 +140,7 @@ public class ThunkExpressionGenerator {
         if (filter instanceof FullTextSearchAttributeSearchFilter ftsFilter) {
             // FTS keeps a disjunction; each term gets its own path so to-many wildcards stay independent
             var subexpressions = values.stream()
-                    .map(v -> (ThunkExpression<Boolean>) StringComparison.contentGridFullTextSearchMatch(
+                    .map(v -> (ThunkExpression<Boolean>) SearchComparison.contentGridFullTextSearchMatch(
                             symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
                             v.assertResultType(String.class),
                             ftsFilter.getLocale()
@@ -161,13 +161,13 @@ public class ThunkExpressionGenerator {
                 case CONTAINS -> {
                     var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
                     // Any element matches any of the values: one overlap expression carries all values
-                    yield StringComparison.contentGridArraySearchMatch(attr,
+                    yield SearchComparison.contentGridArraySearchMatch(attr,
                             new SetValue(new LinkedHashSet<>(values)));
                 }
                 case PREFIX -> {
                     // PREFIX keeps a disjunction; each term gets its own path so to-many wildcards stay independent
                     var subexpressions = values.stream()
-                            .map(v -> (ThunkExpression<Boolean>) StringComparison.contentGridPrefixSearchMatch(
+                            .map(v -> (ThunkExpression<Boolean>) SearchComparison.contentGridPrefixSearchMatch(
                                     symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath())),
                                     v.assertResultType(String.class)
                             ))

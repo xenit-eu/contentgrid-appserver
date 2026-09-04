@@ -196,7 +196,6 @@ public class HalFormsTemplateGenerator {
                 var item = toHalFormsProperty(name, av.getItems());
                 var options = item.getOptions();
                 if (options == null) {
-                    // Mark the property as multi-valued, without suggesting an (empty) value list
                     options = HalFormsOptions.inline().withMinItems(0L);
                 }
                 if (options instanceof AbstractHalFormsOptions<?> halFormsOptions) {
@@ -235,13 +234,10 @@ public class HalFormsTemplateGenerator {
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {
         var sortOptions = new ArrayList<SortOption>();
         for (var sortableField : entity.getSortableFields()) {
-            var attribute = application.resolveAttribute(entity, sortableField.getPropertyPath());
-            if (!(attribute instanceof SimpleAttribute simpleAttribute)) {
-                // The model only accepts sortable fields on scalar simple attributes
-                throw new IllegalStateException("Sortable field %s does not reference a sortable attribute"
-                        .formatted(sortableField.getName()));
-            }
-            sortableFieldToSortOptions(simpleAttribute, sortableField)
+            // The model only accepts a sortable field on a simple attribute
+            var attribute = (SimpleAttribute) application.resolveAttribute(entity,
+                    sortableField.getPropertyPath());
+            sortableFieldToSortOptions(attribute, sortableField)
                     .forEachOrdered(sortOptions::add);
         }
         if (sortOptions.isEmpty()) {

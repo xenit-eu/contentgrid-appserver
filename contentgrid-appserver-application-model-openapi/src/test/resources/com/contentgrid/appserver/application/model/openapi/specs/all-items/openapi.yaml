@@ -3153,17 +3153,13 @@ paths:
         in: "query"
         description: "String set attribute"
         schema:
-          type: "array"
-          description: "A multi-value string attribute."
-          items:
-            type: "string"
-            enum:
-            - "alpha"
-            - "beta"
-            - "gamma"
-            examples:
-            - "alpha"
-          uniqueItems: true
+          type: "string"
+          enum:
+          - "alpha"
+          - "beta"
+          - "gamma"
+          examples:
+          - "alpha"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\

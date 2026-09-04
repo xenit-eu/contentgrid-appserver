@@ -13,6 +13,14 @@ public enum ProfileAttributeType {
     DATETIME,
     OBJECT;
 
+    public static ProfileAttributeType setOf(SimpleAttribute.Type itemType) {
+        return switch (from(itemType)) {
+            case STRING -> STRING_SET;
+            default -> throw new IllegalArgumentException(
+                    "No profile type for a set of %s".formatted(itemType));
+        };
+    }
+
     @Nullable
     public static ProfileAttributeType from(SimpleAttribute.Type type) {
         return switch (type) {

@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.openapi.model.jsonschema.Json
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ArrayBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
 import com.contentgrid.appserver.application.model.openapi.type.EntityType;
@@ -69,8 +70,14 @@ public class CollectionSearchQueryParameterResolver implements RequestParameterR
                 .map(field -> {
                     var param = new OpenApiParameter(field.getKey(), In.QUERY);
                     param.setDescription(field.getValue().getTitle());
+                    var value = field.getValue();
+                    if (value instanceof ArrayBodyValue arrayBodyValue) {
+                        // A repeated parameter carries one value per occurrence, so the parameter
+                        // describes an element rather than the collection it is matched against
+                        value = arrayBodyValue.getItems();
+                    }
                     param.setSchema(bodyValueMapper.apply(
-                            field.getValue()
+                            value
                                     // Remove title, because it is already in the description field above
                                     .withTitle(null),
                             context

@@ -89,7 +89,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -1703,7 +1703,7 @@ class DatamodelApiImplTest {
         void findAllWithPagingAndFiltering() {
             ArgumentCaptor<QueryPageData> paginationArg = ArgumentCaptor.forClass(QueryPageData.class);
             var filter = LogicalOperation.conjunction(
-                    StringComparison.areEqual(SymbolicReference.parse("entity.confidentiality"), Scalar.of("public")),
+                    SearchComparison.areEqual(SymbolicReference.parse("entity.confidentiality"), Scalar.of("public")),
                     Scalar.of(true)
             );
             Mockito.when(queryEngine.findAll(any(), any(), eq(filter), any(), paginationArg.capture()))

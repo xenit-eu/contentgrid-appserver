@@ -432,7 +432,7 @@ class EntityRestControllerTest {
                             .withError(e -> e
                                     .withType("https://contentgrid.cloud/problems/input/validation/duplicate-element")
                                     .withTitle("Duplicate value in list")
-                                    .withDetail("The value 'urgent' is present more than once")
+                                    .withDetail("The value 'urgent' is present more than once in this list")
                                     .withField("field", "tags")
                                     .withField("duplicate_value", "urgent")
                             ));

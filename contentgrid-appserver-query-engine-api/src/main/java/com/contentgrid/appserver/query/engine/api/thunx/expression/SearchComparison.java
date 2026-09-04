@@ -9,12 +9,12 @@ import lombok.Getter;
 import lombok.NonNull;
 
 @EqualsAndHashCode(callSuper = true)
-public sealed class StringComparison extends Comparison implements CustomFunctionExpression<Boolean> {
+public sealed class SearchComparison extends Comparison implements CustomFunctionExpression<Boolean> {
 
     @NonNull
     private final String key;
 
-    protected StringComparison(@NonNull String key, @NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
+    protected SearchComparison(@NonNull String key, @NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
         super(Operator.CUSTOM, leftTerm, rightTerm);
         this.key = key;
     }
@@ -51,7 +51,7 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return new ContentGridArraySearch(leftTerm, rightTerm);
     }
 
-    public static final class ContentGridPrefixSearch extends StringComparison {
+    public static final class ContentGridPrefixSearch extends SearchComparison {
 
         private ContentGridPrefixSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
             super("cg_prefix_search", leftTerm, rightTerm);
@@ -60,7 +60,7 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
 
     @Getter
     @EqualsAndHashCode(callSuper = true)
-    public static final class ContentGridFullTextSearch extends StringComparison {
+    public static final class ContentGridFullTextSearch extends SearchComparison {
 
         private final @NonNull Locale locale;
 
@@ -73,7 +73,7 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         }
     }
 
-    public static final class ContentGridArraySearch extends StringComparison {
+    public static final class ContentGridArraySearch extends SearchComparison {
 
         private ContentGridArraySearch(@NonNull ThunkExpression<?> leftTerm, @NonNull SetValue rightTerm) {
             super("cg_array_search", leftTerm, rightTerm);

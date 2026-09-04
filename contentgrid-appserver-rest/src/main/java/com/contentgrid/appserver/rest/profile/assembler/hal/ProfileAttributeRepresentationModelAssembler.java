@@ -45,8 +45,8 @@ public class ProfileAttributeRepresentationModelAssembler {
                     simpleAttribute.getConstraints(), simpleAttribute.hasConstraint(RequiredConstraint.class),
                     ProfileAttributeType.from(simpleAttribute.getType()));
             case MultivalueAttribute multivalueAttribute -> attributeToModel(context, entity, path,
-                    multivalueAttribute, multivalueAttribute.getConstraints(),
-                    multivalueAttribute.hasConstraint(RequiredConstraint.class), ProfileAttributeType.STRING_SET);
+                    multivalueAttribute, multivalueAttribute.getConstraints(), false,
+                    ProfileAttributeType.setOf(multivalueAttribute.getItemType()));
             case UserAttribute userAttribute -> userAttributeToModel(context, userAttribute);
             case ContentAttribute contentAttribute -> compositeAttributeToModel(context, entity, path, contentAttribute);
             case CompositeAttribute compositeAttribute -> compositeAttributeToModel(context, entity, path, compositeAttribute);

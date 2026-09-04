@@ -45,7 +45,7 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver.JOOQContext;
@@ -616,7 +616,7 @@ class JOOQThunkExpressionResolverTest {
     @Test
     void findAliceWithPrefixSearch() {
         // cg_prefix_search_normalize(entity.name) starts with cg_prefix_search_normalize(ALI)
-        ThunkExpression<Boolean> expression = StringComparison.contentGridPrefixSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridPrefixSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 Scalar.of("ALI")
         );
@@ -657,7 +657,7 @@ class JOOQThunkExpressionResolverTest {
 
     @Test
     void findWithFullTextSearch() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridFullTextSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 Scalar.of("bar foo"), Locale.ENGLISH
 
@@ -675,7 +675,7 @@ class JOOQThunkExpressionResolverTest {
 
     @Test
     void findNormalizedWithFullTextSearch() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridFullTextSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 // Actual value in table is "Thĳs", which should be normalized by search to still match this.
                 Scalar.of("Thijs"), Locale.ENGLISH
@@ -709,7 +709,7 @@ class JOOQThunkExpressionResolverTest {
     void findWithArraySearch(Set<UUID> expectedIds, String[] searchValues) {
         var values = Arrays.stream(searchValues).<Scalar<?>>map(value -> Scalar.of(value))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridArraySearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
                 new SetValue(values)
         );
@@ -726,7 +726,7 @@ class JOOQThunkExpressionResolverTest {
 
     @Test
     void arraySearchOnScalarAttributeIsFalse() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridArraySearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridArraySearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 new SetValue(Set.of(Scalar.of("alice")))
         );
@@ -737,7 +737,7 @@ class JOOQThunkExpressionResolverTest {
 
     @Test
     void findFullTextSearchInFrench() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridFullTextSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 Scalar.of("baguette"), Locale.FRENCH
         );
@@ -1147,12 +1147,12 @@ class JOOQThunkExpressionResolverTest {
                                 Scalar.of(1.0)
                         ), 2),
                 Arguments.argumentSet("normalize",
-                        StringComparison.normalizedEqual(
+                        SearchComparison.normalizedEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                 Scalar.of("invoice_¹") // invoice_1
                         ), 1),
                 Arguments.argumentSet("contentgrid prefix search",
-                        StringComparison.contentGridPrefixSearchMatch(
+                        SearchComparison.contentGridPrefixSearchMatch(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                                 Scalar.of("Bö") // bob
                         ), 1),
