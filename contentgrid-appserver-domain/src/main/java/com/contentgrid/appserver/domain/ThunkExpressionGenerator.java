@@ -62,7 +62,9 @@ public class ThunkExpressionGenerator {
 
                 // currently only handle attribute search filters
                 if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                    var attribute = application.resolveAttribute(entity, attributeSearchFilter.getAttributePath());
+                    var attribute = application.getPropertyPathResolver()
+                            .resolveAttribute(entity.getName(), attributeSearchFilter.getAttributePath())
+                            .getAttribute();
                     List<Scalar<?>> parsedValues = new ArrayList<>();
 
                     for (String value : entry.getValue()) {

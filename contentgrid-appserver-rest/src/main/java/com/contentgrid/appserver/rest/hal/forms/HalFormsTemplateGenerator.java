@@ -235,8 +235,9 @@ public class HalFormsTemplateGenerator {
         var sortOptions = new ArrayList<SortOption>();
         for (var sortableField : entity.getSortableFields()) {
             // The model only accepts a sortable field on a simple attribute
-            var attribute = (SimpleAttribute) application.resolveAttribute(entity,
-                    sortableField.getPropertyPath());
+            var attribute = (SimpleAttribute) application.getPropertyPathResolver()
+                    .resolveAttribute(entity.getName(), sortableField.getPropertyPath())
+                    .getAttribute();
             sortableFieldToSortOptions(attribute, sortableField)
                     .forEachOrdered(sortOptions::add);
         }

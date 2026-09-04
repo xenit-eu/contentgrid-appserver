@@ -188,11 +188,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                                 "Duplicate sortable field named %s".formatted(sortableField.getName()));
                     }
 
-                    if (!(sortableField.getPropertyPath() instanceof AttributePath attributePath)) {
-                        throw new InvalidArgumentModelException(("Sorting across a relation is not implemented."
-                                + " SortableField %s must reference an attribute on this entity")
-                                .formatted(sortableField.getName()));
-                    }
+                    var attributePath = sortableField.getPropertyPath();
                     Attribute attribute;
                     try {
                         attribute = PropertyPathResolver.resolveAttributePath(this, attributePath);

@@ -1,16 +1,12 @@
 package com.contentgrid.appserver.application.model;
 
-import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
-import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.RelationResolutionResult;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
@@ -377,7 +373,9 @@ public class Application {
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
             if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
-                    var resolvedAttribute = resolveAttribute(entity, attributeSearchFilter.getAttributePath());
+                    var resolvedAttribute = propertyPathResolver
+                            .resolveAttribute(entity.getName(), attributeSearchFilter.getAttributePath())
+                            .getAttribute();
                     if(!attributeSearchFilter.supports(resolvedAttribute)) {
                         throw new InvalidSearchFilterException(
                             "SearchFilter %s does not support the attribute %s".formatted(
@@ -433,20 +431,6 @@ public class Application {
                 });
 
 
-    }
-
-    /**
-     * Resolves a property path against an entity to the attribute it references.
-     */
-    public Attribute resolveAttribute(Entity entity, PropertyPath path) {
-        try {
-            return propertyPathResolver.resolveAttribute(entity.getName(), path.as(ResolvesToAttribute.class))
-                    .getAttribute();
-        } catch (InvalidPropertyPathException e) {
-            throw new InvalidArgumentModelException(
-                    "Resolving path '%s' against entity '%s' did not reach an attribute".formatted(path,
-                            entity.getName()), e);
-        }
     }
 
 }
