@@ -232,25 +232,14 @@
           "type": "object",
           "description": "Content encryption configuration for this application.",
           "properties": {
-            "encryptionEngineAlgorithms": {
-              "type": "array",
-              "description": "The content encryption engine algorithms to use. The first algorithm will be used for encryption, the additional algorithms will only be used for decryption. Defaults to [ AES128_CTR ].",
-              "items": {
-                "type": "string",
-                "enum": ["AES128_CTR", "AES192_CTR", "AES256_CTR", "ALFRESCO"]
-              },
-              "uniqueItems": true
-            },
-            "keyWrapperAlgorithms": {
-              "type": "array",
-              "description": "The key wrapper algorithms to use. Defaults to [ NONE ].",
-              "items": {
-                "type": "string",
-                "enum": ["NONE"]
-              },
-              "uniqueItems": true
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether content of this application is encrypted."
             }
           },
+          "required": [
+            "enabled"
+          ],
           "additionalProperties": false
         },
         "database": {

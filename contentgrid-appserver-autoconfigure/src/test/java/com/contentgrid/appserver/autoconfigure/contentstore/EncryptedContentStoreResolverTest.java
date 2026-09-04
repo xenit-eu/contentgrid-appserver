@@ -5,15 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.contentstore.impl.encryption.EncryptedContentStore;
+import com.contentgrid.appserver.contentstore.impl.encryption.engine.AesCtrEncryptionEngine;
+import com.contentgrid.appserver.contentstore.impl.encryption.keys.UnencryptedSymmetricDataEncryptionKeyWrapper;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStore;
 import com.contentgrid.appserver.query.engine.jooq.resolver.AutowiredDSLContextResolver;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
+import java.util.List;
 import org.jooq.CloseableDSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AutoClose;
@@ -29,7 +30,10 @@ class EncryptedContentStoreResolverTest {
     private final ContentStore contentStore = new MockContentStore();
     private final ContentStoreResolver backingContentStoreResolver = application -> contentStore;
 
-    private final ContentStoreResolver encryptedContentStoreResolver = new EncryptedContentStoreResolver(backingContentStoreResolver, dslContextResolver);
+    private final ContentStoreResolver encryptedContentStoreResolver = new EncryptedContentStoreResolver(
+            backingContentStoreResolver, dslContextResolver,
+            List.of(new UnencryptedSymmetricDataEncryptionKeyWrapper(true)),
+            List.of(new AesCtrEncryptionEngine(128)));
 
     @Test
     void resolveWithoutEncryption() {
@@ -46,8 +50,7 @@ class EncryptedContentStoreResolverTest {
                 .name(ApplicationName.of("default"))
                 .settings(ApplicationSettings.builder()
                         .contentEncryption(ContentEncryptionSettings.builder()
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                                .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                                .enabled(true)
                                 .build())
                         .build())
                 .build();
@@ -56,21 +59,17 @@ class EncryptedContentStoreResolverTest {
     }
 
     @Test
-    void resolveWithMultipleEncryptionEngineAlgorithms() {
+    void resolveWithEncryptionDisabled() {
         var application = Application.builder()
                 .name(ApplicationName.of("default"))
                 .settings(ApplicationSettings.builder()
                         .contentEncryption(ContentEncryptionSettings.builder()
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES192_CTR)
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
-                                .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                                .enabled(false)
                                 .build())
                         .build())
                 .build();
 
-        assertThat(encryptedContentStoreResolver.resolve(application)).isInstanceOf(EncryptedContentStore.class);
+        assertThat(encryptedContentStoreResolver.resolve(application)).isInstanceOf(MockContentStore.class);
     }
 
 }

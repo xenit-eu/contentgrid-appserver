@@ -7,8 +7,6 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.ColumnName;
@@ -77,6 +75,8 @@ import org.springframework.web.reactive.function.BodyInserters;
                 "contentgrid.thunx.abac.source = none",
                 "contentgrid.events.rabbitmq.enabled=false",
                 "spring.datasource.url=jdbc:tc:postgresql:15:///",
+                "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES128_CTR",
+                "contentgrid.appserver.content.encryption.engine.algorithms[1]=ALFRESCO",
         })
 class EncryptedAlfCompatibilityTest {
 
@@ -88,9 +88,7 @@ class EncryptedAlfCompatibilityTest {
             .name(ApplicationName.of("default"))
             .settings(ApplicationSettings.builder()
                     .contentEncryption(ContentEncryptionSettings.builder()
-                            .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
-                            .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                            .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.ALFRESCO)
+                            .enabled(true)
                             .build())
                     .build())
             .entity(Entity.builder()
