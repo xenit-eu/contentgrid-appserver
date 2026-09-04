@@ -11,10 +11,10 @@ import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.temporal.Temporal;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -98,7 +98,6 @@ public class EntityDataConverter {
         }
         return result;
     }
-
 
     private void checkType(SimpleAttribute.Type type, Object value) {
         if (value == null) {

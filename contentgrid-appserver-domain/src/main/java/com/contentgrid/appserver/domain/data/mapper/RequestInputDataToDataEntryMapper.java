@@ -116,11 +116,10 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                 case DataResult<List<? extends DataEntry>> data -> {
                     var builder = ListDataEntry.builder();
                     for (var item : data.get()) {
-                        if (!itemEntryType.isInstance(item) || !(item instanceof PlainDataEntry plainDataEntry)) {
-                            // A set has no null members, and every member is of the item type
+                        if (!itemEntryType.isInstance(item)) {
                             throw new InvalidDataTypeException(DataType.of(itemEntryType), DataType.of(item));
                         }
-                        builder.item(plainDataEntry);
+                        builder.item((PlainDataEntry) item);
                     }
                     yield Optional.of(builder.build());
                 }
