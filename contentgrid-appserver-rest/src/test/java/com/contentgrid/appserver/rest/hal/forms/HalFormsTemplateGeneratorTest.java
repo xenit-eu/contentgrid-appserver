@@ -106,6 +106,20 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isOne();
                     });
                 },
+                labels -> {
+                    assertThat(labels.getName()).isEqualTo("labels");
+                    assertThat(labels.isReadOnly()).isFalse();
+                    assertThat(labels.isRequired()).isFalse();
+                    assertThat(labels.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(labels.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                        assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                value1 -> assertThat(value1).isEqualTo("urgent"),
+                                value2 -> assertThat(value2).isEqualTo("review")
+                        );
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
+                },
                 content -> {
                     assertThat(content.getName()).isEqualTo("content");
                     assertThat(content.isReadOnly()).isFalse();
@@ -324,6 +338,20 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isOne();
                     });
                 },
+                labels -> {
+                    assertThat(labels.getName()).isEqualTo("labels");
+                    assertThat(labels.isReadOnly()).isFalse();
+                    assertThat(labels.isRequired()).isFalse();
+                    assertThat(labels.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(labels.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                        assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                value1 -> assertThat(value1).isEqualTo("urgent"),
+                                value2 -> assertThat(value2).isEqualTo("review")
+                        );
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
+                },
                 contentFilename -> {
                     assertThat(contentFilename.getName()).isEqualTo("content.filename");
                     assertThat(contentFilename.getPrompt()).isEqualTo("content: Filename");
@@ -478,6 +506,18 @@ class HalFormsTemplateGeneratorTest {
                 productsName -> {
                     assertThat(productsName.getName()).isEqualTo("products.code");
                     assertThat(productsName.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                },
+                labels -> {
+                    assertThat(labels.getName()).isEqualTo("labels");
+                    assertThat(labels.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+                    assertThat(labels.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                        assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
+                                value1 -> assertThat(value1).isEqualTo("urgent"),
+                                value2 -> assertThat(value2).isEqualTo("review")
+                        );
+                        assertThat(options.getMinItems()).isZero();
+                        assertThat(options.getMaxItems()).isNull();
+                    });
                 },
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);

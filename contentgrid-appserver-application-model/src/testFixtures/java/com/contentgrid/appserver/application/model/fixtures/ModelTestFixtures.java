@@ -332,6 +332,13 @@ public class ModelTestFixtures {
             .constraint(Constraint.required())
             .build();
 
+    public static final MultivalueAttribute INVOICE_LABELS = MultivalueAttribute.builder()
+            .name(AttributeName.of("labels"))
+            .column(ColumnName.of("labels"))
+            .itemType(Type.TEXT)
+            .constraint(Constraint.allowedValues(List.of("urgent", "review")))
+            .build();
+
     public static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
@@ -394,6 +401,7 @@ public class ModelTestFixtures {
             .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONFIDENTIALITY)
+            .attribute(INVOICE_LABELS)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .searchFilter(AttributeSearchFilter.builder()
@@ -543,6 +551,11 @@ public class ModelTestFixtures {
             .sortableField(SortableField.builder()
                     .name(SortableName.of("confidentiality"))
                     .propertyPath(PropertyPath.toAttribute(AttributeName.of("confidentiality")))
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.CONTAINS)
+                    .attribute(INVOICE_LABELS)
+                    .name(FilterName.of("labels"))
                     .build())
             .build();
 

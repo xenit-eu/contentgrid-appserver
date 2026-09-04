@@ -458,6 +458,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), Instant.now(clock).plus(7, ChronoUnit.DAYS)),
                         new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), false),
                         new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                        new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                         CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName())
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
@@ -590,6 +591,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                         new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                         new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                        new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                         new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
                         new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), null),
@@ -902,6 +904,7 @@ class DatamodelApiImplTest {
                                 new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), null),
                                 new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
                                 new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                                new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                         CompositeAttributeData.builder()
                                 .name(INVOICE_CONTENT.getName())
                                 .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), fileId))
@@ -990,6 +993,7 @@ class DatamodelApiImplTest {
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                    new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null), // Is set to null
                     new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), null), // Is also set to null
                     new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null), // Is also set to null during an update
@@ -1066,6 +1070,7 @@ class DatamodelApiImplTest {
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                    new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                     // Missing values are set to null
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
@@ -1171,6 +1176,7 @@ class DatamodelApiImplTest {
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                    new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                     // Missing values are set to null
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
@@ -1220,6 +1226,7 @@ class DatamodelApiImplTest {
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                    new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                     // Missing values are set to null
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
@@ -1275,6 +1282,7 @@ class DatamodelApiImplTest {
                     new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
                     // amount is missing here, and thus not overwritten
                     new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                    // labels is missing here, and thus not overwritten
                     new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
                     new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null), // Is set to null
                     new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), Instant.now(clock)),

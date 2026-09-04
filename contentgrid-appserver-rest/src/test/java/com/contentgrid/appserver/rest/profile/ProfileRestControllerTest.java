@@ -217,6 +217,19 @@ class ProfileRestControllerTest {
                                         }]
                                     }
                                 }, {
+                                    name: "labels",
+                                    type: "string_set",
+                                    _embedded: {
+                                        "blueprint:constraint": [{
+                                            type: "allowed-values",
+                                            values: ["urgent", "review"]
+                                        }],
+                                        "blueprint:search-param": [{
+                                            name: "labels",
+                                            type: "contains"
+                                        }]
+                                    }
+                                }, {
                                     name: "content",
                                     type: "object",
                                     _embedded: {
@@ -429,6 +442,13 @@ class ProfileRestControllerTest {
                                             inline: ["confidential", "public", "secret"]
                                         }
                                     }, {
+                                        name: "labels",
+                                        type: "text",
+                                        options: {
+                                            inline: ["urgent", "review"],
+                                            minItems: 0
+                                        }
+                                    }, {
                                         name: "_sort",
                                         type: "text",
                                         options: {
@@ -502,6 +522,13 @@ class ProfileRestControllerTest {
                                             inline: ["confidential", "public", "secret"],
                                             minItems: 1,
                                             maxItems: 1
+                                        }
+                                    }, {
+                                        name: "labels",
+                                        type: "text",
+                                        options: {
+                                            inline: ["urgent", "review"],
+                                            minItems: 0
                                         }
                                     }, {
                                         name: "content",
@@ -830,44 +857,6 @@ class ProfileRestControllerTest {
     }
 
     @Test
-    void getProfileEntity_textSetAttribute() throws Exception {
-        mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json("""
-                        {
-                            _embedded: {
-                                "blueprint:attribute": [
-                                    { name: "person_id" },
-                                    { name: "name" },
-                                    { name: "vat" },
-                                    { name: "age" },
-                                    { name: "gender" },
-                                    {
-                                        name: "tags",
-                                        type: "string_set",
-                                        _embedded: {
-                                            "blueprint:search-param": [{
-                                                name: "tags",
-                                                type: "contains"
-                                            }]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                        """));
-    }
-
-    @Test
-    void getProfileEntity_jsonSchemaTextSet() throws Exception {
-        mockMvc.perform(get("/profile/persons").accept("application/schema+json"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.properties.tags.type").value("array"))
-                .andExpect(jsonPath("$.properties.tags.uniqueItems").value(true))
-                .andExpect(jsonPath("$.properties.tags.items.type").value("string"));
-    }
-
-    @Test
     void getProfileEntity_withoutContent() throws Exception {
         mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
@@ -919,6 +908,14 @@ class ProfileRestControllerTest {
                                 },
                                 confidentiality: {
                                     enum: ["confidential", "public", "secret"]
+                                },
+                                labels: {
+                                    type: "array",
+                                    uniqueItems: true,
+                                    items: {
+                                        type: "string",
+                                        enum: ["urgent", "review"]
+                                    }
                                 },
                                 content: {
                                     $ref: "#/$defs/content"
