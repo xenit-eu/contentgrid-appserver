@@ -96,7 +96,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(confidentiality.isReadOnly()).isFalse();
                     assertThat(confidentiality.isRequired()).isTrue();
                     assertThat(confidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("public"),
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
@@ -111,7 +111,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(labels.isReadOnly()).isFalse();
                     assertThat(labels.isRequired()).isFalse();
                     assertThat(labels.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(labels.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(labels.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("urgent"),
                                 value2 -> assertThat(value2).isEqualTo("review")
@@ -328,7 +328,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(confidentiality.isReadOnly()).isFalse();
                     assertThat(confidentiality.isRequired()).isTrue();
                     assertThat(confidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("public"),
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
@@ -343,7 +343,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(labels.isReadOnly()).isFalse();
                     assertThat(labels.isRequired()).isFalse();
                     assertThat(labels.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(labels.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(labels.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("urgent"),
                                 value2 -> assertThat(value2).isEqualTo("review")
@@ -449,7 +449,7 @@ class HalFormsTemplateGeneratorTest {
                 confidentiality -> {
                     assertThat(confidentiality.getName()).isEqualTo("confidentiality");
                     assertThat(confidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(confidentiality.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("public"),
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
@@ -475,7 +475,7 @@ class HalFormsTemplateGeneratorTest {
                 previousConfidentiality -> {
                     assertThat(previousConfidentiality.getName()).isEqualTo("previous_invoice.confidentiality");
                     assertThat(previousConfidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(previousConfidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(previousConfidentiality.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("public"),
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
@@ -493,7 +493,7 @@ class HalFormsTemplateGeneratorTest {
                 nextConfidentiality -> {
                     assertThat(nextConfidentiality.getName()).isEqualTo("next_invoice.confidentiality");
                     assertThat(nextConfidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(nextConfidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(nextConfidentiality.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("public"),
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
@@ -510,7 +510,7 @@ class HalFormsTemplateGeneratorTest {
                 labels -> {
                     assertThat(labels.getName()).isEqualTo("labels");
                     assertThat(labels.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(labels.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(labels.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("urgent"),
                                 value2 -> assertThat(value2).isEqualTo("review")
@@ -522,7 +522,7 @@ class HalFormsTemplateGeneratorTest {
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(sort.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(sort.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactly(
                                 numberAsc -> assertThat(numberAsc.toString())
                                         .contains("value=number,asc")
@@ -593,7 +593,7 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(tags.getName()).isEqualTo("tags");
                     assertThat(tags.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
                     // The filter accepts repeated values: options without maxItems
-                    assertThat(tags.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(tags.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).isNullOrEmpty();
                         assertThat(options.getMinItems()).isZero();
                         assertThat(options.getMaxItems()).isNull();
@@ -625,7 +625,7 @@ class HalFormsTemplateGeneratorTest {
                 invoicesConfidentiality -> {
                     assertThat(invoicesConfidentiality.getName()).isEqualTo("invoices.confidentiality");
                     assertThat(invoicesConfidentiality.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(invoicesConfidentiality.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(invoicesConfidentiality.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactlyInAnyOrder(
                                 value1 -> assertThat(value1).isEqualTo("public"),
                                 value2 -> assertThat(value2).isEqualTo("confidential"),
@@ -698,7 +698,7 @@ class HalFormsTemplateGeneratorTest {
                 sort -> {
                     assertThat(sort.getName()).isEqualTo(EncodedCursorPaginationHandlerMethodArgumentResolver.SORT_NAME);
                     assertThat(sort.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    assertThat(sort.getOptions()).isInstanceOfSatisfying(HalFormsOptions.Inline.class, options -> {
+                    assertThat(sort.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).satisfiesExactly(
                                 vatAsc -> assertThat(vatAsc.toString())
                                         .contains("value=vat,asc")

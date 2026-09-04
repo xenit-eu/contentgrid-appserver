@@ -106,6 +106,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -293,14 +294,18 @@ class DatamodelApiImplTest {
             return createDataCaptor.getValue();
         }
 
-        private void expectCreateFailure(Map<String, Object> data, Class<? extends Exception> causeType) {
+        private <T extends Throwable> T expectCreateFailure(Map<String, Object> data, String field,
+                Class<T> causeType) {
+            var causes = new ArrayList<T>();
             assertThatThrownBy(() -> datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(),
                     MapRequestInputData.fromMap(data), AuthorizationContext.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, exception ->
-                            assertThat(exception.allExceptions())
-                                    .isNotEmpty()
-                                    .allSatisfy(ex -> assertThat(ex.getCause()).isInstanceOf(causeType)));
+                            assertThat(exception.allExceptions()).singleElement().satisfies(ex -> {
+                                assertThat(ex.getPath().toString()).isEqualTo(field);
+                                assertThat(ex.getCause()).isInstanceOfSatisfying(causeType, causes::add);
+                            }));
             Mockito.verifyNoInteractions(queryEngine, contentStore);
+            return causes.getFirst();
         }
 
         @Test
@@ -329,22 +334,28 @@ class DatamodelApiImplTest {
             var data = new HashMap<String, Object>();
             data.put("tags", null);
             var createData = createDocument(data);
-            assertThat(createData.getAttributes()).contains(
-                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of())
+            assertThat(createData.getAttributes()).containsExactlyInAnyOrder(
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of()),
+                    new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
             );
         }
 
         @Test
         void duplicateElements_fails() {
-            expectCreateFailure(Map.of("tags", List.of("urgent", "vip", "urgent")),
+            var cause = expectCreateFailure(Map.of("tags", List.of("urgent", "vip", "urgent")), "tags",
                     DuplicateElementInvalidDataException.class);
+            assertThat(cause.getDuplicateValue()).isEqualTo("urgent");
         }
 
         @Test
         void nfkcEquivalentElements_fails() {
-            // The same value in composed (NFC) and decomposed (NFD) encoding is a duplicate
-            expectCreateFailure(Map.of("tags", List.of("café", "café")),
+            // The same value composed (NFC) and decomposed (NFD); spelled out in code points because
+            // the two are visually identical and would not survive a re-encoding of this file
+            var composed = "caf\u00e9";
+            var decomposed = "cafe\u0301";
+            var cause = expectCreateFailure(Map.of("tags", List.of(composed, decomposed)), "tags",
                     DuplicateElementInvalidDataException.class);
+            assertThat(cause.getDuplicateValue()).isEqualTo(decomposed);
         }
 
         @Test
@@ -352,7 +363,9 @@ class DatamodelApiImplTest {
             var overLimit = IntStream.rangeClosed(0, TextSetValidator.MAX_ELEMENTS)
                     .mapToObj("value-%d"::formatted)
                     .toList();
-            expectCreateFailure(Map.of("tags", overLimit), InvalidDataFormatException.class);
+            var cause = expectCreateFailure(Map.of("tags", overLimit), "tags",
+                    InvalidDataFormatException.class);
+            assertThat(cause.getExpectedType().getTechnicalName()).isEqualTo("string_set");
         }
 
         @Test
@@ -361,29 +374,35 @@ class DatamodelApiImplTest {
                     MapRequestInputData.fromMap(Map.of("tags", "urgent")), AuthorizationContext.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, exception ->
                             assertThat(exception.allExceptions()).singleElement().satisfies(ex -> {
-                                var invalidType = (InvalidDataTypeException) ex.getCause();
-                                assertThat(invalidType.getExpectedType().getTechnicalName()).isEqualTo("string_set");
                                 assertThat(ex.getPath().toString()).isEqualTo("tags");
+                                assertThat(ex.getCause()).isInstanceOfSatisfying(InvalidDataTypeException.class,
+                                        invalidType -> assertThat(invalidType.getExpectedType().getTechnicalName())
+                                                .isEqualTo("string_set"));
                             }));
             Mockito.verifyNoInteractions(queryEngine, contentStore);
         }
 
         @Test
         void nullElement_fails() {
-            expectCreateFailure(Map.of("tags", Arrays.asList("urgent", null)),
+            var cause = expectCreateFailure(Map.of("tags", Arrays.asList("urgent", null)), "tags",
                     InvalidDataTypeException.class);
+            assertThat(cause.getExpectedType().getTechnicalName()).isEqualTo("string");
+            assertThat(cause.getActualType().getTechnicalName()).isEqualTo("null");
         }
 
         @Test
         void nonStringElement_fails() {
-            expectCreateFailure(Map.of("tags", List.of("urgent", 123)),
+            var cause = expectCreateFailure(Map.of("tags", List.of("urgent", 123)), "tags",
                     InvalidDataTypeException.class);
+            assertThat(cause.getExpectedType().getTechnicalName()).isEqualTo("string");
         }
 
         @Test
         void elementOutsideAllowedValues_fails() {
-            expectCreateFailure(Map.of("labels", List.of("hr", "legal")),
+            var cause = expectCreateFailure(Map.of("labels", List.of("hr", "legal")), "labels",
                     AllowedValuesConstraintViolationInvalidDataException.class);
+            assertThat(cause.getActualValue()).isEqualTo("legal");
+            assertThat(cause.getAllowedValues()).containsExactlyInAnyOrder("hr", "it", "finance");
         }
 
         private EntityInstance findDocument(List<AttributeData> attributes) {
@@ -412,13 +431,13 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void readNullOrAbsentValue_returnsEmptyList() {
-            // Defensive: the column is NOT NULL, but data predating the type must still read as an array
+        void absentValue_returnsEmptyList() {
+            // The column is NOT NULL, so a value is never null; it can be absent from the result
+            // altogether when a projection does not select it
             var result = findDocument(List.of(
-                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), null)
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent"))
                     // no data for labels at all
             ));
-            assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of()));
             assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
         }
     }
