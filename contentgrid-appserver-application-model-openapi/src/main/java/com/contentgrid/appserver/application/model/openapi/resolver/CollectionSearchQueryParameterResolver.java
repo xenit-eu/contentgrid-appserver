@@ -8,8 +8,8 @@ import com.contentgrid.appserver.application.model.openapi.model.OpenApiPotentia
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaArray;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchemaEnum;
-import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.ArrayBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyObjectMapper;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
 import com.contentgrid.appserver.application.model.openapi.type.CollectionType;
 import com.contentgrid.appserver.application.model.openapi.type.EntityType;
@@ -74,7 +74,7 @@ public class CollectionSearchQueryParameterResolver implements RequestParameterR
                     if (value instanceof ArrayBodyValue arrayBodyValue) {
                         // A repeated parameter carries one value per occurrence, so the parameter
                         // describes an element rather than the collection it is matched against
-                        value = arrayBodyValue.getItems();
+                        value = arrayBodyValue.getItems().withDescription(arrayBodyValue.getDescription());
                     }
                     param.setSchema(bodyValueMapper.apply(
                             value

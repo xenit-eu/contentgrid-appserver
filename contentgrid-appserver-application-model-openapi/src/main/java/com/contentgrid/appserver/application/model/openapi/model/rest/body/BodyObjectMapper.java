@@ -81,8 +81,7 @@ public final class BodyObjectMapper {
             if (
                     bodyValue instanceof SimpleBodyValue simpleBodyValue &&
                             !(searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
-                            (attributeSearchFilter.getOperation() == Operation.EXACT
-                                    || attributeSearchFilter.getOperation() == Operation.CONTAINS))
+                            attributeSearchFilter.getOperation() == Operation.EXACT)
             ) {
                 // Constraints don't apply to search filters; except to the 'exact' filter,
                 // where the searched value must match a value exactly

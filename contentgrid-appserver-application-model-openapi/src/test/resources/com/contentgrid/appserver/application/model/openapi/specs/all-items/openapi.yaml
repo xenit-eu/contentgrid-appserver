@@ -3154,6 +3154,7 @@ paths:
         description: "String set attribute"
         schema:
           type: "string"
+          description: "A multi-value string attribute."
           enum:
           - "alpha"
           - "beta"
