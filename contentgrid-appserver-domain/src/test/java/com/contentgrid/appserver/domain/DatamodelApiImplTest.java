@@ -395,6 +395,7 @@ class DatamodelApiImplTest {
             var cause = expectCreateFailure(Map.of("tags", List.of("urgent", 123)), "tags",
                     InvalidDataTypeException.class);
             assertThat(cause.getExpectedType().getTechnicalName()).isEqualTo("string");
+            assertThat(cause.getActualType().getTechnicalName()).isEqualTo("long");
         }
 
         @Test

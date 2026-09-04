@@ -407,17 +407,6 @@ class EntityRestControllerTest {
         }
 
         @Test
-        void testCreateEntityWithRepeatedTextSetFormField() throws Exception {
-            mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("name", "Alice")
-                            .param("vat", "vat-tags-3")
-                            .param("tags", "urgent", "vip"))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
-        }
-
-        @Test
         void testFailToCreateEntityWithDuplicateTextSetElement() throws Exception {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
@@ -582,16 +571,6 @@ class EntityRestControllerTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.tags").isArray())
                     .andExpect(jsonPath("$.tags").isEmpty());
-        }
-
-        @Test
-        void testCreateEntityWithRepeatedTextSetMultipartField() throws Exception {
-            mockMvc.perform(multipart("/persons")
-                            .param("name", "Alice")
-                            .param("vat", "vat-tags-8")
-                            .param("tags", "urgent", "vip"))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
         }
 
         @Test

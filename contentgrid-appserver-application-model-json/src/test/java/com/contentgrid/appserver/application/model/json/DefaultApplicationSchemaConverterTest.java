@@ -636,7 +636,6 @@ class DefaultApplicationSchemaConverterTest {
                 """));
     }
 
-
     private static Entity getEntity(String name, String description, String table) {
         return Entity.builder()
                 .name(EntityName.of(name))
