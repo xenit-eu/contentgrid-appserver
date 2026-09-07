@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -106,7 +107,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -296,16 +296,17 @@ class DatamodelApiImplTest {
 
         private <T extends Throwable> T expectCreateFailure(Map<String, Object> data, String field,
                 Class<T> causeType) {
-            var causes = new ArrayList<T>();
-            assertThatThrownBy(() -> datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(),
-                    MapRequestInputData.fromMap(data), AuthorizationContext.allowAll()))
-                    .isInstanceOfSatisfying(InvalidPropertyDataException.class, exception ->
-                            assertThat(exception.allExceptions()).singleElement().satisfies(ex -> {
-                                assertThat(ex.getPath().toString()).isEqualTo(field);
-                                assertThat(ex.getCause()).isInstanceOfSatisfying(causeType, causes::add);
-                            }));
+            var exception = catchThrowableOfType(InvalidPropertyDataException.class,
+                    () -> datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(),
+                            MapRequestInputData.fromMap(data), AuthorizationContext.allowAll()));
             Mockito.verifyNoInteractions(queryEngine, contentStore);
-            return causes.getFirst();
+            assertThat(exception).isNotNull();
+            var errors = exception.allExceptions().toList();
+            assertThat(errors).singleElement()
+                    .satisfies(error -> assertThat(error.getPath().toString()).isEqualTo(field));
+            var cause = errors.getFirst().getCause();
+            assertThat(cause).isInstanceOf(causeType);
+            return causeType.cast(cause);
         }
 
         @Test
