@@ -39,11 +39,9 @@ public class AttributeDataToDataEntryMapper implements
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, (CompositeAttributeData)data);
             case UserAttribute userAttribute -> mapUserAttribute(userAttribute, (CompositeAttributeData)data);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, (CompositeAttributeData)data);
-        }).orElseGet(() -> switch (attribute) {
-            case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute.getType(), null);
-            case MultivalueAttribute multivalueAttribute -> mapMultivalueAttribute(multivalueAttribute.getItemType(), null);
-            case CompositeAttribute ignored -> NullDataEntry.INSTANCE;
-        });
+        }).orElseGet(() -> attribute instanceof MultivalueAttribute multivalueAttribute
+                ? mapMultivalueAttribute(multivalueAttribute.getItemType(), null)
+                : NullDataEntry.INSTANCE);
     }
 
     private PlainDataEntry mapUserAttribute(UserAttribute userAttribute, CompositeAttributeData data) {
