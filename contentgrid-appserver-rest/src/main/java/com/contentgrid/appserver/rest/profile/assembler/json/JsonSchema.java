@@ -224,6 +224,7 @@ public class JsonSchema {
         private String pattern;
         private Boolean uniqueItems;
         private @JsonProperty("$ref") JsonSchemaReference reference;
+        // TODO: Type the item schema instead of assembling it as a map of magic keys (ACC-3170)
         private Map<String, Object> items;
         private @JsonUnwrapped PropertiesContainer properties;
 
