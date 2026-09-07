@@ -14,9 +14,9 @@ public enum ProfileAttributeType {
     OBJECT;
 
     public static ProfileAttributeType setOf(SimpleAttribute.Type itemType) {
-        return switch (from(itemType)) {
-            case STRING -> STRING_SET;
-            default -> throw new IllegalArgumentException(
+        return switch (itemType) {
+            case TEXT -> STRING_SET;
+            case UUID, LONG, DOUBLE, BOOLEAN, DATE, DATETIME -> throw new IllegalArgumentException(
                     "No profile type for a set of %s".formatted(itemType));
         };
     }

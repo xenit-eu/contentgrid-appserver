@@ -118,7 +118,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private static final String FTS_TYPE = "full-text";
 
-    private static final Map<String, Type> MULTIVALUE_DATA_TYPES = Map.of("text_set", Type.TEXT);
+    private static final String TEXT_SET_DATA_TYPE = "text_set";
 
     private final JsonMapper mapper = ApplicationSchemaJsonMapperFactory.createJsonMapper();
     private final ApplicationSchemaValidator validator = new ApplicationSchemaValidator();
@@ -289,16 +289,22 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     }
 
     private static boolean isMultivalueDataType(String dataType) {
-        return MULTIVALUE_DATA_TYPES.containsKey(dataType);
+        return TEXT_SET_DATA_TYPE.equals(dataType);
+    }
+
+    private static Type fromJsonMultivalueDataType(String dataType) {
+        if (!TEXT_SET_DATA_TYPE.equals(dataType)) {
+            throw new IllegalStateException("No multi-value item type for data type " + dataType);
+        }
+        return Type.TEXT;
     }
 
     private static String toJsonMultivalueDataType(Type itemType) {
-        return MULTIVALUE_DATA_TYPES.entrySet().stream()
-                .filter(entry -> entry.getValue() == itemType)
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No wire data type for multi-value item type " + itemType));
+        return switch (itemType) {
+            case TEXT -> TEXT_SET_DATA_TYPE;
+            case LONG, DOUBLE, BOOLEAN, DATE, DATETIME, UUID -> throw new IllegalStateException(
+                    "No wire data type for multi-value item type " + itemType);
+        };
     }
 
     private com.contentgrid.appserver.application.model.attributes.SimpleAttribute fromJsonSimpleAttribute(
@@ -322,12 +328,11 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 jsonAttr.getConstraints() == null ? List.of() : jsonAttr.getConstraints().stream()
                         .map(this::fromJsonAttributeConstraint)
                         .toList();
-        var itemType = MULTIVALUE_DATA_TYPES.get(jsonAttr.getDataType());
         return ATTRIBUTE_TRANSLATIONS.mapInto(jsonAttr,
                         com.contentgrid.appserver.application.model.attributes.MultivalueAttribute.builder())
                 .name(AttributeName.of(jsonAttr.getName()))
                 .column(ColumnName.of(jsonAttr.getColumnName()))
-                .itemType(itemType)
+                .itemType(fromJsonMultivalueDataType(jsonAttr.getDataType()))
                 .flags(fromJsonAttributeFlags(jsonAttr.getFlags()))
                 .constraints(constraints)
                 .build();
