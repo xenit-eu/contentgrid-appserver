@@ -2,6 +2,10 @@ package com.contentgrid.appserver.autoconfigure.contentstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionEngineAlgorithm;
+import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionEngineProperties;
+import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionKeyWrapperAlgorithm;
+import com.contentgrid.appserver.autoconfigure.contentstore.EncryptedContentStoreAutoConfiguration.EncryptionKeyWrapperProperties;
 import com.contentgrid.appserver.autoconfigure.query.engine.JOOQQueryEngineAutoConfiguration;
 import com.contentgrid.appserver.contentstore.impl.fs.FilesystemContentStore;
 
@@ -41,6 +45,62 @@ class EncryptedContentStoreAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(EncryptedContentStoreResolver.class);
                     assertThat(context).hasSingleBean(DataEncryptionKeyTableCreator.class);
+                    assertThat(context.getBean(EncryptionKeyWrapperProperties.class).algorithms())
+                            .containsExactly(EncryptionKeyWrapperAlgorithm.NONE);
+                    assertThat(context.getBean(EncryptionEngineProperties.class).algorithms())
+                            .containsExactly(EncryptionEngineAlgorithm.AES128_CTR);
+                });
+    }
+
+    @Test
+    void checkConfiguredAlgorithms() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.encryption.wrapper.algorithms[0]=NONE",
+                        "contentgrid.appserver.content.encryption.engine.algorithms[0]=AES256-CTR",
+                        "contentgrid.appserver.content.encryption.engine.algorithms[1]=ALFRESCO"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(EncryptionKeyWrapperProperties.class).algorithms())
+                            .containsExactly(EncryptionKeyWrapperAlgorithm.NONE);
+                    assertThat(context.getBean(EncryptionEngineProperties.class).algorithms())
+                            .containsExactly(EncryptionEngineAlgorithm.AES256_CTR, EncryptionEngineAlgorithm.ALFRESCO);
+                });
+    }
+
+    @Test
+    void checkUnknownWrapperAlgorithm() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.encryption.wrapper.algorithms[0]=UNKNOWN"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                });
+    }
+
+    @Test
+    void checkUnknownEngineAlgorithm() {
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.encryption.engine.algorithms[0]=UNKNOWN"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                });
+    }
+
+    @Test
+    void checkAlfrescoEngineAlgorithmFirst() {
+        // ALFRESCO is the only algorithm that can not encrypt, so it can not be used as first algorithm
+        contextRunner
+                .withPropertyValues(
+                        "contentgrid.appserver.content.encryption.engine.algorithms[0]=ALFRESCO",
+                        "contentgrid.appserver.content.encryption.engine.algorithms[1]=AES128-CTR"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
                 });
     }
 

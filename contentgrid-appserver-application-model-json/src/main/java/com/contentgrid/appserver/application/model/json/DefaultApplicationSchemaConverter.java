@@ -2,8 +2,6 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
@@ -193,18 +191,9 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
 
     private com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings fromJsonContentEncryption(
             ContentEncryptionSettings json) {
-        var builder = com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings.builder();
-        if (json.getEncryptionEngineAlgorithms() != null) {
-            json.getEncryptionEngineAlgorithms().stream()
-                    .map(ContentEncryptionEngineAlgorithm::valueOf)
-                    .forEach(builder::encryptionEngineAlgorithm);
-        }
-        if (json.getKeyWrapperAlgorithms() != null) {
-            json.getKeyWrapperAlgorithms().stream()
-                    .map(ContentEncryptionKeyWrapperAlgorithm::valueOf)
-                    .forEach(builder::keyWrapperAlgorithm);
-        }
-        return builder.build();
+        return com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings.builder()
+                .enabled(json.isEnabled())
+                .build();
     }
 
     private com.contentgrid.appserver.application.model.settings.database.DatabaseSettings fromJsonDatabaseSettings(
@@ -593,16 +582,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
     private ContentEncryptionSettings toJsonContentEncryptionSettings(
             com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings settings) {
         var json = new ContentEncryptionSettings();
-        if (!settings.getEncryptionEngineAlgorithms().isEmpty()) {
-            json.setEncryptionEngineAlgorithms(settings.getEncryptionEngineAlgorithms().stream()
-                    .map(ContentEncryptionEngineAlgorithm::name)
-                    .toList());
-        }
-        if (!settings.getKeyWrapperAlgorithms().isEmpty()) {
-            json.setKeyWrapperAlgorithms(settings.getKeyWrapperAlgorithms().stream()
-                    .map(ContentEncryptionKeyWrapperAlgorithm::name)
-                    .toList());
-        }
+        json.setEnabled(settings.isEnabled());
         return json;
     }
      private DatabaseSettings toJsonDatabaseSettings(

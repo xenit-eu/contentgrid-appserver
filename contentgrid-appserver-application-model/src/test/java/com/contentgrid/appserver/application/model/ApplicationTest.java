@@ -35,8 +35,6 @@ import com.contentgrid.appserver.application.model.searchfilters.AttributeSearch
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionEngineAlgorithm;
-import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionKeyWrapperAlgorithm;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.application.model.values.AttributeName;
@@ -57,6 +55,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ApplicationTest {
 
@@ -584,8 +583,9 @@ class ApplicationTest {
         }
     }
 
-    @Test
-    void application_withContentEncryption() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void application_withContentEncryption(boolean enabled) {
         var application = Application.builder()
                 .name(ApplicationName.of("contentEncryptionApplication"))
                 .entity(INVOICE)
@@ -593,57 +593,14 @@ class ApplicationTest {
                 .relation(MANY_TO_ONE)
                 .settings(ApplicationSettings.builder()
                         .contentEncryption(ContentEncryptionSettings.builder()
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
-                                .keyWrapperAlgorithm(ContentEncryptionKeyWrapperAlgorithm.NONE)
+                                .enabled(enabled)
                                 .build())
                         .build())
                 .build();
 
         assertTrue(application.getSettings().getContentEncryption().isPresent());
         var settings = application.getSettings().getContentEncryption().orElseThrow();
-        assertEquals(List.of(ContentEncryptionEngineAlgorithm.AES256_CTR), settings.getEncryptionEngineAlgorithms());
-        assertEquals(List.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
-    }
-
-    @Test
-    void application_withContentEncryptionDefaults() {
-        var application = Application.builder()
-                .name(ApplicationName.of("contentEncryptionApplication"))
-                .entity(INVOICE)
-                .entity(CUSTOMER)
-                .relation(MANY_TO_ONE)
-                .settings(ApplicationSettings.builder()
-                        .contentEncryption(ContentEncryptionSettings.builder().build())
-                        .build())
-                .build();
-
-        assertTrue(application.getSettings().getContentEncryption().isPresent());
-        var settings = application.getSettings().getContentEncryption().orElseThrow();
-        assertEquals(List.of(ContentEncryptionEngineAlgorithm.AES128_CTR), settings.getEncryptionEngineAlgorithms());
-        assertEquals(List.of(ContentEncryptionKeyWrapperAlgorithm.NONE), settings.getKeyWrapperAlgorithms());
-    }
-
-    @Test
-    void application_withMultipleContentEncryptionEngineAlgorithms() {
-        var application = Application.builder()
-                .name(ApplicationName.of("contentEncryptionApplication"))
-                .entity(INVOICE)
-                .entity(CUSTOMER)
-                .relation(MANY_TO_ONE)
-                .settings(ApplicationSettings.builder()
-                        .contentEncryption(ContentEncryptionSettings.builder()
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES256_CTR)
-                                .encryptionEngineAlgorithm(ContentEncryptionEngineAlgorithm.AES128_CTR)
-                                .build())
-                        .build())
-                .build();
-
-        assertTrue(application.getSettings().getContentEncryption().isPresent());
-        var settings = application.getSettings().getContentEncryption().orElseThrow();
-        assertEquals(ContentEncryptionEngineAlgorithm.AES256_CTR,
-                settings.getEncryptionEngineAlgorithms().getFirst());
-        assertEquals(ContentEncryptionEngineAlgorithm.AES128_CTR,
-                settings.getEncryptionEngineAlgorithms().getLast());
+        assertEquals(enabled, settings.isEnabled());
     }
 
     @Test
