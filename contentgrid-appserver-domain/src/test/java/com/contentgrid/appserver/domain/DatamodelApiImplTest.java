@@ -424,11 +424,11 @@ class DatamodelApiImplTest {
         @Test
         void readValues_returnsJsonArrayEntries() {
             var result = findDocument(List.of(
-                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "ethias")),
+                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "archived")),
                     new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
             ));
             assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of(
-                    new StringDataEntry("urgent"), new StringDataEntry("ethias"))));
+                    new StringDataEntry("urgent"), new StringDataEntry("archived"))));
             assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
         }
 

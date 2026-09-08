@@ -380,16 +380,16 @@ class EntityRestControllerTest {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
             person.put("vat", "vat-tags-1");
-            person.put("tags", List.of("urgent", "ethias"));
+            person.put("tags", List.of("urgent", "archived"));
 
             var location = mockMvc.perform(mediaTypeConfiguration.configure(post("/persons"), person))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "ethias")))
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "archived")))
                     .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
 
             mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "ethias")));
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "archived")));
         }
 
         @Test

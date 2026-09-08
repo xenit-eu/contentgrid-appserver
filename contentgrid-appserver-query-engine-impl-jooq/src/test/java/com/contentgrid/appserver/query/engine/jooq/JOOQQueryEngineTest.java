@@ -1126,7 +1126,7 @@ class JOOQQueryEngineTest {
                     .entityName(DOCUMENT.getName())
                     .attribute(SimpleAttributeData.builder()
                             .name(DOCUMENT_TAGS.getName())
-                            .value(List.of("urgent", "ethias"))
+                            .value(List.of("urgent", "archived"))
                             .build())
                     .build(), TRUE_EXPRESSION, createEventConsumer);
 
@@ -1136,7 +1136,7 @@ class JOOQQueryEngineTest {
                     actual.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
             // A set has no defined order, so the elements are compared order-agnostically
             assertThat(actualTags.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
-                    .containsExactlyInAnyOrder("urgent", "ethias");
+                    .containsExactlyInAnyOrder("urgent", "archived");
 
             // A row created without tags reads back as the empty list (the column default)
             var createdEmpty = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
@@ -1154,7 +1154,7 @@ class JOOQQueryEngineTest {
             assertThat(slice.getEntities())
                     .extracting(entity -> assertInstanceOf(SimpleAttributeData.class,
                             entity.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow()).getValue())
-                    .containsExactlyInAnyOrder(List.of("urgent", "ethias"), List.of());
+                    .containsExactlyInAnyOrder(List.of("urgent", "archived"), List.of());
         } finally {
             tableCreator.dropTables(TEXT_SET_APPLICATION);
         }

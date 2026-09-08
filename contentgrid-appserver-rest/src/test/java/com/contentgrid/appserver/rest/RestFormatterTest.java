@@ -92,7 +92,7 @@ class RestFormatterTest {
                 new LinkedHashMap<>(Map.of(
                         "name", new StringDataEntry("Widget Reprogrammer"),
                         "tags", new ListDataEntry(List.of(
-                                new StringDataEntry("urgent"), new StringDataEntry("ethias"))),
+                                new StringDataEntry("urgent"), new StringDataEntry("archived"))),
                         "labels", new ListDataEntry(List.of())
                 )),
                 List.of()
@@ -100,7 +100,7 @@ class RestFormatterTest {
         // Change events reuse this same formatter, so this also covers the event payload shape
         var actual = entityFormatter.format(APPLICATION, entity);
         var mapper = JsonMapper.builder().build();
-        assertThat(actual.get("tags")).isEqualTo(mapper.readTree("[\"urgent\",\"ethias\"]"));
+        assertThat(actual.get("tags")).isEqualTo(mapper.readTree("[\"urgent\",\"archived\"]"));
         assertThat(actual.get("labels")).isEqualTo(mapper.readTree("[]"));
     }
 
