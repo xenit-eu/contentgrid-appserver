@@ -78,7 +78,7 @@ public class ThunkExpressionGenerator {
 
                     if (!parsedValues.isEmpty()) {
                         expressions.add(createExpression(variableGenerator, application, entity, attributeSearchFilter,
-                                attribute, parsedValues));
+                                parsedValues));
                     }
                 }
             }
@@ -136,7 +136,6 @@ public class ThunkExpressionGenerator {
             Application application,
             Entity entity,
             BaseAttributeSearchFilter filter,
-            Attribute attribute,
             List<Scalar<?>> values) {
 
         if (filter instanceof FullTextSearchAttributeSearchFilter ftsFilter) {
@@ -154,8 +153,8 @@ public class ThunkExpressionGenerator {
         if (filter instanceof AttributeSearchFilter attrFilter) {
             return switch (attrFilter.getOperation()) {
                 case EXACT -> {
-                    var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
                     // EXACT can use in when there are multiple values
+                    var attr = symRef(convertPath(variableGenerator, application, entity, filter.getAttributePath()));
                     yield values.size() == 1
                             ? Comparison.areEqual(attr, values.getFirst())
                             : Comparison.in(attr, new SetValue(new LinkedHashSet<>(values)));

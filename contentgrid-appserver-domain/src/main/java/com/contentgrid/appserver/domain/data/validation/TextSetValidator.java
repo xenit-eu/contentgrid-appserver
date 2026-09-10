@@ -42,10 +42,9 @@ public class TextSetValidator implements AttributeValidationDataMapper.Validator
         }
         var seen = new HashSet<String>();
         for (var item : items) {
-            if (item instanceof StringDataEntry stringDataEntry) {
-                if (!seen.add(Normalizer.normalize(stringDataEntry.getValue(), Form.NFKC))) {
-                    throw new DuplicateElementInvalidDataException(stringDataEntry.getValue());
-                }
+            if (item instanceof StringDataEntry stringDataEntry
+                    && !seen.add(Normalizer.normalize(stringDataEntry.getValue(), Form.NFKC))) {
+                throw new DuplicateElementInvalidDataException(stringDataEntry.getValue());
             }
         }
     }

@@ -375,7 +375,7 @@ class DatamodelApiImplTest {
                     MapRequestInputData.fromMap(Map.of("tags", "urgent")), AuthorizationContext.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, exception ->
                             assertThat(exception.allExceptions()).singleElement().satisfies(ex -> {
-                                assertThat(ex.getPath().toString()).isEqualTo("tags");
+                                assertThat(ex.getPath()).hasToString("tags");
                                 assertThat(ex.getCause()).isInstanceOfSatisfying(InvalidDataTypeException.class,
                                         invalidType -> assertThat(invalidType.getExpectedType().getTechnicalName())
                                                 .isEqualTo("string_set"));
