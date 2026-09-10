@@ -502,11 +502,13 @@ class JOOQQueryEngineTest {
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
+        tableCreator.createTables(TEXT_SET_APPLICATION);
         insertData();
     }
 
     @AfterEach
     void cleanup() {
+        tableCreator.dropTables(TEXT_SET_APPLICATION);
         tableCreator.dropTables(APPLICATION);
     }
 
@@ -1092,72 +1094,62 @@ class JOOQQueryEngineTest {
 
     @Test
     void createEntityWithTextSetInsideCompositeAttribute() {
-        tableCreator.createTables(TEXT_SET_APPLICATION);
-        try {
-            var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
-                    .entityName(DOCUMENT.getName())
-                    .attribute(CompositeAttributeData.builder()
-                            .name(DOCUMENT_META.getName())
-                            .attribute(SimpleAttributeData.builder()
-                                    .name(META_KEYWORDS.getName())
-                                    .value(List.of("alpha", "beta"))
-                                    .build())
-                            .build())
-                    .build(), TRUE_EXPRESSION, createEventConsumer);
+        var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .attribute(CompositeAttributeData.builder()
+                        .name(DOCUMENT_META.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(META_KEYWORDS.getName())
+                                .value(List.of("alpha", "beta"))
+                                .build())
+                        .build())
+                .build(), TRUE_EXPRESSION, createEventConsumer);
 
-            var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(),
-                    TRUE_EXPRESSION).orElseThrow();
-            var meta = assertInstanceOf(CompositeAttributeData.class,
-                    actual.getAttributeByName(DOCUMENT_META.getName()).orElseThrow());
-            var keywords = assertInstanceOf(SimpleAttributeData.class,
-                    meta.getAttributeByName(META_KEYWORDS.getName()).orElseThrow());
-            assertThat(keywords.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
-                    .containsExactlyInAnyOrder("alpha", "beta");
-        } finally {
-            tableCreator.dropTables(TEXT_SET_APPLICATION);
-        }
+        var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(),
+                TRUE_EXPRESSION).orElseThrow();
+        var meta = assertInstanceOf(CompositeAttributeData.class,
+                actual.getAttributeByName(DOCUMENT_META.getName()).orElseThrow());
+        var keywords = assertInstanceOf(SimpleAttributeData.class,
+                meta.getAttributeByName(META_KEYWORDS.getName()).orElseThrow());
+        assertThat(keywords.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
+                .containsExactlyInAnyOrder("alpha", "beta");
     }
 
     @Test
     void createEntityWithTextSetAttribute() {
-        tableCreator.createTables(TEXT_SET_APPLICATION);
-        try {
-            var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
-                    .entityName(DOCUMENT.getName())
-                    .attribute(SimpleAttributeData.builder()
-                            .name(DOCUMENT_TAGS.getName())
-                            .value(List.of("urgent", "archived"))
-                            .build())
-                    .build(), TRUE_EXPRESSION, createEventConsumer);
+        var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .attribute(SimpleAttributeData.builder()
+                        .name(DOCUMENT_TAGS.getName())
+                        .value(List.of("urgent", "archived"))
+                        .build())
+                .build(), TRUE_EXPRESSION, createEventConsumer);
 
-            var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(), TRUE_EXPRESSION)
-                    .orElseThrow();
-            var actualTags = assertInstanceOf(SimpleAttributeData.class,
-                    actual.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
-            // A set has no defined order, so the elements are compared order-agnostically
-            assertThat(actualTags.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
-                    .containsExactlyInAnyOrder("urgent", "archived");
+        var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(), TRUE_EXPRESSION)
+                .orElseThrow();
+        var actualTags = assertInstanceOf(SimpleAttributeData.class,
+                actual.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
+        // A set has no defined order, so the elements are compared order-agnostically
+        assertThat(actualTags.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
+                .containsExactlyInAnyOrder("urgent", "archived");
 
-            // A row created without tags reads back as the empty list (the column default)
-            var createdEmpty = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
-                    .entityName(DOCUMENT.getName())
-                    .build(), TRUE_EXPRESSION, createEventConsumer);
-            var actualEmpty = queryEngine
-                    .findById(TEXT_SET_APPLICATION, createdEmpty.getIdentity().toRequest(), TRUE_EXPRESSION)
-                    .orElseThrow();
-            var emptyTags = assertInstanceOf(SimpleAttributeData.class,
-                    actualEmpty.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
-            assertEquals(List.of(), emptyTags.getValue());
+        // A row created without tags reads back as the empty list (the column default)
+        var createdEmpty = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .build(), TRUE_EXPRESSION, createEventConsumer);
+        var actualEmpty = queryEngine
+                .findById(TEXT_SET_APPLICATION, createdEmpty.getIdentity().toRequest(), TRUE_EXPRESSION)
+                .orElseThrow();
+        var emptyTags = assertInstanceOf(SimpleAttributeData.class,
+                actualEmpty.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
+        assertEquals(List.of(), emptyTags.getValue());
 
-            // The collection listing uses an untyped select; the array column must come back identically
-            var slice = queryEngine.findAll(TEXT_SET_APPLICATION, DOCUMENT, TRUE_EXPRESSION, null, DEFAULT_PAGE_DATA);
-            assertThat(slice.getEntities())
-                    .extracting(entity -> assertInstanceOf(SimpleAttributeData.class,
-                            entity.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow()).getValue())
-                    .containsExactlyInAnyOrder(List.of("urgent", "archived"), List.of());
-        } finally {
-            tableCreator.dropTables(TEXT_SET_APPLICATION);
-        }
+        // The collection listing uses an untyped select; the array column must come back identically
+        var slice = queryEngine.findAll(TEXT_SET_APPLICATION, DOCUMENT, TRUE_EXPRESSION, null, DEFAULT_PAGE_DATA);
+        assertThat(slice.getEntities())
+                .extracting(entity -> assertInstanceOf(SimpleAttributeData.class,
+                        entity.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow()).getValue())
+                .containsExactlyInAnyOrder(List.of("urgent", "archived"), List.of());
     }
 
     @ParameterizedTest

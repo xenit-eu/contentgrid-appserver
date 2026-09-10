@@ -46,7 +46,10 @@ class RestFormatterTest {
                 EntityIdentity.forEntity(PRODUCT.getName(), EntityId.of(uuid)),
                 new LinkedHashMap<>(Map.of(
                         "name", new StringDataEntry("Widget Reprogrammer"),
-                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99))
+                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99)),
+                        "tags", new ListDataEntry(List.of(
+                                new StringDataEntry("urgent"), new StringDataEntry("archived"))),
+                        "labels", new ListDataEntry(List.of())
                 )),
                 List.of()
         );
@@ -63,7 +66,10 @@ class RestFormatterTest {
                 EntityIdentity.forEntity(PRODUCT.getName(), EntityId.of(uuid)),
                 new LinkedHashMap<>(Map.of(
                         "name", new StringDataEntry("Widget Reprogrammer"),
-                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99))
+                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99)),
+                        "tags", new ListDataEntry(List.of(
+                                new StringDataEntry("urgent"), new StringDataEntry("archived"))),
+                        "labels", new ListDataEntry(List.of())
                 )),
                 List.of(
                         new EntityLinkData(
@@ -84,26 +90,6 @@ class RestFormatterTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    @Test
-    void testMultiValueAttributeSerialization() throws JacksonException {
-        var uuid = UUID.fromString("69415bf7-9aba-4a35-b677-0d66f3bec2bf");
-        var entity = new TestEntityInstance(
-                EntityIdentity.forEntity(PRODUCT.getName(), EntityId.of(uuid)),
-                new LinkedHashMap<>(Map.of(
-                        "name", new StringDataEntry("Widget Reprogrammer"),
-                        "tags", new ListDataEntry(List.of(
-                                new StringDataEntry("urgent"), new StringDataEntry("archived"))),
-                        "labels", new ListDataEntry(List.of())
-                )),
-                List.of()
-        );
-        // Change events reuse this same formatter, so this also covers the event payload shape
-        var actual = entityFormatter.format(APPLICATION, entity);
-        var mapper = JsonMapper.builder().build();
-        assertThat(actual.get("tags")).isEqualTo(mapper.readTree("[\"urgent\",\"archived\"]"));
-        assertThat(actual.get("labels")).isEqualTo(mapper.readTree("[]"));
-    }
-
     @Data
     static class TestEntityInstance implements EntityInstance {
         final EntityIdentity identity;
@@ -116,6 +102,8 @@ class RestFormatterTest {
                 "id": "69415bf7-9aba-4a35-b677-0d66f3bec2bf",
                 "name": "Widget Reprogrammer",
                 "price": 299.99,
+                "tags": ["urgent", "archived"],
+                "labels": [],
                 "_links": {
                     "self": {
                         "href": "http://localhost/products/69415bf7-9aba-4a35-b677-0d66f3bec2bf"
@@ -158,6 +146,8 @@ class RestFormatterTest {
                 "id": "69415bf7-9aba-4a35-b677-0d66f3bec2bf",
                 "name": "Widget Reprogrammer",
                 "price": 299.99,
+                "tags": ["urgent", "archived"],
+                "labels": [],
                 "_links": {
                     "self": {
                         "href": "http://localhost/products/69415bf7-9aba-4a35-b677-0d66f3bec2bf"

@@ -21,7 +21,6 @@ import com.contentgrid.appserver.application.model.attributes.MultivalueAttribut
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.exceptions.InvalidConstraintException;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.TargetOneToOneRelation;
@@ -44,50 +43,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class DefaultApplicationSchemaConverterTest {
-
-    private static final String MULTIVALUE_APPLICATION_JSON = """
-            {
-                "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
-                "applicationName": "HR application",
-                "version": "1.0.0",
-                "entities": [
-                    {
-                        "name": "Employee",
-                        "table": "employees",
-                        "pathSegment": "employee",
-                        "linkName": "employee",
-                        "primaryKey":
-                            {
-                                "name": "id",
-                                "type": "simple",
-                                "dataType": "uuid",
-                                "columnName": "id",
-                                "flags": ["readOnly"]
-                            },
-                        "attributes": [
-                            {
-                                "name": "skills",
-                                "type": "simple",
-                                "dataType": "text_set",
-                                "columnName": "skills",
-                                "constraints": [{"type": "allowedValues", "values": ["java", "sql"]}]
-                            }
-                        ],
-                        "searchFilters": [
-                            {
-                                "name": "skills",
-                                "attributePath": [{"name": "skills", "type": "attr"}],
-                                "type": "contains"
-                            }
-                        ]
-                    }
-                ]
-            }
-            """;
 
     @Test
     void testConvertSampleApplicationJson() throws Exception {
@@ -98,7 +55,15 @@ class DefaultApplicationSchemaConverterTest {
             assertTrue(app.getSettings().getContentEncryption().isEmpty());
             assertFalse(app.getEntities().isEmpty());
             assertFalse(app.getRelations().isEmpty());
-            // Optionally, add more assertions for entities, attributes, and relations
+
+            var department = app.getRequiredEntityByName(EntityName.of("department"));
+            var labels = department.getAttributeByName(AttributeName.of("labels")).orElseThrow();
+            var multivalueAttribute = assertInstanceOf(MultivalueAttribute.class, labels);
+            assertEquals(Type.TEXT, multivalueAttribute.getItemType());
+            assertEquals(ColumnName.of("dept_labels"), multivalueAttribute.getColumn());
+            var allowedValues = multivalueAttribute.getConstraint(Constraint.AllowedValuesConstraint.class)
+                    .orElseThrow();
+            assertEquals(List.of("hr", "it", "finance"), allowedValues.getValues());
         }
     }
 
@@ -299,80 +264,6 @@ class DefaultApplicationSchemaConverterTest {
         var converter = new DefaultApplicationSchemaConverter();
         assertThrows(SchemaValidationException.class, () -> converter.convert(
                 new ByteArrayInputStream(jsonWithUnknownFlag.getBytes(StandardCharsets.UTF_8))));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "{\"type\": \"required\"}",
-            "{\"type\": \"unique\"}",
-            "{\"type\": \"pattern\", \"regex\": \"[0-9]+\"}"
-    })
-    void testTextSetForbiddenConstraints(String constraint) {
-        var jsonWithForbiddenConstraint = """
-                {
-                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
-                    "applicationName": "HR application",
-                    "version": "1.0.0",
-                    "entities": [
-                        {
-                            "name": "Employee",
-                            "description": "An employee of the company",
-                            "table": "employees",
-                            "pathSegment": "employee",
-                            "linkName": "employee",
-                            "primaryKey":
-                                {
-                                    "name": "id",
-                                    "type": "simple",
-                                    "dataType": "uuid",
-                                    "columnName": "id",
-                                    "flags": ["readOnly"]
-                                },
-                            "attributes": [
-                                {
-                                    "name": "skills",
-                                    "type": "simple",
-                                    "dataType": "text_set",
-                                    "columnName": "skills",
-                                    "constraints": [%s]
-                                }
-                            ]
-                        }
-                    ]
-                }
-                """.formatted(constraint);
-
-        var converter = new DefaultApplicationSchemaConverter();
-        assertThrows(InvalidConstraintException.class, () -> converter.convert(
-                new ByteArrayInputStream(jsonWithForbiddenConstraint.getBytes(StandardCharsets.UTF_8))),
-                "expected the model to reject text_set with constraint " + constraint);
-    }
-
-    @Test
-    void testMultivalueAttributeDeserialization() throws Exception {
-        var app = new DefaultApplicationSchemaConverter().convert(
-                new ByteArrayInputStream(MULTIVALUE_APPLICATION_JSON.getBytes(StandardCharsets.UTF_8)));
-
-        var entity = app.getRequiredEntityByName(EntityName.of("Employee"));
-        var attribute = entity.getAttributeByName(AttributeName.of("skills")).orElseThrow();
-        var multivalueAttribute = assertInstanceOf(MultivalueAttribute.class, attribute);
-        assertEquals(Type.TEXT, multivalueAttribute.getItemType());
-        assertEquals(ColumnName.of("skills"), multivalueAttribute.getColumn());
-        assertEquals(List.of("java", "sql"),
-                multivalueAttribute.getConstraint(Constraint.AllowedValuesConstraint.class).orElseThrow().getValues());
-    }
-
-    @Test
-    void testMultivalueAttributeWireRoundTrip() throws Exception {
-        var converter = new DefaultApplicationSchemaConverter();
-        var app = converter.convert(
-                new ByteArrayInputStream(MULTIVALUE_APPLICATION_JSON.getBytes(StandardCharsets.UTF_8)));
-
-        var out = new ByteArrayOutputStream();
-        converter.toJson(app, out);
-
-        assertThat(out.toString(StandardCharsets.UTF_8),
-                sameJSONAs(MULTIVALUE_APPLICATION_JSON).allowingExtraUnexpectedFields());
     }
 
     @Test

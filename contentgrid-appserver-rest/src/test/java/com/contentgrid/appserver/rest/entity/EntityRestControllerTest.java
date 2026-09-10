@@ -392,30 +392,30 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "archived")));
         }
 
-        @Test
-        void testCreateEntityWithoutTextSetAttributeReturnsEmptyArray() throws Exception {
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
+        void testCreateEntityWithoutTextSetAttributeReturnsEmptyArray(MediaTypeConfiguration mediaTypeConfiguration)
+                throws Exception {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
             person.put("vat", "vat-tags-2");
 
-            mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/persons"), person))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.tags").isArray())
                     .andExpect(jsonPath("$.tags").isEmpty());
         }
 
-        @Test
-        void testFailToCreateEntityWithDuplicateTextSetElement() throws Exception {
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
+        void testFailToCreateEntityWithDuplicateTextSetElement(MediaTypeConfiguration mediaTypeConfiguration)
+                throws Exception {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
             person.put("vat", "vat-tags-4");
             person.put("tags", List.of("urgent", "vip", "urgent"));
 
-            mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/persons"), person))
                     .andExpect(status().isBadRequest())
                     .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                             .withError(e -> e
@@ -427,94 +427,19 @@ class EntityRestControllerTest {
                             ));
         }
 
-        @Test
-        void testPutWithoutTextSetAttributeClearsSet() throws Exception {
-            Map<String, Object> person = new HashMap<>();
-            person.put("name", "Alice");
-            person.put("vat", "vat-tags-6");
-            person.put("tags", List.of("urgent", "vip"));
-
-            var location = mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
-
-            person.remove("tags");
-            mockMvc.perform(put(location)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
-                    .andExpect(status().isNoContent());
-
-            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tags").isArray())
-                    .andExpect(jsonPath("$.tags").isEmpty());
-        }
-
-        @Test
-        void testPatchTextSetAttribute() throws Exception {
-            Map<String, Object> person = new HashMap<>();
-            person.put("name", "Alice");
-            person.put("vat", "vat-tags-7");
-            person.put("tags", List.of("urgent", "vip"));
-
-            var location = mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
-
-            // Omitting the attribute on PATCH keeps the value
-            mockMvc.perform(patch(location)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"name": "Bob"}
-                                    """))
-                    .andExpect(status().isNoContent());
-
-            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.name").value("Bob"))
-                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
-
-            // A new value on PATCH replaces the whole set
-            mockMvc.perform(patch(location)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"tags": ["billing"]}
-                                    """))
-                    .andExpect(status().isNoContent());
-
-            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tags", containsInAnyOrder("billing")));
-
-            // An explicit null on PATCH clears the set
-            mockMvc.perform(patch(location)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"tags": null}
-                                    """))
-                    .andExpect(status().isNoContent());
-
-            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tags").isArray())
-                    .andExpect(jsonPath("$.tags").isEmpty());
-        }
-
-        @Test
-        void testFailToCreateEntityWithDisallowedTextSetElement() throws Exception {
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
+        void testFailToCreateEntityWithDisallowedTextSetElement(MediaTypeConfiguration mediaTypeConfiguration)
+                throws Exception {
             var personUrl = createPerson().getRedirectedUrl();
+            Map<String, Object> invoice = new HashMap<>();
+            invoice.put("number", "900");
+            invoice.put("amount", 10);
+            invoice.put("confidentiality", "public");
+            invoice.put("customer", personUrl);
+            invoice.put("labels", List.of("urgent", "forbidden"));
 
-            mockMvc.perform(post("/invoices")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("number", "900")
-                            .param("amount", "10")
-                            .param("confidentiality", "public")
-                            .param("customer", personUrl)
-                            .param("labels", "urgent", "forbidden"))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/invoices"), invoice))
                     .andExpect(status().isBadRequest())
                     .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
                             .withError(e -> e
@@ -526,48 +451,16 @@ class EntityRestControllerTest {
                             ));
         }
 
-        @Test
-        void testFailToUpdateEntityWithDisallowedTextSetElement() throws Exception {
-            var personUrl = createPerson().getRedirectedUrl();
-            var location = mockMvc.perform(post("/invoices")
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("number", "901")
-                            .param("amount", "10")
-                            .param("confidentiality", "public")
-                            .param("customer", personUrl)
-                            .param("labels", "urgent"))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
-
-            mockMvc.perform(put(location)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(Map.of(
-                                    "number", "901",
-                                    "amount", 10,
-                                    "confidentiality", "public",
-                                    "labels", List.of("forbidden")))))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
-                            .withError(e -> e
-                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
-                                    .withField("field", "labels")
-                            ));
-
-            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.labels", containsInAnyOrder("urgent")));
-        }
-
-        @Test
-        void testCreateEntityWithExplicitEmptyTextSetList() throws Exception {
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
+        void testCreateEntityWithExplicitEmptyTextSetList(MediaTypeConfiguration mediaTypeConfiguration)
+                throws Exception {
             Map<String, Object> person = new HashMap<>();
             person.put("name", "Alice");
             person.put("vat", "vat-tags-9");
             person.put("tags", List.of());
 
-            mockMvc.perform(post("/persons")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(person)))
+            mockMvc.perform(mediaTypeConfiguration.configure(post("/persons"), person))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.tags").isArray())
                     .andExpect(jsonPath("$.tags").isEmpty());
@@ -1943,6 +1836,115 @@ class EntityRestControllerTest {
                     .andExpect(status().isNoContent())
                     // Verify e-tag changed
                     .andExpect(header().string(HttpHeaders.ETAG, not(response.getHeader(HttpHeaders.ETAG))));
+        }
+
+        @Test
+        void testPutWithoutTextSetAttributeClearsSet() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-6");
+            person.put("tags", List.of("urgent", "vip"));
+
+            var location = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            person.remove("tags");
+            mockMvc.perform(put(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testPatchTextSetAttribute() throws Exception {
+            Map<String, Object> person = new HashMap<>();
+            person.put("name", "Alice");
+            person.put("vat", "vat-tags-7");
+            person.put("tags", List.of("urgent", "vip"));
+
+            var location = mockMvc.perform(post("/persons")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(person)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            // Omitting the attribute on PATCH keeps the value
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"name": "Bob"}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.name").value("Bob"))
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("urgent", "vip")));
+
+            // A new value on PATCH replaces the whole set
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"tags": ["billing"]}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags", containsInAnyOrder("billing")));
+
+            // An explicit null on PATCH clears the set
+            mockMvc.perform(patch(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"tags": null}
+                                    """))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tags").isArray())
+                    .andExpect(jsonPath("$.tags").isEmpty());
+        }
+
+        @Test
+        void testFailToUpdateEntityWithDisallowedTextSetElement() throws Exception {
+            var personUrl = createPerson().getRedirectedUrl();
+            var location = mockMvc.perform(post("/invoices")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("number", "901")
+                            .param("amount", "10")
+                            .param("confidentiality", "public")
+                            .param("customer", personUrl)
+                            .param("labels", "urgent"))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getHeader(HttpHeaders.LOCATION);
+
+            mockMvc.perform(put(location)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(Map.of(
+                                    "number", "901",
+                                    "amount", 10,
+                                    "confidentiality", "public",
+                                    "labels", List.of("forbidden")))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e
+                                    .withType("https://contentgrid.cloud/problems/input/validation/allowed-values")
+                                    .withField("field", "labels")
+                            ));
+
+            mockMvc.perform(get(location).accept(MediaTypes.HAL_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.labels", containsInAnyOrder("urgent")));
         }
 
         @Nested
