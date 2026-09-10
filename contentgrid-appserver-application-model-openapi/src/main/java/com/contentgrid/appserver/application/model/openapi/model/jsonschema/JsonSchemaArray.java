@@ -6,7 +6,9 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 
 
 @Getter
@@ -17,16 +19,13 @@ public final class JsonSchemaArray extends AbstractJsonSchemaDataType {
     @NonNull
     private final OpenApiPotentialReference<JsonSchema> items;
 
-    @JsonInclude(Include.NON_NULL)
-    private Boolean uniqueItems;
+    @Setter
+    @Accessors(chain = true)
+    @JsonInclude(Include.NON_DEFAULT)
+    private boolean uniqueItems;
 
     public JsonSchemaArray(@NonNull OpenApiPotentialReference<JsonSchema> items) {
         super("array");
         this.items = items;
-    }
-
-    public JsonSchemaArray setUniqueItems(Boolean uniqueItems) {
-        this.uniqueItems = uniqueItems;
-        return this;
     }
 }
