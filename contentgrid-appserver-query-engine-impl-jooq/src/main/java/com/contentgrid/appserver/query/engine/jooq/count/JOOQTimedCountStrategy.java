@@ -5,6 +5,7 @@ import com.contentgrid.appserver.query.engine.jooq.PostgresqlErrorType;
 import java.time.Duration;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Select;
 import org.jooq.exception.DataAccessException;
@@ -14,6 +15,7 @@ import org.jooq.impl.DSL;
  * A {@link JOOQCountStrategy} that performs an exact count, and returns an estimate count
  * if it takes longer than a specified timeout.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class JOOQTimedCountStrategy implements JOOQCountStrategy {
 
@@ -36,7 +38,10 @@ public class JOOQTimedCountStrategy implements JOOQCountStrategy {
             result = exactCountStrategy.count(dslContext, query);
             dslContext.rollback().toSavepoint(SAVEPOINT).execute();
         } catch (DataAccessException e) {
-            if(PostgresqlErrorType.from(e).is(PostgresqlErrorType.QUERY_TIMEOUT)) {
+            if (PostgresqlErrorType.from(e).is(PostgresqlErrorType.QUERY_TIMEOUT)) {
+                log.debug("Exact count timed out after {}; falling back to an estimated count. "
+                                + "Select (bind values omitted): {}",
+                        timeout, dslContext.renderNamedParams(query));
                 // rollback to savepoint first, otherwise we have transaction marked for rollback error
                 dslContext.rollback().toSavepoint(SAVEPOINT).execute();
                 result = estimateCountStrategy.count(dslContext, query);
