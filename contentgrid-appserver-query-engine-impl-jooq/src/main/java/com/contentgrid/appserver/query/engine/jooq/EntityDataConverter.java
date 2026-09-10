@@ -81,9 +81,14 @@ public class EntityDataConverter {
         if (value == null) {
             return List.of(new JOOQPair<>(field, null));
         }
-        // The field carries the array type of the item type, so the elements need no assumption here
+        if (!(value instanceof List<?> elements)) {
+            throw new IllegalInputDataException("Expected value to be of type %s, got %s"
+                    .formatted(List.class.getSimpleName(), value.getClass().getSimpleName()));
+        }
+        elements.forEach(element -> checkType(attribute.getItemType(), element));
+        // The field carries the array type of the item type
         var componentType = field.getDataType().getType().getComponentType();
-        var array = ((List<?>) value).toArray((Object[]) Array.newInstance(componentType, 0));
+        var array = elements.toArray((Object[]) Array.newInstance(componentType, 0));
         return List.of(new JOOQPair<>(field, array));
     }
 
