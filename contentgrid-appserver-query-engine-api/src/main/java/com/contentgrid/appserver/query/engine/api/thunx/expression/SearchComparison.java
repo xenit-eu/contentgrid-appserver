@@ -78,6 +78,11 @@ public sealed class SearchComparison extends Comparison implements CustomFunctio
         private ContentGridArraySearch(@NonNull ThunkExpression<?> leftTerm, @NonNull SetValue rightTerm) {
             super("cg_array_search", leftTerm, rightTerm);
         }
+
+        @Override
+        public SetValue getRightTerm() {
+            return (SetValue) super.getRightTerm();
+        }
     }
 
 }

@@ -86,6 +86,9 @@ public class JOOQThunkExpressionResolver {
         public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
                 throws InvalidThunkExpressionException {
             return switch (functionExpression.getOperator()) {
+                // Equality over a multi-value attribute degrades to a non-matching condition: a policy
+                // on such an attribute needs membership, not equality. Expressing `x in <attribute>`
+                // and `<attribute> contains x` is ACC-3095.
                 case EQUALS -> {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
@@ -315,7 +318,7 @@ public class JOOQThunkExpressionResolver {
                             }
                             // The search values are normalized by the SQL function, not per element
                             var right = getArray(context,
-                                    ((SetValue) contentGridArraySearch.getRightTerm()).getValue().stream(), false);
+                                    contentGridArraySearch.getRightTerm().getValue().stream(), false);
                             yield DSL.arrayOverlap(
                                     JOOQUtils.arraySearchNormalize(left),
                                     JOOQUtils.arraySearchNormalize(right));
@@ -342,11 +345,6 @@ public class JOOQThunkExpressionResolver {
             }
         }
 
-        /**
-         * SQL array equality is order- and duplicate-sensitive, which is not the set semantics of a
-         * multi-value attribute, so equality over arrays degrades to a non-matching condition until
-         * multi-value policy semantics are defined (ACC-3095).
-         */
         private static boolean isArray(Field<?> field) {
             return field.getDataType().isArray();
         }
