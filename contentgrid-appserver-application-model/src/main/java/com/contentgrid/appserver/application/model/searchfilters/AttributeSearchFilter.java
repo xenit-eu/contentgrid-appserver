@@ -60,28 +60,29 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
     }
 
     public enum Operation {
-        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME), Set.of()),
-        CONTAINS(Set.of(), Set.of(Type.TEXT)),
-        PREFIX(Set.of(Type.TEXT), Set.of()),
-        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
-        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
-        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
-        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        EXACT(false, Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME)),
+        CONTAINS(true, Set.of(Type.TEXT)),
+        PREFIX(false, Set.of(Type.TEXT)),
+        GREATER_THAN(false, Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
+        GREATER_THAN_OR_EQUAL(false, Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
+        LESS_THAN(false, Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
+        LESS_THAN_OR_EQUAL(false, Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
         ;
 
+        private final boolean multivalued;
         private final Set<Type> supportedTypes;
-        private final Set<Type> supportedItemTypes;
 
-        Operation(Set<Type> supportedTypes, Set<Type> supportedItemTypes) {
+        Operation(boolean multivalued, Set<Type> supportedTypes) {
+            this.multivalued = multivalued;
             this.supportedTypes = supportedTypes;
-            this.supportedItemTypes = supportedItemTypes;
         }
 
         public boolean supports(Attribute attribute) {
             return switch (attribute) {
-                case SimpleAttribute simpleAttribute -> supportedTypes.contains(simpleAttribute.getType());
+                case SimpleAttribute simpleAttribute ->
+                        !multivalued && supportedTypes.contains(simpleAttribute.getType());
                 case MultivalueAttribute multivalueAttribute ->
-                        supportedItemTypes.contains(multivalueAttribute.getItemType());
+                        multivalued && supportedTypes.contains(multivalueAttribute.getItemType());
                 case CompositeAttribute ignored -> false;
             };
         }
