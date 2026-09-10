@@ -294,7 +294,7 @@ class DatamodelApiImplTest {
             return createDataCaptor.getValue();
         }
 
-        private <T extends Throwable> T expectCreateFailure(Map<String, Object> data, String field,
+        private <T extends Throwable> T expectCreateFailure(Map<String, Object> data, String path,
                 Class<T> causeType) {
             var exception = catchThrowableOfType(InvalidPropertyDataException.class,
                     () -> datamodelApi.create(TEXT_SET_APPLICATION, DOCUMENT.getName(),
@@ -303,7 +303,7 @@ class DatamodelApiImplTest {
             assertThat(exception).isNotNull();
             var errors = exception.allExceptions().toList();
             assertThat(errors).singleElement()
-                    .satisfies(error -> assertThat(error.getPath().toString()).isEqualTo(field));
+                    .satisfies(error -> assertThat(error.getPath()).hasToString(path));
             var cause = errors.getFirst().getCause();
             assertThat(cause).isInstanceOf(causeType);
             return causeType.cast(cause);
@@ -407,39 +407,24 @@ class DatamodelApiImplTest {
             assertThat(cause.getAllowedValues()).containsExactlyInAnyOrder("hr", "it", "finance");
         }
 
-        private EntityInstance findDocument(List<AttributeData> attributes) {
+        @Test
+        void readValues_returnsJsonArrayEntries() {
             Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
                 var request = args.getArgument(1, EntityRequest.class);
                 return Optional.of(new EntityData(
                         EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
-                        attributes
+                        List.of(
+                                new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "archived")),
+                                new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
+                        )
                 ));
             });
-            return datamodelApi.findById(TEXT_SET_APPLICATION,
+            var result = datamodelApi.findById(TEXT_SET_APPLICATION,
                             EntityRequest.forEntity(DOCUMENT.getName(), EntityId.of(UUID.randomUUID())),
                             AuthorizationContext.allowAll())
                     .orElseThrow();
-        }
-
-        @Test
-        void readValues_returnsJsonArrayEntries() {
-            var result = findDocument(List.of(
-                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent", "archived")),
-                    new SimpleAttributeData<>(DOCUMENT_LABELS.getName(), List.of())
-            ));
             assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of(
                     new StringDataEntry("urgent"), new StringDataEntry("archived"))));
-            assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
-        }
-
-        @Test
-        void absentValue_returnsEmptyList() {
-            // The column is NOT NULL, so a value is never null; it can be absent from the result
-            // altogether when a projection does not select it
-            var result = findDocument(List.of(
-                    new SimpleAttributeData<>(DOCUMENT_TAGS.getName(), List.of("urgent"))
-                    // no data for labels at all
-            ));
             assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
         }
     }

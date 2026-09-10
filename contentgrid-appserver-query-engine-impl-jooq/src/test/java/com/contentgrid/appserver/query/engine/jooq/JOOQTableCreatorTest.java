@@ -392,10 +392,11 @@ class JOOQTableCreatorTest {
 
         tableCreator.createTables(application);
 
-        // NFKC folds compatibility forms (the ﬁ ligature) but keeps case and accents
+        // NFKC folds compatibility forms (the U+FB01 ligature) but keeps case and accents
         var normalized = jdbcTemplate.queryForObject(
-                "SELECT extensions.contentgrid_array_search_normalize(ARRAY['ﬁle', 'Café'])::text", String.class);
-        assertEquals("{file,Café}", normalized);
+                "SELECT extensions.contentgrid_array_search_normalize(ARRAY['\ufb01le', 'Caf\u00e9'])::text",
+                String.class);
+        assertEquals("{file,Caf\u00e9}", normalized);
 
         // An empty array yields {}, not null, so empty rows never match any search
         var empty = jdbcTemplate.queryForObject(
