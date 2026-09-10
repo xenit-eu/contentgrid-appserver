@@ -71,11 +71,18 @@ public final class BodyObjectMapper {
                     var attribute = context.application().getPropertyPathResolver()
                             .resolveAttribute(entityName, attributeSearchFilter.getAttributePath())
                             .getAttribute();
-                    yield getBodyValue(
+                    var value = getBodyValue(
                             context,
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
                             attribute
                     );
+                    // A search filter carries one value at a time, also on a multi-value attribute.
+                    // The title and description describe the attribute, so they move to the item.
+                    yield value instanceof ArrayBodyValue arrayBodyValue
+                            ? arrayBodyValue.getItems()
+                                    .withTitle(arrayBodyValue.getTitle())
+                                    .withDescription(arrayBodyValue.getDescription())
+                            : value;
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + searchFilter);
             };
@@ -83,10 +90,11 @@ public final class BodyObjectMapper {
             if (
                     bodyValue instanceof SimpleBodyValue simpleBodyValue &&
                             !(searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
-                            attributeSearchFilter.getOperation() == Operation.EXACT)
+                            (attributeSearchFilter.getOperation() == Operation.EXACT
+                                    || attributeSearchFilter.getOperation() == Operation.CONTAINS))
             ) {
-                // Constraints don't apply to search filters; except to the 'exact' filter,
-                // where the searched value must match a value exactly
+                // Constraints don't apply to search filters; except to the 'exact' and 'contains'
+                // filters, where the searched value must match a value exactly
                 bodyValue = simpleBodyValue.toBuilder().clearConstraints().build();
             }
 

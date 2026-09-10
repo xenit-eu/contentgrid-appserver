@@ -498,7 +498,14 @@ class BodyObjectMapperTest {
                     });
                 });
             });
-
+            assertThat(result.getField("labels")).hasValueSatisfying(value -> {
+                // A multi-value attribute is searched one value at a time, so the filter takes the item shape
+                assertThat(value).isInstanceOfSatisfying(SimpleBodyValue.class, simpleBodyValue -> {
+                    assertThat(simpleBodyValue.getType()).isEqualTo(Type.TEXT);
+                    assertThat(simpleBodyValue.getConstraints())
+                            .hasExactlyElementsOfTypes(AllowedValuesConstraint.class);
+                });
+            });
         }
 
         @Test

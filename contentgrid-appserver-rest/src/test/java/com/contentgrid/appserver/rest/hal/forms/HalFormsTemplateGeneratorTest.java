@@ -516,7 +516,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("review")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isOne();
                     });
                 },
                 sort -> {
@@ -592,12 +592,7 @@ class HalFormsTemplateGeneratorTest {
                 tags -> {
                     assertThat(tags.getName()).isEqualTo("tags");
                     assertThat(tags.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    // The filter accepts repeated values: options without maxItems
-                    assertThat(tags.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
-                        assertThat(options.getInline()).isNullOrEmpty();
-                        assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
-                    });
+                    assertThat(tags.getOptions()).isNull();
                 },
                 vat -> {
                     assertThat(vat.getName()).isEqualTo("vat");
