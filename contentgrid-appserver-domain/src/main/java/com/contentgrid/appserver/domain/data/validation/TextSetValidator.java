@@ -22,7 +22,7 @@ import java.util.List;
  */
 public class TextSetValidator implements AttributeValidationDataMapper.Validator {
 
-    public static final int MAX_ELEMENTS = 1000;
+    public static final int MAX_ELEMENTS = 100;
 
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
