@@ -1,6 +1,6 @@
 services:
   opa:
-    image: ${OPENPOLICYAGENT_DOCKER_IMAGE:-docker.io/openpolicyagent/opa:1.19.1-debug@sha256:41fb76df0a663a257dfaca80cbc13089f1c2f9ad876c59a4de654c830ce8a5ae}
+    image: ${OPENPOLICYAGENT_DOCKER_IMAGE:-docker.io/openpolicyagent/opa:1.20.0-debug@sha256:72cff67b110361a3b7490ce64a45e656f255490a320b821ffb4c3b7d578cf0c7}
     command:
       - "run"
       - "--server"
