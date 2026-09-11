@@ -101,6 +101,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -110,6 +112,7 @@ import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Select;
+import org.jooq.Table;
 import org.jooq.VisitListener;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
@@ -2657,6 +2660,94 @@ class JOOQQueryEngineTest {
                     .isNotEmpty()
                     .containsOnly(0);
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void independentRelationsUseSeparateSubqueries(boolean customerFirst) {
+        var capturedQuery = new AtomicReference<Select<?>>();
+        var engine = new JOOQQueryEngine(application -> dslContext, (context, query) -> {
+            capturedQuery.set(query);
+            return ItemCount.exact(context.fetchCount(query));
+        });
+        // Like claim_document -> claim_summary and claim_document -> vehicle in ETHCG-676:
+        // customer and product are sibling relations of invoice, not relations of each other.
+        var customer = Comparison.areEqual(SymbolicReference.parse("entity.customer.name"), Scalar.of("alice"));
+        var product = Comparison.areEqual(productCode("product"), Scalar.of("code_1"));
+        var expression = LogicalOperation.conjunction(
+                Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_1")),
+                customerFirst ? customer : product,
+                customerFirst ? product : customer
+        );
+
+        assertThat(engine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(1));
+        assertThat(queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA).getEntities())
+                .extracting(EntityData::getId).containsExactly(INVOICE1_ID);
+
+        var query = capturedQuery.get();
+        var targetTables = Set.of(PERSON.getTable(), PRODUCT.getTable());
+        var subqueries = relationSubqueries(query, targetTables);
+        assertThat(subqueries.stream().flatMap(scope -> scope.tables().stream()).distinct())
+                .containsExactlyInAnyOrderElementsOf(targetTables);
+        assertThat(subqueries).allSatisfy(scope -> {
+            assertThat(scope.depth()).as("Sibling relations must not be nested inside each other: %s", query)
+                    .isEqualTo(1);
+            assertThat(scope.tables()).as("Independent relations must not share a subquery: %s", query)
+                    .hasSize(1);
+        });
+    }
+
+    private record RelationSubquery(int depth, Set<TableName> tables) {}
+
+    private List<RelationSubquery> relationSubqueries(Select<?> query, Set<TableName> targetTables) {
+        var scopes = new IdentityHashMap<Select<?>, RelationSubquery>();
+        var listener = VisitListener.onVisitStart(context -> {
+            if (context.context().declareTables() && context.queryPart() instanceof Table<?> table) {
+                for (var target : targetTables) {
+                    if (!table.getQualifiedName().equals(DSL.name(target.getValue()))) {
+                        continue;
+                    }
+                    // Attribute each FROM/JOIN table to its nearest enclosing SELECT, not to its alias.
+                    var parts = context.queryParts();
+                    for (var index = parts.length - 1; index >= 0; index--) {
+                        if (parts[index] instanceof Select<?> select) {
+                            scopes.computeIfAbsent(select, ignored ->
+                                            new RelationSubquery(context.context().subqueryLevel(), new HashSet<>()))
+                                    .tables().add(target);
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+        DSL.using(dslContext.configuration().deriveAppending(listener)).render(query.$where());
+        return List.copyOf(scopes.values());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"c1, p2, true", "c1, p2, false", "customer, product, true", "customer, product, false"})
+    void relationScopeInspectionIgnoresAliasesAndConjunctOrder(String customerAlias, String productAlias,
+            boolean customerFirst) {
+        var root = DSL.table(DSL.name("invoice")).as(DSL.name("document"));
+        var customer = DSL.table(DSL.name("person")).as(DSL.name(customerAlias));
+        var product = DSL.table(DSL.name("product")).as(DSL.name(productAlias));
+        var customerExists = DSL.exists(DSL.selectOne().from(customer));
+        var productExists = DSL.exists(DSL.selectOne().from(product));
+        var targets = Set.of(PERSON.getTable(), PRODUCT.getTable());
+
+        var separate = DSL.selectFrom(root).where(customerFirst
+                ? customerExists.and(productExists) : productExists.and(customerExists));
+        assertThat(relationSubqueries(separate, targets)).containsExactlyInAnyOrder(
+                new RelationSubquery(1, Set.of(PERSON.getTable())),
+                new RelationSubquery(1, Set.of(PRODUCT.getTable())));
+
+        var combined = DSL.selectFrom(root).where(DSL.exists(DSL.selectOne().from(customer.crossJoin(product))));
+        assertThat(relationSubqueries(combined, targets)).containsExactly(new RelationSubquery(1, targets));
+
+        var nested = DSL.selectFrom(root).where(DSL.exists(DSL.selectOne().from(customer).where(productExists)));
+        assertThat(relationSubqueries(nested, targets)).containsExactlyInAnyOrder(
+                new RelationSubquery(1, Set.of(PERSON.getTable())),
+                new RelationSubquery(2, Set.of(PRODUCT.getTable())));
     }
 
     static Stream<Arguments> mixedFilterSemantics() {
