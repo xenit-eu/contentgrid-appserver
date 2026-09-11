@@ -73,7 +73,7 @@ public class EntityDataMapper {
 
     public SimpleAttributeData<?> from(@NonNull MultivalueAttribute attribute, Map<String, Object> data) {
         var elements = (Object[]) data.get(attribute.getColumn().getValue());
-        var value = elements == null ? null : Arrays.stream(elements)
+        var value = Arrays.stream(elements)
                 .map(element -> convert(attribute.getItemType(), attribute.getName(), element))
                 .toList();
         return SimpleAttributeData.builder()
