@@ -9,6 +9,7 @@ dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-domain')
     implementation project(':contentgrid-appserver-application-model-openapi')
+    implementation project(':contentgrid-appserver-security')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.contentgrid.hateoas:contentgrid-hateoas-spring'
