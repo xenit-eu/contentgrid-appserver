@@ -7,6 +7,7 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.type.DataType;
 import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
+import com.contentgrid.appserver.domain.data.validation.DuplicateElementInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RegexPatternConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
@@ -98,6 +99,12 @@ public class ProblemDetailsExceptionHandler {
                                 .withProperties(Map.of(
                                         "pattern", regexPatternConstraintViolationInvalidDataException.getPattern().pattern()
                                 ));
+                        case DuplicateElementInvalidDataException duplicateElement -> problemFactory
+                                .createProblem(ProblemType.INPUT_VALIDATION_DUPLICATE_ELEMENT,
+                                        duplicateElement.getDuplicateValue())
+                                .withProperties(Map.of(
+                                        "duplicate_value", duplicateElement.getDuplicateValue()
+                                ));
                         // All exception types should be covered above, this is a fallback for when there are additional
                         // exceptions added without adding a case.
                         default -> throw new IllegalArgumentException("Unsupported exception %s".formatted(e.getCause().getClass()));
@@ -183,12 +190,12 @@ public class ProblemDetailsExceptionHandler {
                 problemFactory.createProblem(
                                 ProblemType.INVALID_QUERY_PARAMETER_FILTER_FORMAT,
                                 exception.getFilterName().getValue(),
-                                DataType.of(exception.getType()).getHumanDescription()
+                                exception.getType().getHumanDescription()
                         )
                         .withStatus(HttpStatus.BAD_REQUEST)
                         .withProperties(Map.of(
                                 "query_parameter", exception.getFilterName().getValue(),
-                                "expected_type", DataType.of(exception.getType()).getTechnicalName(),
+                                "expected_type", exception.getType().getTechnicalName(),
                                 "format_error",  exception.getCause().getMessage()
                         ))
         ).apply(mainException));

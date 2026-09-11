@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.openapi.type;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import lombok.Value;
@@ -13,6 +14,7 @@ public sealed interface AttributeType<T extends Attribute> extends SemanticType{
     static <T extends Attribute> AttributeType<T> of(T attribute) {
         return (AttributeType<T>) switch (attribute) {
             case SimpleAttribute simpleAttribute -> new SimpleAttributeType(simpleAttribute);
+            case MultivalueAttribute multivalueAttribute -> new MultivalueAttributeType(multivalueAttribute);
             case ContentAttribute contentAttribute -> new ContentAttributeType(contentAttribute);
             case UserAttribute userAttribute -> new UserAttributeType(userAttribute);
             case CompositeAttribute compositeAttribute -> new CompositeAttributeType(compositeAttribute);
@@ -27,6 +29,11 @@ public sealed interface AttributeType<T extends Attribute> extends SemanticType{
     @Value
     class SimpleAttributeType implements AttributeType<SimpleAttribute> {
         SimpleAttribute attribute;
+    }
+
+    @Value
+    class MultivalueAttributeType implements AttributeType<MultivalueAttribute> {
+        MultivalueAttribute attribute;
     }
 
     @Value

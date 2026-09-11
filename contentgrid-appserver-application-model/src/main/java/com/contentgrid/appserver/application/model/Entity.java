@@ -24,12 +24,10 @@ import com.contentgrid.appserver.application.model.sortable.SortableField;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.values.ColumnName;
-import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
@@ -190,23 +188,29 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                                 "Duplicate sortable field named %s".formatted(sortableField.getName()));
                     }
 
-                    if (sortableField.getPropertyPath() instanceof SimpleAttributePath simpleAttributePath) {
-                        getAttributeByName(simpleAttributePath.getFirst()).orElseThrow(() ->
-                                new InvalidArgumentModelException(("Sorting across a relation is not implemented."
-                                        + " SortableField %s must reference a single attribute on this entity")
-                                        .formatted(sortableField.getName())));
-                    } else if (sortableField.getPropertyPath() instanceof CompositeAttributePath compositeAttributePath) {
-                        // throws if invalid
-                        resolveAttributePath(compositeAttributePath);
-                    } else {
-                        throw new InvalidArgumentModelException("SortableField %s references non-existent attribute %s"
-                                .formatted(sortableField.getName(), sortableField.getPropertyPath().getFirst()));
+                    var attributePath = sortableField.getPropertyPath();
+                    Attribute attribute;
+                    try {
+                        attribute = PropertyPathResolver.resolveAttributePath(this, attributePath);
+                    } catch (AttributeNotFoundException e) {
+                        throw new InvalidArgumentModelException(
+                                "SortableField %s references non-existent attribute %s"
+                                        .formatted(sortableField.getName(), attributePath), e);
                     }
+                    checkSortable(sortableField, attribute);
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
 
         this.links.addAll(links);
+    }
+
+    private static void checkSortable(SortableField sortableField, Attribute attribute) {
+        if (!(attribute instanceof SimpleAttribute)) {
+            throw new InvalidArgumentModelException(
+                    "SortableField %s references attribute %s, which cannot be sorted on"
+                            .formatted(sortableField.getName(), attribute.getName()));
+        }
     }
 
     /**

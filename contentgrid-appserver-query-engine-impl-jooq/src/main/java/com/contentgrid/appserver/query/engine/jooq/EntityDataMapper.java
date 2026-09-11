@@ -3,8 +3,10 @@ package com.contentgrid.appserver.query.engine.jooq;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.Version;
@@ -17,6 +19,7 @@ import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.Temporal;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import lombok.NonNull;
@@ -42,7 +45,8 @@ public class EntityDataMapper {
 
     private EntityId getEntityId(@NonNull Entity entity, Map<String, Object> data) {
         var primaryKey = entity.getPrimaryKey();
-        var id = convert(primaryKey, data.get(primaryKey.getColumn().getValue()));
+        var id = convert(primaryKey.getType(), primaryKey.getName(),
+                data.get(primaryKey.getColumn().getValue()));
         if (id instanceof UUID uuid) {
             return EntityId.of(uuid);
         } else {
@@ -62,12 +66,25 @@ public class EntityDataMapper {
     public AttributeData from(@NonNull Attribute attribute, Map<String, Object> data) {
         return switch (attribute) {
             case SimpleAttribute simpleAttribute -> from(simpleAttribute, data);
+            case MultivalueAttribute multivalueAttribute -> from(multivalueAttribute, data);
             case CompositeAttribute compositeAttribute -> from(compositeAttribute, data);
         };
     }
 
+    public SimpleAttributeData<?> from(@NonNull MultivalueAttribute attribute, Map<String, Object> data) {
+        var elements = (Object[]) data.get(attribute.getColumn().getValue());
+        var value = elements == null ? null : Arrays.stream(elements)
+                .map(element -> convert(attribute.getItemType(), attribute.getName(), element))
+                .toList();
+        return SimpleAttributeData.builder()
+                .name(attribute.getName())
+                .value(value)
+                .build();
+    }
+
     public SimpleAttributeData<?> from(@NonNull SimpleAttribute attribute, Map<String, Object> data) {
-        var value = convert(attribute, data.get(attribute.getColumn().getValue()));
+        var value = convert(attribute.getType(), attribute.getName(),
+                data.get(attribute.getColumn().getValue()));
         return SimpleAttributeData.builder()
                 .name(attribute.getName())
                 .value(value)
@@ -82,34 +99,34 @@ public class EntityDataMapper {
         return builder.build();
     }
 
-    private Object convert(SimpleAttribute attribute, Object value) {
+    private Object convert(SimpleAttribute.Type type, AttributeName name, Object value) {
         if (value == null) {
             return null;
         }
-        return switch (attribute.getType()) {
+        return switch (type) {
             case TEXT -> {
                 if (value instanceof String string) {
                     yield string;
                 }
-                throw new IllegalStateException("Value of attribute '%s' is not a string".formatted(attribute.getName()));
+                throw new IllegalStateException("Value of attribute '%s' is not a string".formatted(name));
             }
             case LONG -> {
                 if (value instanceof Number number) {
                     yield number.longValue();
                 }
-                throw new IllegalStateException("Value of attribute '%s' is not numeric".formatted(attribute.getName()));
+                throw new IllegalStateException("Value of attribute '%s' is not numeric".formatted(name));
             }
             case DOUBLE -> switch (value) {
                 case BigDecimal number -> number;
                 case Double number -> BigDecimal.valueOf(number);
                 case Float number -> BigDecimal.valueOf(number);
-                default -> throw new IllegalStateException("Value of attribute '%s' is not decimal".formatted(attribute.getName()));
+                default -> throw new IllegalStateException("Value of attribute '%s' is not decimal".formatted(name));
             };
             case BOOLEAN -> {
                 if (value instanceof Boolean bool) {
                     yield bool;
                 }
-                throw new IllegalStateException("Value of attribute '%s' is not a boolean".formatted(attribute.getName()));
+                throw new IllegalStateException("Value of attribute '%s' is not a boolean".formatted(name));
             }
             case DATE -> {
                 if (value instanceof Temporal temporal) {
@@ -117,7 +134,7 @@ public class EntityDataMapper {
                 } else if (value instanceof Date date) {
                     yield date.toLocalDate();
                 }
-                throw new IllegalStateException("Value of attribute '%s' is not a local date".formatted(attribute.getName()));
+                throw new IllegalStateException("Value of attribute '%s' is not a local date".formatted(name));
             }
             case DATETIME -> {
                 if (value instanceof Temporal temporal) {
@@ -125,13 +142,13 @@ public class EntityDataMapper {
                 } else if (value instanceof Date date) {
                     yield date.toInstant();
                 }
-                throw new IllegalStateException("Value of attribute '%s' is not a datetime".formatted(attribute.getName()));
+                throw new IllegalStateException("Value of attribute '%s' is not a datetime".formatted(name));
             }
             case UUID -> {
                 if (value instanceof UUID uuid) {
                     yield uuid;
                 }
-                throw new IllegalStateException("Value of attribute '%s' is not a uuid".formatted(attribute.getName()));
+                throw new IllegalStateException("Value of attribute '%s' is not a uuid".formatted(name));
             }
         };
     }

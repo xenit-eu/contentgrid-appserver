@@ -5,6 +5,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
@@ -45,7 +46,10 @@ class RestFormatterTest {
                 EntityIdentity.forEntity(PRODUCT.getName(), EntityId.of(uuid)),
                 new LinkedHashMap<>(Map.of(
                         "name", new StringDataEntry("Widget Reprogrammer"),
-                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99))
+                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99)),
+                        "tags", new ListDataEntry(List.of(
+                                new StringDataEntry("urgent"), new StringDataEntry("archived"))),
+                        "labels", new ListDataEntry(List.of())
                 )),
                 List.of()
         );
@@ -62,7 +66,10 @@ class RestFormatterTest {
                 EntityIdentity.forEntity(PRODUCT.getName(), EntityId.of(uuid)),
                 new LinkedHashMap<>(Map.of(
                         "name", new StringDataEntry("Widget Reprogrammer"),
-                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99))
+                        "price", new DecimalDataEntry(BigDecimal.valueOf(299.99)),
+                        "tags", new ListDataEntry(List.of(
+                                new StringDataEntry("urgent"), new StringDataEntry("archived"))),
+                        "labels", new ListDataEntry(List.of())
                 )),
                 List.of(
                         new EntityLinkData(
@@ -95,6 +102,8 @@ class RestFormatterTest {
                 "id": "69415bf7-9aba-4a35-b677-0d66f3bec2bf",
                 "name": "Widget Reprogrammer",
                 "price": 299.99,
+                "tags": ["urgent", "archived"],
+                "labels": [],
                 "_links": {
                     "self": {
                         "href": "http://localhost/products/69415bf7-9aba-4a35-b677-0d66f3bec2bf"
@@ -137,6 +146,8 @@ class RestFormatterTest {
                 "id": "69415bf7-9aba-4a35-b677-0d66f3bec2bf",
                 "name": "Widget Reprogrammer",
                 "price": 299.99,
+                "tags": ["urgent", "archived"],
+                "labels": [],
                 "_links": {
                     "self": {
                         "href": "http://localhost/products/69415bf7-9aba-4a35-b677-0d66f3bec2bf"

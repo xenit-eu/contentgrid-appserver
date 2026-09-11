@@ -345,6 +345,12 @@ public class ProblemsResponseResolver implements ResponseResolver{
                         description("This field value is already used by another entity item"),
                         requiredProperty("conflicting_item", new JsonSchemaString().setFormat(Format.URI))
                 )
+                .andSubType("duplicate-element",
+                        type("https://contentgrid.cloud/problems/input/validation/duplicate-element"),
+                        title("Duplicate value in list"),
+                        description("A multi-value field contains the same value more than once"),
+                        requiredProperty("duplicate_value", new JsonSchemaString())
+                )
                 .andSubType("allowed-values",
                         type("https://contentgrid.cloud/problems/input/validation/allowed-values"),
                         title("Value not allowed"),

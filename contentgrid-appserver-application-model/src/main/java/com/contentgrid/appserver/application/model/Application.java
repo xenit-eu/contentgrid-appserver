@@ -2,14 +2,11 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
-import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
-import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.RelationResolutionResult;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
-import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
@@ -24,6 +21,7 @@ import com.contentgrid.appserver.application.model.relations.Relation;
 import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpointFlag;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
+import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.SyntheticSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
@@ -374,8 +372,10 @@ public class Application {
 
     private void validateEntitySearchFilters(Entity entity) {
         entity.getSearchFilters().forEach(searchFilter -> {
-            if (searchFilter instanceof AttributeSearchFilter attributeSearchFilter) {
-                    var resolvedAttribute = resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
+            if (searchFilter instanceof BaseAttributeSearchFilter attributeSearchFilter) {
+                    var resolvedAttribute = propertyPathResolver
+                            .resolveAttribute(entity.getName(), attributeSearchFilter.getAttributePath())
+                            .getAttribute();
                     if(!attributeSearchFilter.supports(resolvedAttribute)) {
                         throw new InvalidSearchFilterException(
                             "SearchFilter %s does not support the attribute %s".formatted(
@@ -431,22 +431,6 @@ public class Application {
                 });
 
 
-    }
-
-    /**
-     * @deprecated use the {@link #getPropertyPathResolver()} instead
-     */
-    @Deprecated(forRemoval = true, since = "0.1.1")
-    public SimpleAttribute resolvePropertyPath(Entity entity, PropertyPath path) {
-        try {
-            var attributeResult = propertyPathResolver.resolveAttribute(entity.getName(), path.as(ResolvesToAttribute.class));
-            if (attributeResult.getAttribute() instanceof SimpleAttribute simpleAttribute) {
-                return simpleAttribute;
-            }
-        } catch (InvalidPropertyPathException e) {
-            throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()), e);
-        }
-        throw new InvalidArgumentModelException("Resolving path '%s' against entity '%s' did not reach a SimpleAttribute".formatted(path, entity.getName()));
     }
 
 }

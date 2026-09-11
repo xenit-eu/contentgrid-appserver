@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.HasAttributes;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -19,6 +20,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.CompositeAttributeNode;
+import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.MultivalueAttributeNode;
 import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.RelationNode;
 import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.SimpleAttributeNode;
 import com.contentgrid.appserver.query.engine.jooq.thunk.CachedNode.VariableNode;
@@ -128,6 +130,13 @@ class JOOQSymbolicReferenceResolver {
                     }
                     return simpleAttributeNode.getField();
                 }
+                case MultivalueAttributeNode multivalueAttributeNode -> {
+                    if (index + 1 < path.size()) {
+                        // Not yet at end of path, but no nested attributes possible on a MultivalueAttribute
+                        throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
+                    }
+                    return multivalueAttributeNode.getField();
+                }
                 case CompositeAttributeNode compositeAttributeNode -> {
                     currentContainer = compositeAttributeNode.getAttribute();
                 }
@@ -162,6 +171,10 @@ class JOOQSymbolicReferenceResolver {
                 case SimpleAttribute simpleAttribute -> {
                     var field = JOOQUtils.resolveField(currentAlias, simpleAttribute);
                     yield new SimpleAttributeNode(simpleAttribute, field);
+                }
+                case MultivalueAttribute multivalueAttribute -> {
+                    var field = JOOQUtils.resolveField(currentAlias, multivalueAttribute);
+                    yield new MultivalueAttributeNode(multivalueAttribute, field);
                 }
                 case CompositeAttribute compositeAttribute -> new CompositeAttributeNode(compositeAttribute);
             };

@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.jooq.thunk;
 
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -46,12 +47,25 @@ abstract sealed class CachedNode {
 
     @Value
     @EqualsAndHashCode(callSuper = false)
+    static class MultivalueAttributeNode extends CachedNode {
+        @NonNull MultivalueAttribute attribute;
+        @NonNull Field<?> field;
+
+        @Override
+        public void store(PathElement pathElement, CachedNode node) {
+            throw new InvalidThunkExpressionException("Path goes over non-existing attribute");
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false)
     static class CompositeAttributeNode extends CachedNode {
         @NonNull CompositeAttribute attribute;
 
         @Override
         public void store(PathElement pathElement, CachedNode node) {
-            if (node instanceof SimpleAttributeNode || node instanceof CompositeAttributeNode) {
+            if (node instanceof SimpleAttributeNode || node instanceof MultivalueAttributeNode
+                    || node instanceof CompositeAttributeNode) {
                 super.store(pathElement, node);
             } else {
                 throw new InvalidThunkExpressionException("Path goes over non-existing attribute");

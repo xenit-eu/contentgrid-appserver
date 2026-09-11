@@ -217,6 +217,19 @@ class ProfileRestControllerTest {
                                         }]
                                     }
                                 }, {
+                                    name: "labels",
+                                    type: "string_set",
+                                    _embedded: {
+                                        "blueprint:constraint": [{
+                                            type: "allowed-values",
+                                            values: ["urgent", "review"]
+                                        }],
+                                        "blueprint:search-param": [{
+                                            name: "labels",
+                                            type: "contains"
+                                        }]
+                                    }
+                                }, {
                                     name: "content",
                                     type: "object",
                                     _embedded: {
@@ -429,6 +442,13 @@ class ProfileRestControllerTest {
                                             inline: ["confidential", "public", "secret"]
                                         }
                                     }, {
+                                        name: "labels",
+                                        type: "text",
+                                        options: {
+                                            inline: ["urgent", "review"],
+                                            minItems: 0
+                                        }
+                                    }, {
                                         name: "_sort",
                                         type: "text",
                                         options: {
@@ -502,6 +522,13 @@ class ProfileRestControllerTest {
                                             inline: ["confidential", "public", "secret"],
                                             minItems: 1,
                                             maxItems: 1
+                                        }
+                                    }, {
+                                        name: "labels",
+                                        type: "text",
+                                        options: {
+                                            inline: ["urgent", "review"],
+                                            minItems: 0
                                         }
                                     }, {
                                         name: "content",
@@ -606,6 +633,18 @@ class ProfileRestControllerTest {
                                     {
                                         name: "gender",
                                         title: "gender"
+                                    },
+                                    {
+                                        name: "tags",
+                                        title: "Tags",
+                                        "_embedded": {
+                                            "blueprint:search-param": [
+                                                {
+                                                    name: "tags",
+                                                    title: "tags"
+                                                }
+                                            ]
+                                        }
                                     }
                                 ],
                                 "blueprint:relation": [
@@ -663,6 +702,10 @@ class ProfileRestControllerTest {
                                         {
                                             name: "name~prefix",
                                             prompt: "Naam begint met"
+                                        },
+                                        {
+                                            name: "tags",
+                                            prompt: "tags"
                                         },
                                         {
                                             name: "vat",
@@ -786,6 +829,10 @@ class ProfileRestControllerTest {
                                             prompt: "gender"
                                         },
                                         {
+                                            name: "tags",
+                                            prompt: "Tags"
+                                        },
+                                        {
                                             name: "invoices",
                                             prompt: "invoices"
                                         },
@@ -861,6 +908,14 @@ class ProfileRestControllerTest {
                                 },
                                 confidentiality: {
                                     enum: ["confidential", "public", "secret"]
+                                },
+                                labels: {
+                                    type: "array",
+                                    uniqueItems: true,
+                                    items: {
+                                        type: "string",
+                                        enum: ["urgent", "review"]
+                                    }
                                 },
                                 content: {
                                     $ref: "#/$defs/content"

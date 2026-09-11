@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.query.engine.api.thunx.expression;
 
 import com.contentgrid.thunx.predicates.model.Comparison;
+import com.contentgrid.thunx.predicates.model.SetValue;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.Locale;
 import lombok.EqualsAndHashCode;
@@ -8,12 +9,12 @@ import lombok.Getter;
 import lombok.NonNull;
 
 @EqualsAndHashCode(callSuper = true)
-public sealed class StringComparison extends Comparison implements CustomFunctionExpression<Boolean> {
+public sealed class SearchComparison extends Comparison implements CustomFunctionExpression<Boolean> {
 
     @NonNull
     private final String key;
 
-    protected StringComparison(@NonNull String key, @NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
+    protected SearchComparison(@NonNull String key, @NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<?> rightTerm) {
         super(Operator.CUSTOM, leftTerm, rightTerm);
         this.key = key;
     }
@@ -40,7 +41,17 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
         return new ContentGridFullTextSearch(leftTerm, rightTerm, locale);
     }
 
-    public static final class ContentGridPrefixSearch extends StringComparison {
+    /**
+     * Matches a multi-value text attribute when any of its elements equals any of the search values.
+     * All values travel in the single right-hand {@link SetValue}, so one expression resolves to one
+     * overlap condition, for one as well as for many values.
+     */
+    public static ContentGridArraySearch contentGridArraySearchMatch(@NonNull ThunkExpression<?> leftTerm,
+                                                                     @NonNull SetValue rightTerm) {
+        return new ContentGridArraySearch(leftTerm, rightTerm);
+    }
+
+    public static final class ContentGridPrefixSearch extends SearchComparison {
 
         private ContentGridPrefixSearch(@NonNull ThunkExpression<?> leftTerm, @NonNull ThunkExpression<String> rightTerm) {
             super("cg_prefix_search", leftTerm, rightTerm);
@@ -49,7 +60,7 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
 
     @Getter
     @EqualsAndHashCode(callSuper = true)
-    public static final class ContentGridFullTextSearch extends StringComparison {
+    public static final class ContentGridFullTextSearch extends SearchComparison {
 
         private final @NonNull Locale locale;
 
@@ -59,6 +70,18 @@ public sealed class StringComparison extends Comparison implements CustomFunctio
             super("cg_fulltext_search", leftTerm, rightTerm);
 
             this.locale = locale;
+        }
+    }
+
+    public static final class ContentGridArraySearch extends SearchComparison {
+
+        private ContentGridArraySearch(@NonNull ThunkExpression<?> leftTerm, @NonNull SetValue rightTerm) {
+            super("cg_array_search", leftTerm, rightTerm);
+        }
+
+        @Override
+        public SetValue getRightTerm() {
+            return (SetValue) super.getRightTerm();
         }
     }
 

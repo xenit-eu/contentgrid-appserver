@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -85,7 +86,7 @@ import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFou
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.thunx.predicates.model.Comparison;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
@@ -105,6 +106,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
@@ -442,6 +444,37 @@ class JOOQQueryEngineTest {
 
     private static final ThunkExpression<Boolean> TRUE_EXPRESSION = Scalar.of(true);
 
+    private static final MultivalueAttribute DOCUMENT_TAGS = MultivalueAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .itemType(Type.TEXT)
+            .build();
+
+    private static final MultivalueAttribute META_KEYWORDS = MultivalueAttribute.builder()
+            .name(AttributeName.of("keywords"))
+            .column(ColumnName.of("meta_keywords"))
+            .itemType(Type.TEXT)
+            .build();
+
+    private static final CompositeAttribute DOCUMENT_META = CompositeAttributeImpl.builder()
+            .name(AttributeName.of("meta"))
+            .attribute(META_KEYWORDS)
+            .build();
+
+    private static final Entity DOCUMENT = Entity.builder()
+            .name(EntityName.of("document"))
+            .table(TableName.of("document"))
+            .pathSegment(PathSegmentName.of("documents"))
+            .linkName(LinkName.of("documents"))
+            .attribute(DOCUMENT_TAGS)
+            .attribute(DOCUMENT_META)
+            .build();
+
+    private static final Application TEXT_SET_APPLICATION = Application.builder()
+            .name(ApplicationName.of("text-set-application"))
+            .entity(DOCUMENT)
+            .build();
+
     @MockitoBean
     private CreateEventConsumer createEventConsumer;
 
@@ -469,11 +502,13 @@ class JOOQQueryEngineTest {
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
+        tableCreator.createTables(TEXT_SET_APPLICATION);
         insertData();
     }
 
     @AfterEach
     void cleanup() {
+        tableCreator.dropTables(TEXT_SET_APPLICATION);
         tableCreator.dropTables(APPLICATION);
     }
 
@@ -750,25 +785,25 @@ class JOOQQueryEngineTest {
                         Scalar.of(1.0)
                 ),
                 // normalize
-                StringComparison.normalizedEqual(
+                SearchComparison.normalizedEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_¹") // invoice_1
                 ),
                 // contentgrid prefix search
-                StringComparison.contentGridPrefixSearchMatch(
+                SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                         Scalar.of("Bö") // bob
                 ),
                 // across relation, to one
-                StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                SearchComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                         Scalar.of("alice")
                 ),
                 // across relation, to many
-                StringComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
+                SearchComparison.normalizedEqual(SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("code")),
                         Scalar.of("code_1")
                 ),
                 // across relation, to many, id
-                StringComparison.areEqual(
+                SearchComparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("x"), SymbolicReference.path("id")),
                         Scalar.of(PRODUCT1_ID.getValue())
                 )
@@ -1055,6 +1090,87 @@ class JOOQQueryEngineTest {
                 ));
             }
         }
+    }
+
+    @Test
+    void createEntityWithTextSetInsideCompositeAttribute() {
+        var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .attribute(CompositeAttributeData.builder()
+                        .name(DOCUMENT_META.getName())
+                        .attribute(SimpleAttributeData.builder()
+                                .name(META_KEYWORDS.getName())
+                                .value(List.of("alpha", "beta"))
+                                .build())
+                        .build())
+                .build(), TRUE_EXPRESSION, createEventConsumer);
+
+        var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(),
+                TRUE_EXPRESSION).orElseThrow();
+        var meta = assertInstanceOf(CompositeAttributeData.class,
+                actual.getAttributeByName(DOCUMENT_META.getName()).orElseThrow());
+        var keywords = assertInstanceOf(SimpleAttributeData.class,
+                meta.getAttributeByName(META_KEYWORDS.getName()).orElseThrow());
+        assertThat(keywords.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
+                .containsExactlyInAnyOrder("alpha", "beta");
+    }
+
+    @Test
+    void createEntityWithTextSetAttribute() {
+        var created = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .attribute(SimpleAttributeData.builder()
+                        .name(DOCUMENT_TAGS.getName())
+                        .value(List.of("urgent", "archived"))
+                        .build())
+                .build(), TRUE_EXPRESSION, createEventConsumer);
+
+        var actual = queryEngine.findById(TEXT_SET_APPLICATION, created.getIdentity().toRequest(), TRUE_EXPRESSION)
+                .orElseThrow();
+        var actualTags = assertInstanceOf(SimpleAttributeData.class,
+                actual.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
+        // A set has no defined order, so the elements are compared order-agnostically
+        assertThat(actualTags.getValue()).asInstanceOf(InstanceOfAssertFactories.list(String.class))
+                .containsExactlyInAnyOrder("urgent", "archived");
+
+        // A row created without tags reads back as the empty list (the column default)
+        var createdEmpty = queryEngine.create(TEXT_SET_APPLICATION, EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .build(), TRUE_EXPRESSION, createEventConsumer);
+        var actualEmpty = queryEngine
+                .findById(TEXT_SET_APPLICATION, createdEmpty.getIdentity().toRequest(), TRUE_EXPRESSION)
+                .orElseThrow();
+        var emptyTags = assertInstanceOf(SimpleAttributeData.class,
+                actualEmpty.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow());
+        assertEquals(List.of(), emptyTags.getValue());
+
+        // The collection listing uses an untyped select; the array column must come back identically
+        var slice = queryEngine.findAll(TEXT_SET_APPLICATION, DOCUMENT, TRUE_EXPRESSION, null, DEFAULT_PAGE_DATA);
+        assertThat(slice.getEntities())
+                .extracting(entity -> assertInstanceOf(SimpleAttributeData.class,
+                        entity.getAttributeByName(DOCUMENT_TAGS.getName()).orElseThrow()).getValue())
+                .containsExactlyInAnyOrder(List.of("urgent", "archived"), List.of());
+    }
+
+    static Stream<Arguments> invalidTextSetValues() {
+        return Stream.of(
+                Arguments.argumentSet("not a list", "urgent"),
+                Arguments.argumentSet("non-string element", List.of("urgent", 123))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidTextSetValues")
+    void createEntityWithInvalidTextSetValue(Object value) {
+        var createData = EntityCreateData.builder()
+                .entityName(DOCUMENT.getName())
+                .attribute(SimpleAttributeData.builder()
+                        .name(DOCUMENT_TAGS.getName())
+                        .value(value)
+                        .build())
+                .build();
+        assertThrows(IllegalInputDataException.class,
+                () -> queryEngine.create(TEXT_SET_APPLICATION, createData, TRUE_EXPRESSION, createEventConsumer));
     }
 
     @ParameterizedTest
@@ -2604,17 +2720,17 @@ class JOOQQueryEngineTest {
                 // false
                 Arguments.of(Scalar.of(false), 0),
                 // expression that holds for all products
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                Arguments.of(SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_")
                 ), 3),
                 // expression that holds for none of the products
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                Arguments.of(SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code__")
                 ), 0),
                 // expression that holds for exactly one product
-                Arguments.of(StringComparison.contentGridPrefixSearchMatch(
+                Arguments.of(SearchComparison.contentGridPrefixSearchMatch(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("code")),
                         Scalar.of("code_2")
                 ), 1),

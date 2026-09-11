@@ -761,6 +761,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many"
@@ -860,6 +861,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as many_to_many_bidirectional"
@@ -1428,6 +1430,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many"
@@ -1527,6 +1530,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-b is linked with entity-a as one_to_many_bidirectional"
@@ -2541,6 +2545,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as many_to_many_inverse"
@@ -2818,6 +2823,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of entity-a is linked with entity-b as one_to_many_inverse"
@@ -3143,6 +3149,18 @@ paths:
         schema:
           type: "string"
           description: "A string attribute with prefix search enabled."
+      - name: "string_set_attribute"
+        in: "query"
+        description: "String set attribute"
+        schema:
+          type: "string"
+          description: "A multi-value string attribute."
+          enum:
+          - "alpha"
+          - "beta"
+          - "gamma"
+          examples:
+          - "alpha"
       - name: "_cursor"
         in: "query"
         description: "Cursor to access a page (cursors are server-generated and supplied\
@@ -3588,6 +3606,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -3611,6 +3630,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         many_to_many_bidirectional:
           type: "array"
           title: "Many to many bidirectional"
@@ -3620,6 +3640,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_bidirectional:
           type:
           - "string"
@@ -3665,6 +3686,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3683,6 +3705,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -3706,6 +3729,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         many_to_many_bidirectional:
           type: "array"
           title: "Many to many bidirectional"
@@ -3715,6 +3739,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_bidirectional:
           type: "string"
           format: "uri"
@@ -3752,6 +3777,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3770,6 +3796,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_required:
           type: "string"
           format: "uri"
@@ -3793,6 +3820,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         many_to_many_bidirectional:
           type: "array"
           title: "Many to many bidirectional"
@@ -3802,6 +3830,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_bidirectional:
           type: "string"
           format: "uri"
@@ -3839,6 +3868,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "one_to_one_required"
       - "many_to_one_required"
@@ -3947,6 +3977,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_inverse:
           type:
           - "string"
@@ -3963,6 +3994,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
     entity-bPostFormBody:
       type: "object"
       title: "Entity b"
@@ -3983,6 +4015,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_inverse:
           type: "string"
           format: "uri"
@@ -3997,6 +4030,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
     entity-bPostMultipartFormDataBody:
       type: "object"
       title: "Entity b"
@@ -4017,6 +4051,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
         one_to_one_inverse:
           type: "string"
           format: "uri"
@@ -4031,6 +4066,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
     entity-bPutBody:
       type: "object"
       title: "Entity b"
@@ -4194,6 +4230,7 @@ components:
         mapping:
           https://contentgrid.cloud/problems/input/validation/allowed-values: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
           https://contentgrid.cloud/problems/input/validation/duplicate: "#/components/schemas/problemDetail.input-validation.field.duplicate"
+          https://contentgrid.cloud/problems/input/validation/duplicate-element: "#/components/schemas/problemDetail.input-validation.field.duplicate-element"
           https://contentgrid.cloud/problems/input/validation/missing-relation-target: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
           https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.no-content"
           https://contentgrid.cloud/problems/input/validation/pattern: "#/components/schemas/problemDetail.input-validation.field.pattern"
@@ -4226,6 +4263,17 @@ components:
             format: "uri"
         required:
         - "conflicting_item"
+    problemDetail.input-validation.field.duplicate-element:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Duplicate value in list"
+        description: "A multi-value field contains the same value more than once"
+        properties:
+          duplicate_value:
+            type: "string"
+        required:
+        - "duplicate_value"
     problemDetail.input-validation.field.missing-relation-target:
       allOf:
       - $ref: "#/components/schemas/problemDetail.input-validation.field"
@@ -4522,6 +4570,19 @@ components:
           - "null"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type:
           - "integer"
@@ -4610,6 +4671,19 @@ components:
           type: "string"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -4685,6 +4759,19 @@ components:
           - "null"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type:
           - "integer"
@@ -4773,6 +4860,19 @@ components:
           type: "string"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -4841,6 +4941,19 @@ components:
           type: "string"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -4916,6 +5029,19 @@ components:
           - "null"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type:
           - "integer"
@@ -5006,6 +5132,19 @@ components:
           type: "string"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -5112,6 +5251,19 @@ components:
           - "null"
           title: "String attribute"
           description: "A simple string attribute."
+        string_set_attribute:
+          type: "array"
+          title: "String set attribute"
+          description: "A multi-value string attribute."
+          items:
+            type: "string"
+            enum:
+            - "alpha"
+            - "beta"
+            - "gamma"
+            examples:
+            - "alpha"
+          uniqueItems: true
         integer_attribute:
           type:
           - "integer"
@@ -5204,6 +5356,7 @@ components:
       - "last_modified_at"
       - "last_modified_by"
       - "string_attribute"
+      - "string_set_attribute"
       - "integer_attribute"
       - "decimal_attribute"
       - "boolean_attribute"

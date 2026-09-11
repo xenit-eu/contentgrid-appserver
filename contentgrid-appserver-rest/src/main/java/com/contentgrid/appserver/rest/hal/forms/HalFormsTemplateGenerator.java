@@ -196,7 +196,7 @@ public class HalFormsTemplateGenerator {
                 var item = toHalFormsProperty(name, av.getItems());
                 var options = item.getOptions();
                 if (options == null) {
-                    options = HalFormsOptions.inline();
+                    options = HalFormsOptions.inline().withMinItems(0L);
                 }
                 if (options instanceof AbstractHalFormsOptions<?> halFormsOptions) {
                     // Set max items to unlimited when we have an array
@@ -234,7 +234,10 @@ public class HalFormsTemplateGenerator {
     private Optional<HalFormsProperty> entityToSortProperty(Entity entity) {
         var sortOptions = new ArrayList<SortOption>();
         for (var sortableField : entity.getSortableFields()) {
-            var attribute = application.resolvePropertyPath(entity, sortableField.getPropertyPath());
+            // The model only accepts a sortable field on a simple attribute
+            var attribute = (SimpleAttribute) application.getPropertyPathResolver()
+                    .resolveAttribute(entity.getName(), sortableField.getPropertyPath())
+                    .getAttribute();
             sortableFieldToSortOptions(attribute, sortableField)
                     .forEachOrdered(sortOptions::add);
         }

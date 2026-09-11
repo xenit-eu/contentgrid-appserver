@@ -7,8 +7,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
@@ -86,11 +86,14 @@ public class JOOQThunkExpressionResolver {
         public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
                 throws InvalidThunkExpressionException {
             return switch (functionExpression.getOperator()) {
+                // Equality over a multi-value attribute degrades to a non-matching condition: a policy
+                // on such an attribute needs membership, not equality. Expressing `x in <attribute>`
+                // and `<attribute> contains x` is ACC-3095.
                 case EQUALS -> {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (!sameType(left, right)) {
+                    if (isArray(left) || isArray(right) || !sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
                         yield DSL.falseCondition();
                     }
@@ -104,7 +107,7 @@ public class JOOQThunkExpressionResolver {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (!sameType(left, right)) {
+                    if (isArray(left) || isArray(right) || !sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
                         yield DSL.falseCondition();
                     }
@@ -290,7 +293,7 @@ public class JOOQThunkExpressionResolver {
                             var rightField = JOOQUtils.prefixSearchNormalize(right);
                             yield leftField.startsWith(rightField);
                         }
-                        case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
+                        case SearchComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
                             var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
                             var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
 
@@ -306,6 +309,19 @@ public class JOOQThunkExpressionResolver {
                             var language = locale.getDisplayLanguage(ENGLISH);
 
                             yield generateFTSCondition(leftField, rightField, language);
+                        }
+                        case SearchComparison.ContentGridArraySearch contentGridArraySearch -> {
+                            var left = contentGridArraySearch.getLeftTerm().accept(this, context);
+                            if (!left.getDataType().isArray()) {
+                                logWarning("cg_array_search", left);
+                                yield DSL.falseCondition();
+                            }
+                            // The search values are normalized by the SQL function, not per element
+                            var right = getArray(context,
+                                    contentGridArraySearch.getRightTerm().getValue().stream(), false);
+                            yield DSL.arrayOverlap(
+                                    JOOQUtils.arraySearchNormalize(left),
+                                    JOOQUtils.arraySearchNormalize(right));
                         }
                         default -> throw new InvalidThunkExpressionException(
                                 "Function expression with type %s is not supported.".formatted(
@@ -327,6 +343,10 @@ public class JOOQThunkExpressionResolver {
             if (terms.size() != 2) {
                 throw new InvalidThunkExpressionException("Operation requires 2 parameters.");
             }
+        }
+
+        private static boolean isArray(Field<?> field) {
+            return field.getDataType().isArray();
         }
 
         private static boolean sameType(Field<?> left, Field<?> right) {
@@ -384,10 +404,15 @@ public class JOOQThunkExpressionResolver {
         }
 
         private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
+            return getArray(context, stream, true);
+        }
+
+        private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream,
+                boolean normalizeStrings) {
             var values = stream.map(thunkExpression -> {
                 if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
                     Field<?> field = visit(scalar, context);
-                    if (field.getDataType().isString()) {
+                    if (normalizeStrings && field.getDataType().isString()) {
                         field = JOOQUtils.normalize(field);
                     }
                     return field;
