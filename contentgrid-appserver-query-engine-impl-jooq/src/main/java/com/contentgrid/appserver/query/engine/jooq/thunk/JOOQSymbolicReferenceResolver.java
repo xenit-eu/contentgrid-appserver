@@ -33,13 +33,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import org.jooq.Condition;
 import org.jooq.Field;
+import org.jooq.QueryPart;
 import org.jooq.SelectJoinStep;
+import org.jooq.SQLDialect;
+import org.jooq.VisitListener;
 import org.jooq.impl.DSL;
+import org.jooq.impl.DefaultConfiguration;
+import org.jooq.impl.QOM;
 
 class JOOQSymbolicReferenceResolver {
 
@@ -254,6 +260,26 @@ class JOOQSymbolicReferenceResolver {
     }
 
     private Condition collect(Condition condition) {
+        if (joins.isEmpty()) {
+            return condition;
+        }
+
+        // Conjuncts that only reference the root table (or contain nothing but self-contained subqueries)
+        // must not be hidden from the query planner inside the EXISTS subquery (ETHCG-676). Lift them out
+        // of the EXISTS. All conjuncts that reference joined tables stay together in the same EXISTS, so
+        // that shared relation variables still must match the same row.
+        var conjuncts = new ArrayList<Condition>();
+        flattenConjunction(condition, conjuncts);
+        var rootConjuncts = new ArrayList<Condition>();
+        var joinedConjuncts = new ArrayList<Condition>();
+        for (var conjunct : conjuncts) {
+            if (isRootScoped(conjunct)) {
+                rootConjuncts.add(conjunct);
+            } else {
+                joinedConjuncts.add(conjunct);
+            }
+        }
+
         SelectJoinStep<?> selectBuilder = null;
         Condition where = null;
         for (var join : joins) {
@@ -266,11 +292,52 @@ class JOOQSymbolicReferenceResolver {
             }
         }
 
-        if (selectBuilder == null || where == null) {
-            return condition;
+        // Keep the EXISTS even if no conjunct references a joined table: the joins require the
+        // related rows to exist.
+        var exists = DSL.exists(selectBuilder.where(DSL.and(where, DSL.and(joinedConjuncts))));
+        return rootConjuncts.isEmpty() ? exists : DSL.and(DSL.and(rootConjuncts), exists);
+    }
+
+    private static void flattenConjunction(QueryPart condition, List<Condition> conjuncts) {
+        // Only distribute over conjunctions; OR and NOT have different scoping semantics and remain atomic.
+        if (condition instanceof QOM.And and) {
+            flattenConjunction(and.$arg1(), conjuncts);
+            flattenConjunction(and.$arg2(), conjuncts);
         } else {
-            return DSL.exists(selectBuilder.where(DSL.and(where, condition)));
+            conjuncts.add((Condition) condition);
         }
+    }
+
+    /**
+     * Checks whether the given condition (a single conjunct, treated atomically) only references the root table
+     * at this query level, or self-contained subqueries. Fields inside nested subqueries (EXISTS, IN-select, ...)
+     * are not inspected: those subqueries are already correctly scoped. Conditions without any table reference
+     * (such as constant true/false) are considered <em>not</em> root-scoped to keep them where they are.
+     */
+    private boolean isRootScoped(Condition conjunct) {
+        var referencesRootTable = new AtomicBoolean(false);
+        var referencesSubquery = new AtomicBoolean(false);
+        var referencesJoinedTable = new AtomicBoolean(false);
+        var rootAliasName = DSL.name(rootAlias.getValue());
+        var listener = VisitListener.onVisitStart(context -> {
+            if (context.context().subqueryLevel() > 0) {
+                referencesSubquery.set(true);
+            } else if (context.queryPart() instanceof Field<?> field) {
+                var qualifier = field.getQualifiedName().qualifier();
+                if (qualifier != null && !qualifier.empty()) {
+                    if (rootAliasName.equals(qualifier)) {
+                        referencesRootTable.set(true);
+                    } else {
+                        referencesJoinedTable.set(true);
+                    }
+                }
+            }
+        });
+        // Render the conjunct, so the visit listener can inspect all query parts (including fields embedded
+        // in plain SQL, such as normalize(...) or full-text search conditions).
+        var configuration = new DefaultConfiguration().set(SQLDialect.DEFAULT).deriveAppending(listener);
+        DSL.using(configuration).render(conjunct);
+        return !referencesJoinedTable.get() && (referencesRootTable.get() || referencesSubquery.get());
     }
 
     private static String getPathElementName(@NonNull PathElement elem) throws InvalidThunkExpressionException {
