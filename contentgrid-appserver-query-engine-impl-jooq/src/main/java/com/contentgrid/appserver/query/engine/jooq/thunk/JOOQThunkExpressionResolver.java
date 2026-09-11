@@ -49,8 +49,7 @@ public class JOOQThunkExpressionResolver {
      * @return The resolved {@link Condition} that can be used in the where clause of queries.
      */
     public Condition resolveExpression(ThunkExpression<Boolean> expression, JOOQContext context) {
-        return context.wrapJoins(ctx ->
-                DSL.condition((Field<Boolean>) expression.accept(VISITOR, ctx)));
+        return VISITOR.resolveWithJoins(expression, context);
     }
 
 
@@ -69,6 +68,48 @@ public class JOOQThunkExpressionResolver {
                 DataType::isNumeric, DataType::isUUID, DataType::isTime, DataType::isTimeWithTimeZone,
                 DataType::isTimestamp, DataType::isTimestampWithTimeZone, DataType::isDate, DataType::isInterval
         );
+
+        private Condition resolveWithJoins(ThunkExpression<?> expression, JOOQContext context) {
+            var outerConditions = new ArrayList<Condition>();
+            var noJoinedConditions = DSL.noCondition();
+            var joinedCondition = context.wrapJoins(joinContext -> {
+                var innerConditions = new ArrayList<Condition>();
+                for (var conjunct : conjuncts(expression).toList()) {
+                    // Share the join cache and variable scope, but track table dependencies per conjunct.
+                    var conjunctContext = new JOOQContext(joinContext.symbolicReferenceResolver);
+                    var field = conjunct.accept(this, conjunctContext);
+                    if (!field.getDataType().isBoolean()) {
+                        logWarning(Operator.AND, field);
+                        return DSL.falseCondition();
+                    }
+                    var condition = DSL.condition((Field<Boolean>) field);
+                    if (conjunctContext.referencesJoinedTable) {
+                        innerConditions.add(condition);
+                    } else {
+                        outerConditions.add(condition);
+                    }
+                }
+                return innerConditions.isEmpty() ? noJoinedConditions : DSL.and(innerConditions);
+            });
+            // Root-only conjuncts must not be hidden from the planner inside EXISTS (ETHCG-676).
+            // Keep all joined conjuncts together: shared variables must still match the same row.
+            if (outerConditions.isEmpty()) {
+                return joinedCondition;
+            }
+            // With no joins, wrapJoins returns the original condition unchanged.
+            if (joinedCondition == noJoinedConditions) {
+                return DSL.and(outerConditions);
+            }
+            return DSL.and(DSL.and(outerConditions), joinedCondition);
+        }
+
+        private static Stream<ThunkExpression<?>> conjuncts(ThunkExpression<?> expression) {
+            if (expression instanceof FunctionExpression<?> function && function.getOperator() == Operator.AND) {
+                return function.getTerms().stream().flatMap(JOOQThunkExpressionResolverVisitor::conjuncts);
+            }
+            // Do not distribute AND through OR or NOT: those have different scoping semantics.
+            return Stream.of(expression);
+        }
 
         @Override
         public Param<?> visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
@@ -202,18 +243,7 @@ public class JOOQThunkExpressionResolver {
                     // and `ANY(X OR Y)` can not be expressed (but it is mathematically equivalent to the former).
                     var conditions = new ArrayList<Condition>();
                     for (var expression : functionExpression.getTerms()) {
-                        var condition = context.wrapJoins(newContext -> {
-                            var field = expression.accept(this, newContext);
-
-                            if (!field.getDataType().isBoolean()) {
-                                // Evaluate as false
-                                logWarning(functionExpression.getOperator(), field);
-                                return DSL.falseCondition();
-                            }
-
-                            return DSL.condition((Field<Boolean>) field);
-                        });
-                        conditions.add(condition);
+                        conditions.add(resolveWithJoins(expression, context));
                     }
                     yield DSL.or(conditions);
                 }
@@ -411,6 +441,9 @@ public class JOOQThunkExpressionResolver {
         @NonNull
         private final JOOQSymbolicReferenceResolver symbolicReferenceResolver;
 
+        // Direct references in this join scope; nested OR scopes wrap their own joins in EXISTS.
+        private boolean referencesJoinedTable;
+
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
             this(new JOOQSymbolicReferenceResolver(application, entity.getName()));
         }
@@ -424,7 +457,11 @@ public class JOOQThunkExpressionResolver {
         }
 
         private Field<?> resolvePath(List<PathElement> path) {
-            return symbolicReferenceResolver.resolvePath(path);
+            var field = symbolicReferenceResolver.resolvePath(path);
+            if (!field.getQualifiedName().qualifier().equals(DSL.name(getRootAlias().getValue()))) {
+                referencesJoinedTable = true;
+            }
+            return field;
         }
 
         private Condition wrapJoins(Function<JOOQContext, Condition> conditionFunction) {
