@@ -51,6 +51,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
@@ -103,9 +104,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Select;
+import org.jooq.VisitListener;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2595,6 +2600,75 @@ class JOOQQueryEngineTest {
         assertEquals(1, orders.getEntities().size());
         orders = queryEngine.findAll(APPLICATION, ORDER, Comparison.notEqual(SymbolicReference.parse("entity.order"), Scalar.of("TEST")), null, new OffsetData(40, 0));
         assertEquals(0, orders.getEntities().size());
+    }
+
+    @Test
+    void countKeepsRootEntityFiltersOutsideRelationSubquery() {
+        var capturedQuery = new AtomicReference<Select<?>>();
+        var engine = new JOOQQueryEngine(
+                application -> dslContext,
+                (context, query) -> {
+                    capturedQuery.set(query);
+                    return ItemCount.exact(0);
+                }
+        );
+        var expression = LogicalOperation.conjunction(
+                Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                        Scalar.of("invoice_1")
+                ),
+                Comparison.areEqual(
+                        SymbolicReference.of(
+                                ENTITY_VAR,
+                                SymbolicReference.path("products"),
+                                SymbolicReference.pathVar("product"),
+                                SymbolicReference.path("code")
+                        ),
+                        Scalar.of("code_1")
+                )
+        );
+
+        engine.count(APPLICATION, INVOICE, expression);
+
+        // ETHCG-676: inspect predicate scope, not SQL spelling or conjunct order.
+        var query = capturedQuery.get();
+        assertThat(rootColumnSubqueryLevels(query, INVOICE_NUMBER.getColumn()))
+                .as("The invoice number predicate must be present only in the outer WHERE: %s", query)
+                .isNotEmpty()
+                .containsOnly(0);
+    }
+
+    private List<Integer> rootColumnSubqueryLevels(Select<?> query, ColumnName column) {
+        var rootColumn = query.$from().getFirst().getQualifiedName().append(column.getValue());
+        var levels = new ArrayList<Integer>();
+        var listener = VisitListener.onVisitStart(context -> {
+            if (context.queryPart() instanceof Field<?> field && field.getQualifiedName().equals(rootColumn)) {
+                levels.add(context.context().subqueryLevel());
+            }
+        });
+        // Visit only WHERE, so projecting the column cannot satisfy the assertion.
+        DSL.using(dslContext.configuration().deriveAppending(listener)).render(query.$where());
+        return levels;
+    }
+
+    @ParameterizedTest
+    @CsvSource({"i0, true", "i0, false", "document, true", "document, false"})
+    void rootColumnScopeInspectionIgnoresAliasesAndConjunctOrder(String alias, boolean relationFirst) {
+        var root = DSL.table(DSL.name("invoice")).as(DSL.name(alias));
+        var number = DSL.field(DSL.name(alias, "number"), String.class).eq("invoice_1");
+        var related = DSL.selectOne().from(DSL.table(DSL.name("invoice__products")))
+                .where(DSL.field(DSL.name("invoice__products", "invoice_id"), UUID.class)
+                        .eq(DSL.field(DSL.name(alias, "id"), UUID.class)));
+        var exists = DSL.exists(related);
+        var valid = DSL.selectFrom(root).where(relationFirst ? exists.and(number) : number.and(exists));
+        assertThat(rootColumnSubqueryLevels(valid, INVOICE_NUMBER.getColumn())).containsOnly(0);
+
+        var invalid = DSL.selectFrom(root).where(DSL.exists(related.$where(related.$where().and(number))));
+        assertThat(rootColumnSubqueryLevels(invalid, INVOICE_NUMBER.getColumn())).containsOnly(1);
+
+        // A missing predicate must not be confused with a correctly placed predicate.
+        var missing = DSL.selectFrom(root).where(exists);
+        assertThat(rootColumnSubqueryLevels(missing, INVOICE_NUMBER.getColumn())).isEmpty();
     }
 
     static Stream<Arguments> countExpressions() {
