@@ -20,6 +20,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQSymbolicReferenceResolver.ScopedConditions;
 import com.contentgrid.thunx.predicates.model.SymbolicReference;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import java.util.ArrayList;
@@ -227,6 +228,55 @@ class JOOQSymbolicReferenceResolverTest {
 
         // wrapJoins() again should not add joins from previous wrapJoins()
         assertEquals(condition, resolver.wrapJoins(unused -> condition));
+    }
+
+    @ParameterizedTest
+    @MethodSource("relations")
+    void wrapConjunctsKeepsRootConditionsOutsideJoins(Entity entity, List<Relation> relations,
+            UnaryOperator<Condition> operator) {
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, entity.getName());
+        var rootCondition = DSL.field(DSL.name(resolver.getRootAlias().getValue(), "id"), UUID.class).isNotNull();
+        var joinedCondition = DSL.falseCondition();
+        var path = new ArrayList<PathElement>();
+        relations.forEach(relation -> pushRelation(path, relation));
+        path.add(SymbolicReference.path("id"));
+
+        var result = resolver.wrapConjuncts(scope -> {
+            scope.resolvePath(path);
+            return new ScopedConditions(List.of(rootCondition), List.of(joinedCondition));
+        });
+        assertEquals(DSL.and(rootCondition, operator.apply(joinedCondition)), result);
+        // Neither joins nor conditions may leak into a subsequent scope.
+        assertEquals(rootCondition, resolver.wrapConjuncts(scope ->
+                new ScopedConditions(List.of(rootCondition), List.of())));
+    }
+
+    @ParameterizedTest
+    @MethodSource("relations")
+    void wrapConjunctsKeepsJoinsEvenWithoutJoinedConditions(Entity entity, List<Relation> relations,
+            UnaryOperator<Condition> operator) {
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, entity.getName());
+        var rootCondition = DSL.field(DSL.name(resolver.getRootAlias().getValue(), "id"), UUID.class).isNotNull();
+        var path = new ArrayList<PathElement>();
+        relations.forEach(relation -> pushRelation(path, relation));
+        path.add(SymbolicReference.path("id"));
+
+        var result = resolver.wrapConjuncts(scope -> {
+            scope.resolvePath(path);
+            return new ScopedConditions(List.of(rootCondition), List.of());
+        });
+        var expected = relations.isEmpty() ? rootCondition : DSL.and(rootCondition, operator.apply(DSL.and(List.of())));
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void wrapConjunctsWithoutJoinsDoesNotAddRedundantConditions() {
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        assertEquals(DSL.and(List.of()), resolver.wrapConjuncts(scope -> new ScopedConditions(List.of(), List.of())));
+        assertEquals(DSL.falseCondition(), resolver.wrapConjuncts(scope ->
+                new ScopedConditions(List.of(DSL.falseCondition()), List.of())));
+        assertEquals(DSL.falseCondition(), resolver.wrapConjuncts(scope ->
+                new ScopedConditions(List.of(), List.of(DSL.falseCondition()))));
     }
 
     @Test

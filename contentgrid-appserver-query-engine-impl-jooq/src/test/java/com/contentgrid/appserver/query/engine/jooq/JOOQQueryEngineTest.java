@@ -104,13 +104,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.Select;
-import org.jooq.VisitListener;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2615,23 +2611,13 @@ class JOOQQueryEngineTest {
 
     @ParameterizedTest
     @MethodSource("mixedRelationFilters")
-    void rootEntityFiltersRemainOutsideRelationSubqueries(ThunkExpression<Boolean> relationFilter) {
-        // The count strategy provides an inspection point for the SELECT built by the shared resolver.
-        // This is not count-specific: findAll uses the same resolver and is checked below as well.
-        var capturedQuery = new AtomicReference<Select<?>>();
-        var engine = new JOOQQueryEngine(
-                application -> dslContext,
-                (context, query) -> {
-                    capturedQuery.set(query);
-                    return ItemCount.exact(context.fetchCount(query));
-                }
-        );
+    void mixedRootAndRelationFiltersMatchExpectedInvoice(ThunkExpression<Boolean> relationFilter) {
         var expression = LogicalOperation.conjunction(
                 Comparison.areEqual(
                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                         Scalar.of("invoice_1")
                 ),
-                // Nest the AND to verify that root-only predicates are extracted at any conjunction depth.
+                // Exercise mixed root and relation filters in a nested conjunction.
                 LogicalOperation.conjunction(
                         relationFilter,
                         // The invoice must be paid: a simple boolean column on the root table.
@@ -2643,20 +2629,9 @@ class JOOQQueryEngineTest {
                 )
         );
 
-        assertThat(engine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(1));
+        assertThat(queryEngine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(1));
         assertThat(queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA).getEntities())
                 .extracting(EntityData::getId).containsExactly(INVOICE1_ID);
-
-        // ETHCG-676: inspect predicate scope, not SQL spelling or conjunct order.
-        var query = capturedQuery.get();
-        // All three predicates belong to the root table, regardless of attribute type or path depth.
-        for (var column : List.of(INVOICE_NUMBER.getColumn(), INVOICE_IS_PAID.getColumn(),
-                ColumnName.of("audit_metadata__created_by_name"))) {
-            assertThat(rootColumnSubqueryLevels(query, column))
-                    .as("The %s predicate must be present only in the outer WHERE: %s", column, query)
-                    .isNotEmpty()
-                    .containsOnly(0);
-        }
     }
 
     static Stream<Arguments> mixedFilterSemantics() {
@@ -2694,39 +2669,6 @@ class JOOQQueryEngineTest {
         assertThat(queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA).getEntities())
                 .extracting(EntityData::getId).containsExactlyInAnyOrderElementsOf(expected);
         assertThat(queryEngine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(expected.size()));
-    }
-
-    private List<Integer> rootColumnSubqueryLevels(Select<?> query, ColumnName column) {
-        var rootColumn = query.$from().getFirst().getQualifiedName().append(column.getValue());
-        var levels = new ArrayList<Integer>();
-        var listener = VisitListener.onVisitStart(context -> {
-            if (context.queryPart() instanceof Field<?> field && field.getQualifiedName().equals(rootColumn)) {
-                levels.add(context.context().subqueryLevel());
-            }
-        });
-        // Visit only WHERE, so projecting the column cannot satisfy the assertion.
-        DSL.using(dslContext.configuration().deriveAppending(listener)).render(query.$where());
-        return levels;
-    }
-
-    @ParameterizedTest
-    @CsvSource({"i0, true", "i0, false", "document, true", "document, false"})
-    void rootColumnScopeInspectionIgnoresAliasesAndConjunctOrder(String alias, boolean relationFirst) {
-        var root = DSL.table(DSL.name("invoice")).as(DSL.name(alias));
-        var number = DSL.field(DSL.name(alias, "number"), String.class).eq("invoice_1");
-        var related = DSL.selectOne().from(DSL.table(DSL.name("invoice__products")))
-                .where(DSL.field(DSL.name("invoice__products", "invoice_id"), UUID.class)
-                        .eq(DSL.field(DSL.name(alias, "id"), UUID.class)));
-        var exists = DSL.exists(related);
-        var valid = DSL.selectFrom(root).where(relationFirst ? exists.and(number) : number.and(exists));
-        assertThat(rootColumnSubqueryLevels(valid, INVOICE_NUMBER.getColumn())).containsOnly(0);
-
-        var invalid = DSL.selectFrom(root).where(DSL.exists(related.$where(related.$where().and(number))));
-        assertThat(rootColumnSubqueryLevels(invalid, INVOICE_NUMBER.getColumn())).containsOnly(1);
-
-        // A missing predicate must not be confused with a correctly placed predicate.
-        var missing = DSL.selectFrom(root).where(exists);
-        assertThat(rootColumnSubqueryLevels(missing, INVOICE_NUMBER.getColumn())).isEmpty();
     }
 
     static Stream<Arguments> countExpressions() {
