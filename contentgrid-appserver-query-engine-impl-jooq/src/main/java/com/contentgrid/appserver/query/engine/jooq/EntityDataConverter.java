@@ -26,6 +26,9 @@ import org.jooq.Field;
 @UtilityClass
 public class EntityDataConverter {
 
+    private static final String ATTRIBUTE_TYPE_MISMATCH = "Expected attribute '%s' to be of type %s, got %s";
+    private static final String VALUE_TYPE_MISMATCH = "Expected value to be of type %s, got %s";
+
     public List<JOOQPair<Object>> convert(EntityData data, Entity entity) {
         var result = new ArrayList<JOOQPair<Object>>();
         for (var attributeData : data.getAttributes()) {
@@ -46,7 +49,7 @@ public class EntityDataConverter {
                 if (data instanceof SimpleAttributeData<?> simpleAttributeData) {
                     yield convert(simpleAttributeData, simpleAttribute);
                 } else {
-                    throw new IllegalInputDataException("Expected attribute '%s' to be of type %s, got %s"
+                    throw new IllegalInputDataException(ATTRIBUTE_TYPE_MISMATCH
                             .formatted(data.getName(), SimpleAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
                 }
             }
@@ -54,7 +57,7 @@ public class EntityDataConverter {
                 if (data instanceof SimpleAttributeData<?> simpleAttributeData) {
                     yield convert(simpleAttributeData, multivalueAttribute);
                 } else {
-                    throw new IllegalInputDataException("Expected attribute '%s' to be of type %s, got %s"
+                    throw new IllegalInputDataException(ATTRIBUTE_TYPE_MISMATCH
                             .formatted(data.getName(), SimpleAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
                 }
             }
@@ -62,7 +65,7 @@ public class EntityDataConverter {
                 if (data instanceof CompositeAttributeData compositeAttributeData) {
                     yield convert(compositeAttributeData, compositeAttribute);
                 } else {
-                    throw new IllegalInputDataException("Expected attribute '%s' to be of type %s, got %s"
+                    throw new IllegalInputDataException(ATTRIBUTE_TYPE_MISMATCH
                             .formatted(data.getName(), CompositeAttributeData.class.getSimpleName(), data.getClass().getSimpleName()));
                 }
             }
@@ -82,7 +85,7 @@ public class EntityDataConverter {
             return List.of(new JOOQPair<>(field, null));
         }
         if (!(value instanceof List<?> elements)) {
-            throw new IllegalInputDataException("Expected value to be of type %s, got %s"
+            throw new IllegalInputDataException(VALUE_TYPE_MISMATCH
                     .formatted(List.class.getSimpleName(), value.getClass().getSimpleName()));
         }
         elements.forEach(element -> checkType(attribute.getItemType(), element));
@@ -111,7 +114,7 @@ public class EntityDataConverter {
         switch (type) {
             case TEXT -> {
                 if (!(value instanceof String)) {
-                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
+                    throw new IllegalInputDataException(VALUE_TYPE_MISMATCH
                             .formatted(String.class.getSimpleName(), value.getClass().getSimpleName()));
                 }
             }
@@ -142,7 +145,7 @@ public class EntityDataConverter {
             }
             case UUID -> {
                 if (!(value instanceof UUID)) {
-                    throw new IllegalInputDataException("Expected value to be of type %s, got %s"
+                    throw new IllegalInputDataException(VALUE_TYPE_MISMATCH
                             .formatted(UUID.class.getSimpleName(), value.getClass().getSimpleName()));
                 }
             }
