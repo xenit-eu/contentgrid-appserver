@@ -81,9 +81,6 @@ public class EntityDataConverter {
     private List<JOOQPair<Object>> convert(SimpleAttributeData<?> data, MultivalueAttribute attribute) {
         var field = (Field<Object>) JOOQUtils.resolveField(attribute);
         var value = data.getValue();
-        if (value == null) {
-            return List.of(new JOOQPair<>(field, null));
-        }
         if (!(value instanceof List<?> elements)) {
             throw new IllegalInputDataException(VALUE_TYPE_MISMATCH
                     .formatted(List.class.getSimpleName(), value.getClass().getSimpleName()));
