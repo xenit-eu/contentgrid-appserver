@@ -85,11 +85,32 @@ class JOOQSymbolicReferenceResolver {
         return currentAlias;
     }
 
+    /** Conjuncts with and without dependencies on joined tables in this resolution scope. */
+    record ScopedConditions(List<Condition> rootConditions, List<Condition> joinedConditions) {
+
+        ScopedConditions {
+            rootConditions = List.copyOf(rootConditions);
+            joinedConditions = List.copyOf(joinedConditions);
+        }
+    }
+
     public Condition wrapJoins(Function<JOOQSymbolicReferenceResolver, Condition> conditionFunction) {
+        return wrapConjuncts(resolver -> new ScopedConditions(List.of(), List.of(conditionFunction.apply(resolver))));
+    }
+
+    public Condition wrapConjuncts(Function<JOOQSymbolicReferenceResolver, ScopedConditions> conditionFunction) {
         var resolver = newResolver();
-        var condition = conditionFunction.apply(resolver);
+        var scoped = conditionFunction.apply(resolver);
         this.merge(resolver);
-        return resolver.collect(condition);
+
+        // Root-only conjuncts must not be hidden from the planner inside EXISTS (ETHCG-676).
+        // All joined conjuncts share a single EXISTS, so shared variables still match the same row.
+        var conditions = new ArrayList<>(scoped.rootConditions());
+        if (!resolver.joins.isEmpty() || !scoped.joinedConditions().isEmpty()) {
+            // Even with no joined predicates, any resolved joins still require related rows to exist.
+            conditions.add(resolver.collect(DSL.and(scoped.joinedConditions())));
+        }
+        return DSL.and(conditions);
     }
 
     private void merge(JOOQSymbolicReferenceResolver resolver) {

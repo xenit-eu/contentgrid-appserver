@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressi
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQSymbolicReferenceResolver.ScopedConditions;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.ListValue;
@@ -23,6 +24,7 @@ import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -33,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.Condition;
 import org.jooq.DataType;
 import org.jooq.Field;
-import org.jooq.Param;
 import org.jooq.impl.DSL;
 import org.jooq.impl.QOM.Array;
 
@@ -49,15 +50,33 @@ public class JOOQThunkExpressionResolver {
      * @return The resolved {@link Condition} that can be used in the where clause of queries.
      */
     public Condition resolveExpression(ThunkExpression<Boolean> expression, JOOQContext context) {
-        return context.wrapJoins(ctx ->
-                DSL.condition((Field<Boolean>) expression.accept(VISITOR, ctx)));
+        return VISITOR.resolveWithJoins(expression, context);
     }
 
 
+    /**
+     * A field and its dependency on joined tables in the current scope. Keep the dependency even when
+     * an operator reduces the field to a constant: resolving a relation still requires a related row.
+     * Mapping and combining fields propagate this information without mutating the resolution context.
+     */
+    private record ResolvedExpression(Field<?> field, boolean requiresJoins) {
+
+        private static ResolvedExpression rootScoped(Field<?> field) {
+            return new ResolvedExpression(field, false);
+        }
+
+        private ResolvedExpression map(Function<Field<?>, Field<?>> operator) {
+            return new ResolvedExpression(operator.apply(field), requiresJoins);
+        }
+
+        private ResolvedExpression combine(ResolvedExpression other, BiFunction<Field<?>, Field<?>, Field<?>> operator) {
+            return new ResolvedExpression(operator.apply(field, other.field), requiresJoins || other.requiresJoins);
+        }
+    }
+
     @Slf4j
-    @RequiredArgsConstructor
     private static class JOOQThunkExpressionResolverVisitor implements
-            ThunkExpressionVisitor<Field<?>, JOOQContext> {
+            ThunkExpressionVisitor<ResolvedExpression, JOOQContext> {
 
         private static final List<Predicate<DataType<?>>> DATATYPES = List.of(
                 DataType::isString, DataType::isNumeric, DataType::isBoolean, DataType::isUUID,
@@ -70,94 +89,104 @@ public class JOOQThunkExpressionResolver {
                 DataType::isTimestamp, DataType::isTimestampWithTimeZone, DataType::isDate, DataType::isInterval
         );
 
+        private Condition resolveWithJoins(ThunkExpression<?> expression, JOOQContext context) {
+            return context.wrapConjuncts(joinContext -> {
+                var outerConditions = new ArrayList<Condition>();
+                var innerConditions = new ArrayList<Condition>();
+                for (var conjunct : conjuncts(expression).toList()) {
+                    // Conjuncts share the join cache and variable scope, but carry their own dependencies.
+                    var resolved = conjunct.accept(this, joinContext);
+                    var field = resolved.field();
+                    if (!field.getDataType().isBoolean()) {
+                        logWarning(Operator.AND, field);
+                        return new ScopedConditions(List.of(), List.of(DSL.falseCondition()));
+                    }
+                    var condition = DSL.condition((Field<Boolean>) field);
+                    if (resolved.requiresJoins()) {
+                        innerConditions.add(condition);
+                    } else {
+                        outerConditions.add(condition);
+                    }
+                }
+                return new ScopedConditions(outerConditions, innerConditions);
+            });
+        }
+
+        private static Stream<ThunkExpression<?>> conjuncts(ThunkExpression<?> expression) {
+            if (expression instanceof FunctionExpression<?> function && function.getOperator() == Operator.AND) {
+                return function.getTerms().stream().flatMap(JOOQThunkExpressionResolverVisitor::conjuncts);
+            }
+            // Do not distribute AND through OR or NOT: those have different scoping semantics.
+            return Stream.of(expression);
+        }
+
         @Override
-        public Param<?> visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
+        public ResolvedExpression visit(Scalar<?> scalar, JOOQContext context) throws InvalidThunkExpressionException {
             if (scalar.getValue() == null) {
                 // Special case, the value is null
                 throw new InvalidThunkExpressionException("null values are not supported");
             } else if (Number.class.equals(scalar.getResultType())) {
                 // Number is not supported
-                return DSL.value(scalar.getValue(), scalar.getValue().getClass());
+                return ResolvedExpression.rootScoped(DSL.value(scalar.getValue(), scalar.getValue().getClass()));
             }
-            return DSL.value(scalar.getValue(), scalar.getResultType());
+            return ResolvedExpression.rootScoped(DSL.value(scalar.getValue(), scalar.getResultType()));
         }
 
         @Override
-        public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
+        public ResolvedExpression visit(FunctionExpression<?> functionExpression, JOOQContext context)
                 throws InvalidThunkExpressionException {
             return switch (functionExpression.getOperator()) {
-                case EQUALS -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                case EQUALS -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (!sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
                     if (left.getDataType().isString()) {
                         left = JOOQUtils.normalize(left);
                         right = JOOQUtils.normalize(right);
                     }
-                    yield ((Field<Object>) left).equal((Field<Object>) right);
-                }
-                case NOT_EQUAL_TO -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                    return ((Field<Object>) left).equal((Field<Object>) right);
+                });
+                case NOT_EQUAL_TO -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (!sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
                     if (left.getDataType().isString()) {
                         left = JOOQUtils.normalize(left);
                         right = JOOQUtils.normalize(right);
                     }
-                    yield ((Field<Object>) left).notEqual((Field<Object>) right);
-                }
-                case GREATER_THAN -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                    return ((Field<Object>) left).notEqual((Field<Object>) right);
+                });
+                case GREATER_THAN -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (!sortableType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
-                    yield ((Field<Object>) left).greaterThan((Field<Object>) right);
-                }
-                case GREATER_THAN_OR_EQUAL_TO -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                    return ((Field<Object>) left).greaterThan((Field<Object>) right);
+                });
+                case GREATER_THAN_OR_EQUAL_TO -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (!sortableType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
-                    yield ((Field<Object>) left).greaterOrEqual((Field<Object>) right);
-                }
-                case LESS_THAN -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                    return ((Field<Object>) left).greaterOrEqual((Field<Object>) right);
+                });
+                case LESS_THAN -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (!sortableType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
-                    yield ((Field<Object>) left).lessThan((Field<Object>) right);
-                }
-                case LESS_THEN_OR_EQUAL_TO -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                    return ((Field<Object>) left).lessThan((Field<Object>) right);
+                });
+                case LESS_THEN_OR_EQUAL_TO -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (!sortableType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
-                    yield ((Field<Object>) left).lessOrEqual((Field<Object>) right);
-                }
-                case IN -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
+                    return ((Field<Object>) left).lessOrEqual((Field<Object>) right);
+                });
+                case IN -> resolveBinary(functionExpression, context, (left, right) -> {
                     if (right instanceof Array<?> array) {
                         if (left.getDataType().isString()) {
                             left = JOOQUtils.normalize(left);
@@ -169,30 +198,33 @@ public class JOOQThunkExpressionResolver {
                                 .filter(field -> sameType(leftFinal, field))
                                 .toArray();
 
-                        yield ((Field<Object>) left).eq(DSL.any(DSL.array(elements)));
+                        return ((Field<Object>) left).eq(DSL.any(DSL.array(elements)));
                     } else {
                         // Non-array -> always false
                         logWarning(functionExpression.getOperator(), left, right);
-                        yield DSL.falseCondition();
+                        return DSL.falseCondition();
                     }
-                }
+                });
                 case AND -> {
                     // AND is expressed in OPA as different expressions within the same rule body.
                     // Variables are local to the rule body, which means that they can be reused in different terms.
                     // For to-many relations: this means both `ANY(X) AND ANY(Y)` and `ANY(X AND Y)` can be expressed,
                     // where the latter interpretation is obtained by reusing variables.
                     var conditions = new ArrayList<Condition>();
+                    var requiresJoins = false;
                     for (var expression : functionExpression.getTerms()) {
-                        var field = expression.accept(this, context);
+                        var resolved = expression.accept(this, context);
+                        var field = resolved.field();
+                        requiresJoins |= resolved.requiresJoins();
 
                         if (!field.getDataType().isBoolean()) {
                             logWarning(functionExpression.getOperator(), field);
-                            yield DSL.falseCondition();
+                            yield new ResolvedExpression(DSL.falseCondition(), requiresJoins);
                         }
 
                         conditions.add(DSL.condition((Field<Boolean>) field));
                     }
-                    yield DSL.and(conditions);
+                    yield new ResolvedExpression(DSL.and(conditions), requiresJoins);
                 }
                 case OR -> {
                     // OR is expressed in OPA as different rules, variables are local to the rule body.
@@ -202,20 +234,10 @@ public class JOOQThunkExpressionResolver {
                     // and `ANY(X OR Y)` can not be expressed (but it is mathematically equivalent to the former).
                     var conditions = new ArrayList<Condition>();
                     for (var expression : functionExpression.getTerms()) {
-                        var condition = context.wrapJoins(newContext -> {
-                            var field = expression.accept(this, newContext);
-
-                            if (!field.getDataType().isBoolean()) {
-                                // Evaluate as false
-                                logWarning(functionExpression.getOperator(), field);
-                                return DSL.falseCondition();
-                            }
-
-                            return DSL.condition((Field<Boolean>) field);
-                        });
-                        conditions.add(condition);
+                        conditions.add(resolveWithJoins(expression, context));
                     }
-                    yield DSL.or(conditions);
+                    // Each branch has already wrapped its own joins, so none escape into this scope.
+                    yield ResolvedExpression.rootScoped(DSL.or(conditions));
                 }
                 case NOT -> {
                     // NOT in OPA can only occur in simple expressions after partial evaluation
@@ -223,97 +245,86 @@ public class JOOQThunkExpressionResolver {
                     // For to-many relations: this means only `ANY(NOT(X))` is valid,
                     // and `NOT(ANY(X))` can not be expressed.
                     assertOneTerm(functionExpression.getTerms());
-                    var field = functionExpression.getTerms().getFirst().accept(this, context);
-                    if (field instanceof Condition condition) {
-                        yield DSL.not(condition);
-                    } else if (field.getDataType().isBoolean()) {
-                        yield DSL.condition(DSL.not((Field<Boolean>) field));
-                    }
-                    logWarning(functionExpression.getOperator(), field);
-                    yield DSL.falseCondition();
-                }
-                case PLUS -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
-                        yield left.add(right);
-                    }
-                    throw new InvalidThunkExpressionException("Terms should be numeric");
-                }
-                case MULTIPLY -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
-                        yield left.times((Field<? extends Number>) right);
-                    }
-                    throw new InvalidThunkExpressionException("Terms should be numeric");
-                }
-                case MINUS -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
-                        yield left.minus(right);
-                    }
-                    throw new InvalidThunkExpressionException("Terms should be numeric");
-                }
-                case DIVIDE -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
-                        yield left.divide((Field<? extends Number>) right);
-                    }
-                    throw new InvalidThunkExpressionException("Terms should be numeric");
-                }
-                case MODULUS -> {
-                    assertTwoTerms(functionExpression.getTerms());
-                    var left = functionExpression.getTerms().getFirst().accept(this, context);
-                    var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
-                        yield left.modulo((Field<? extends Number>) right);
-                    }
-                    throw new InvalidThunkExpressionException("Terms should be numeric");
-                }
-                case CUSTOM -> {
-                    switch (functionExpression) {
-                        case ContentGridPrefixSearch contentGridPrefixSearch -> {
-                            var left = contentGridPrefixSearch.getLeftTerm().accept(this, context);
-                            var right = contentGridPrefixSearch.getRightTerm().accept(this, context);
-                            if (!left.getDataType().isString() || !right.getDataType().isString()) {
-                                logWarning("cg_prefix_search", left, right);
-                                yield DSL.falseCondition();
-                            }
-                            var leftField = JOOQUtils.prefixSearchNormalize(left);
-                            var rightField = JOOQUtils.prefixSearchNormalize(right);
-                            yield leftField.startsWith(rightField);
+                    var resolved = functionExpression.getTerms().getFirst().accept(this, context);
+                    yield resolved.map(field -> {
+                        if (field instanceof Condition condition) {
+                            return DSL.not(condition);
+                        } else if (field.getDataType().isBoolean()) {
+                            return DSL.condition(DSL.not((Field<Boolean>) field));
                         }
-                        case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch -> {
-                            var left = contentGridFullTextSearch.getLeftTerm().accept(this, context);
-                            var right = contentGridFullTextSearch.getRightTerm().accept(this, context);
-
-                            if (!left.getDataType().isString() || !right.getDataType().isString()) {
-                                logWarning("cg_fulltext_search", left, right);
-                                yield DSL.falseCondition();
-                            }
-
-                            var leftField = JOOQUtils.prefixSearchNormalize(left);
-                            var rightField = JOOQUtils.prefixSearchNormalize(right);
-
-                            var locale = contentGridFullTextSearch.getLocale();
-                            var language = locale.getDisplayLanguage(ENGLISH);
-
-                            yield generateFTSCondition(leftField, rightField, language);
-                        }
-                        default -> throw new InvalidThunkExpressionException(
-                                "Function expression with type %s is not supported.".formatted(
-                                        functionExpression.getClass().getSimpleName()));
-                    }
-
+                        logWarning(functionExpression.getOperator(), field);
+                        return DSL.falseCondition();
+                    });
                 }
+                case PLUS -> resolveBinary(functionExpression, context, (left, right) -> {
+                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                        return left.add(right);
+                    }
+                    throw new InvalidThunkExpressionException("Terms should be numeric");
+                });
+                case MULTIPLY -> resolveBinary(functionExpression, context, (left, right) -> {
+                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                        return left.times((Field<? extends Number>) right);
+                    }
+                    throw new InvalidThunkExpressionException("Terms should be numeric");
+                });
+                case MINUS -> resolveBinary(functionExpression, context, (left, right) -> {
+                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                        return left.minus(right);
+                    }
+                    throw new InvalidThunkExpressionException("Terms should be numeric");
+                });
+                case DIVIDE -> resolveBinary(functionExpression, context, (left, right) -> {
+                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                        return left.divide((Field<? extends Number>) right);
+                    }
+                    throw new InvalidThunkExpressionException("Terms should be numeric");
+                });
+                case MODULUS -> resolveBinary(functionExpression, context, (left, right) -> {
+                    if (left.getDataType().isNumeric() && right.getDataType().isNumeric()) {
+                        return left.modulo((Field<? extends Number>) right);
+                    }
+                    throw new InvalidThunkExpressionException("Terms should be numeric");
+                });
+                case CUSTOM -> switch (functionExpression) {
+                    case ContentGridPrefixSearch contentGridPrefixSearch ->
+                            resolveBinary(contentGridPrefixSearch, context, (left, right) -> {
+                                if (!left.getDataType().isString() || !right.getDataType().isString()) {
+                                    logWarning("cg_prefix_search", left, right);
+                                    return DSL.falseCondition();
+                                }
+                                var leftField = JOOQUtils.prefixSearchNormalize(left);
+                                var rightField = JOOQUtils.prefixSearchNormalize(right);
+                                return leftField.startsWith(rightField);
+                            });
+                    case StringComparison.ContentGridFullTextSearch contentGridFullTextSearch ->
+                            resolveBinary(contentGridFullTextSearch, context, (left, right) -> {
+                                if (!left.getDataType().isString() || !right.getDataType().isString()) {
+                                    logWarning("cg_fulltext_search", left, right);
+                                    return DSL.falseCondition();
+                                }
+
+                                var leftField = JOOQUtils.prefixSearchNormalize(left);
+                                var rightField = JOOQUtils.prefixSearchNormalize(right);
+
+                                var locale = contentGridFullTextSearch.getLocale();
+                                var language = locale.getDisplayLanguage(ENGLISH);
+
+                                return generateFTSCondition(leftField, rightField, language);
+                            });
+                    default -> throw new InvalidThunkExpressionException(
+                            "Function expression with type %s is not supported.".formatted(
+                                    functionExpression.getClass().getSimpleName()));
+                };
             };
+        }
+
+        private ResolvedExpression resolveBinary(FunctionExpression<?> expression, JOOQContext context,
+                BiFunction<Field<?>, Field<?>, Field<?>> operator) {
+            assertTwoTerms(expression.getTerms());
+            var left = expression.getTerms().getFirst().accept(this, context);
+            var right = expression.getTerms().getLast().accept(this, context);
+            return left.combine(right, operator);
         }
 
         private static void assertOneTerm(List<? extends ThunkExpression<?>> terms) throws InvalidThunkExpressionException {
@@ -361,7 +372,7 @@ public class JOOQThunkExpressionResolver {
         }
 
         @Override
-        public Field<?> visit(SymbolicReference symbolicReference, JOOQContext context)
+        public ResolvedExpression visit(SymbolicReference symbolicReference, JOOQContext context)
                 throws InvalidThunkExpressionException {
             // Assumption: some other component will translate a SearchFilter to a ThunkExpression where
             // the SymbolicReference will use AttributeName and RelationName in path elements and that
@@ -374,19 +385,19 @@ public class JOOQThunkExpressionResolver {
         }
 
         @Override
-        public Condition visit(Variable variable, JOOQContext context) throws InvalidThunkExpressionException {
+        public ResolvedExpression visit(Variable variable, JOOQContext context) throws InvalidThunkExpressionException {
             throw new InvalidThunkExpressionException("Variable %s is not supported".formatted(variable.getName()));
         }
 
         @Override
-        public Field<?> visit(SetValue setValue, JOOQContext context) {
-            return getArray(context, setValue.getValue().stream());
+        public ResolvedExpression visit(SetValue setValue, JOOQContext context) {
+            return ResolvedExpression.rootScoped(getArray(context, setValue.getValue().stream()));
         }
 
         private Field<Object[]> getArray(JOOQContext context, Stream<? extends ThunkExpression<?>> stream) {
             var values = stream.map(thunkExpression -> {
                 if (Objects.requireNonNull(thunkExpression) instanceof Scalar<?> scalar) {
-                    Field<?> field = visit(scalar, context);
+                    Field<?> field = visit(scalar, context).field();
                     if (field.getDataType().isString()) {
                         field = JOOQUtils.normalize(field);
                     }
@@ -399,8 +410,8 @@ public class JOOQThunkExpressionResolver {
         }
 
         @Override
-        public Field<?> visit(ListValue listValue, JOOQContext context) {
-            return getArray(context, listValue.getValue().stream());
+        public ResolvedExpression visit(ListValue listValue, JOOQContext context) {
+            return ResolvedExpression.rootScoped(getArray(context, listValue.getValue().stream()));
         }
 
     }
@@ -423,12 +434,14 @@ public class JOOQThunkExpressionResolver {
             return symbolicReferenceResolver.getRootAlias();
         }
 
-        private Field<?> resolvePath(List<PathElement> path) {
-            return symbolicReferenceResolver.resolvePath(path);
+        private ResolvedExpression resolvePath(List<PathElement> path) {
+            var field = symbolicReferenceResolver.resolvePath(path);
+            return new ResolvedExpression(field,
+                    !field.getQualifiedName().qualifier().equals(DSL.name(getRootAlias().getValue())));
         }
 
-        private Condition wrapJoins(Function<JOOQContext, Condition> conditionFunction) {
-            return symbolicReferenceResolver.wrapJoins(resolver ->
+        private Condition wrapConjuncts(Function<JOOQContext, ScopedConditions> conditionFunction) {
+            return symbolicReferenceResolver.wrapConjuncts(resolver ->
                     conditionFunction.apply(new JOOQContext(resolver))
             );
         }

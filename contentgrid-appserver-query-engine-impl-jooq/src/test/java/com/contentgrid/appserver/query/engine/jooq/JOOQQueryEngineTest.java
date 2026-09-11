@@ -51,6 +51,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
@@ -2595,6 +2596,79 @@ class JOOQQueryEngineTest {
         assertEquals(1, orders.getEntities().size());
         orders = queryEngine.findAll(APPLICATION, ORDER, Comparison.notEqual(SymbolicReference.parse("entity.order"), Scalar.of("TEST")), null, new OffsetData(40, 0));
         assertEquals(0, orders.getEntities().size());
+    }
+
+    private static SymbolicReference productCode(String variable) {
+        return SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"),
+                SymbolicReference.pathVar(variable), SymbolicReference.path("code"));
+    }
+
+    static Stream<ThunkExpression<Boolean>> mixedRelationFilters() {
+        var customer = Comparison.areEqual(SymbolicReference.parse("entity.customer.name"), Scalar.of("alice"));
+        var product = Comparison.areEqual(productCode("product"), Scalar.of("code_1"));
+        return Stream.of(customer, product, LogicalOperation.conjunction(customer, product));
+    }
+
+    @ParameterizedTest
+    @MethodSource("mixedRelationFilters")
+    void mixedRootAndRelationFiltersMatchExpectedInvoice(ThunkExpression<Boolean> relationFilter) {
+        var expression = LogicalOperation.conjunction(
+                Comparison.areEqual(
+                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                        Scalar.of("invoice_1")
+                ),
+                // Exercise mixed root and relation filters in a nested conjunction.
+                LogicalOperation.conjunction(
+                        relationFilter,
+                        // The invoice must be paid: a simple boolean column on the root table.
+                        Comparison.areEqual(SymbolicReference.parse("entity.is_paid"), Scalar.of(true)),
+                        // The recorded creator username must be "bob". Despite the dotted path, these
+                        // are composite attributes, not relations: the value is stored in the invoice's
+                        // audit_metadata__created_by_name column and must also stay outside EXISTS.
+                        Comparison.areEqual(SymbolicReference.parse("entity.audit_metadata.created_by.name"), Scalar.of("bob"))
+                )
+        );
+
+        assertThat(queryEngine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(1));
+        assertThat(queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA).getEntities())
+                .extracting(EntityData::getId).containsExactly(INVOICE1_ID);
+    }
+
+    static Stream<Arguments> mixedFilterSemantics() {
+        var number = Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_1"));
+        var product1 = Comparison.areEqual(productCode("p"), Scalar.of("code_1"));
+        var product2SameVariable = Comparison.areEqual(productCode("p"), Scalar.of("code_2"));
+        var product2OtherVariable = Comparison.areEqual(productCode("q"), Scalar.of("code_2"));
+        return Stream.of(
+                Arguments.argumentSet("shared variable must match the same related row",
+                        LogicalOperation.conjunction(number, product1, product2SameVariable), List.of()),
+                Arguments.argumentSet("shared variable across nested conjunctions",
+                        LogicalOperation.conjunction(product1, LogicalOperation.conjunction(number, product2SameVariable)), List.of()),
+                Arguments.argumentSet("distinct variables may match different related rows",
+                        LogicalOperation.conjunction(number, product1, product2OtherVariable), List.of(INVOICE1_ID)),
+                Arguments.argumentSet("root branch of OR does not require a relation",
+                        LogicalOperation.disjunction(
+                                Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_2")),
+                                LogicalOperation.conjunction(number, product1)), List.of(INVOICE1_ID, INVOICE2_ID)),
+                Arguments.argumentSet("NOT over a conjunction must remain intact",
+                        LogicalOperation.negation(LogicalOperation.conjunction(number, product1)), List.of(INVOICE1_ID)),
+                Arguments.argumentSet("NOT on relation still requires a related row",
+                        LogicalOperation.conjunction(
+                                Comparison.notEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_3")),
+                                LogicalOperation.negation(product1)), List.of(INVOICE1_ID)),
+                Arguments.argumentSet("comparison between root and related attributes stays inside EXISTS",
+                        LogicalOperation.conjunction(number,
+                                Comparison.areEqual(SymbolicReference.parse("entity.number"),
+                                        productCode("p"))), List.of())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("mixedFilterSemantics")
+    void mixedFiltersPreserveRelationAndLogicalSemantics(ThunkExpression<Boolean> expression, List<EntityId> expected) {
+        assertThat(queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA).getEntities())
+                .extracting(EntityData::getId).containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(queryEngine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(expected.size()));
     }
 
     static Stream<Arguments> countExpressions() {

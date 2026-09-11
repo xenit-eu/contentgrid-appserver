@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.query.engine.jooq.thunk;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -62,6 +63,7 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -69,12 +71,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Select;
+import org.jooq.VisitListener;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -561,6 +567,152 @@ class JOOQThunkExpressionResolverTest {
                 .values(ADDRESS1_ID)
                 .values(ADDRESS2_ID)
                 .execute();
+    }
+
+    private static SymbolicReference productAttribute(String attribute) {
+        return SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"),
+                SymbolicReference.pathVar("product"), SymbolicReference.path(attribute));
+    }
+
+    static Stream<ThunkExpression<Boolean>> mixedRelationFilters() {
+        var customer = Comparison.areEqual(SymbolicReference.parse("entity.customer.name"), Scalar.of("alice"));
+        var product = Comparison.areEqual(productAttribute("code"), Scalar.of("code_1"));
+        return Stream.of(customer, product, LogicalOperation.conjunction(customer, product));
+    }
+
+    @ParameterizedTest
+    @MethodSource("mixedRelationFilters")
+    void rootEntityFiltersRemainOutsideRelationSubqueries(ThunkExpression<Boolean> relationFilter) {
+        var expression = LogicalOperation.conjunction(
+                Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_1")),
+                // Root-only predicates must be extracted at any conjunction depth.
+                LogicalOperation.conjunction(
+                        relationFilter,
+                        Comparison.areEqual(SymbolicReference.parse("entity.is_paid"), Scalar.of(true)),
+                        // Composite attribute paths still refer to columns on the root table.
+                        Comparison.areEqual(SymbolicReference.parse("entity.audit_metadata.created_by.name"), Scalar.of("bob"))
+                )
+        );
+        var query = resolveInvoiceQuery(expression);
+        // ETHCG-676: inspect predicate scope, not SQL spelling or conjunct order.
+        for (var column : List.of(INVOICE_NUMBER.getColumn(), INVOICE_IS_PAID.getColumn(),
+                ColumnName.of("audit_metadata__created_by_name"))) {
+            assertThat(rootColumnSubqueryLevels(query, column))
+                    .as("The %s predicate must be present only in the outer WHERE: %s", column, query)
+                    .isNotEmpty()
+                    .containsOnly(0);
+        }
+    }
+
+    static Stream<Arguments> wrappedRootFilters() {
+        var number = SymbolicReference.parse("entity.number");
+        var amount = SymbolicReference.parse("entity.amount");
+        return Stream.of(
+                Arguments.argumentSet("prefix search", StringComparison.contentGridPrefixSearchMatch(number, Scalar.of("invoice")),
+                        INVOICE_NUMBER.getColumn()),
+                Arguments.argumentSet("full-text search", StringComparison.contentGridFullTextSearchMatch(number, Scalar.of("invoice"), Locale.ENGLISH),
+                        INVOICE_NUMBER.getColumn()),
+                Arguments.argumentSet("list membership", Comparison.in(number, new ListValue(List.of(Scalar.of("invoice_1")))),
+                        INVOICE_NUMBER.getColumn()),
+                Arguments.argumentSet("set membership", Comparison.in(number, new SetValue(Set.of(Scalar.of("invoice_1")))),
+                        INVOICE_NUMBER.getColumn()),
+                Arguments.argumentSet("arithmetic", Comparison.areEqual(NumericFunction.plus(amount, Scalar.of(1)), Scalar.of(11)),
+                        INVOICE_AMOUNT.getColumn()),
+                Arguments.argumentSet("negation", LogicalOperation.negation(Comparison.areEqual(number, Scalar.of("invoice_2"))),
+                        INVOICE_NUMBER.getColumn()),
+                Arguments.argumentSet("disjunction", LogicalOperation.disjunction(
+                        Comparison.areEqual(number, Scalar.of("invoice_1")), Comparison.areEqual(number, Scalar.of("invoice_2"))),
+                        INVOICE_NUMBER.getColumn())
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("wrappedRootFilters")
+    void operatorsPreserveRootScope(ThunkExpression<Boolean> rootFilter, ColumnName column) {
+        // Put the relation first to ensure its dependency cannot leak into the following root predicate.
+        var query = resolveInvoiceQuery(LogicalOperation.conjunction(
+                Comparison.areEqual(productAttribute("code"), Scalar.of("code_1")), rootFilter));
+        assertThat(rootColumnSubqueryLevels(query, column)).isNotEmpty().containsOnly(0);
+    }
+
+    static Stream<ThunkExpression<Boolean>> mixedOperandFilters() {
+        var amount = SymbolicReference.parse("entity.amount");
+        var cost = NumericFunction.plus(productAttribute("cost"), Scalar.of(1));
+        return Stream.of(Comparison.areEqual(amount, cost), Comparison.areEqual(cost, amount));
+    }
+
+    @ParameterizedTest
+    @MethodSource("mixedOperandFilters")
+    void operatorsPropagateJoinedScopeFromEitherOperand(ThunkExpression<Boolean> mixedFilter) {
+        var query = resolveInvoiceQuery(LogicalOperation.conjunction(
+                Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_1")), mixedFilter));
+        assertThat(rootColumnSubqueryLevels(query, INVOICE_NUMBER.getColumn())).isNotEmpty().containsOnly(0);
+        assertThat(rootColumnSubqueryLevels(query, INVOICE_AMOUNT.getColumn())).isNotEmpty().containsOnly(1);
+        // Also execute the query to detect any related aliases that escaped their EXISTS scope.
+        assertEquals(0, dslContext.fetchCount(query));
+    }
+
+    @Test
+    void disjunctionDoesNotLeakItsJoinedScopeIntoAnEnclosingConjunction() {
+        var query = resolveInvoiceQuery(LogicalOperation.conjunction(
+                Comparison.areEqual(productAttribute("code"), Scalar.of("code_1")),
+                LogicalOperation.disjunction(
+                        Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_1")),
+                        Comparison.areEqual(SymbolicReference.parse("entity.customer.name"), Scalar.of("bob")))
+        ));
+        assertThat(rootColumnSubqueryLevels(query, INVOICE_NUMBER.getColumn())).isNotEmpty().containsOnly(0);
+        assertEquals(2, dslContext.fetchCount(query));
+    }
+
+    @Test
+    void negatedTypeMismatchStillRequiresRelatedRows() {
+        // The incompatible comparison reduces to FALSE, and NOT turns it into TRUE. Its dependency
+        // must nevertheless survive: invoice_3 has no products and must not match.
+        var query = resolveInvoiceQuery(LogicalOperation.conjunction(
+                Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_3")),
+                LogicalOperation.negation(Comparison.areEqual(productAttribute("code"), Scalar.of(123)))
+        ));
+        assertThat(rootColumnSubqueryLevels(query, INVOICE_NUMBER.getColumn())).isNotEmpty().containsOnly(0);
+        assertEquals(0, dslContext.fetchCount(query));
+    }
+
+    private Select<?> resolveInvoiceQuery(ThunkExpression<Boolean> expression) {
+        var context = new JOOQContext(APPLICATION, INVOICE);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        return dslContext.selectFrom(table).where(RESOLVER.resolveExpression(expression, context));
+    }
+
+    private List<Integer> rootColumnSubqueryLevels(Select<?> query, ColumnName column) {
+        var rootColumn = query.$from().getFirst().getQualifiedName().append(column.getValue());
+        var levels = new ArrayList<Integer>();
+        var listener = VisitListener.onVisitStart(context -> {
+            if (context.queryPart() instanceof Field<?> field && field.getQualifiedName().equals(rootColumn)) {
+                levels.add(context.context().subqueryLevel());
+            }
+        });
+        // Visit only WHERE, so projecting the column cannot satisfy the assertion.
+        DSL.using(dslContext.configuration().deriveAppending(listener)).render(query.$where());
+        return levels;
+    }
+
+    @ParameterizedTest
+    @CsvSource({"i0, true", "i0, false", "document, true", "document, false"})
+    void rootColumnScopeInspectionIgnoresAliasesAndConjunctOrder(String alias, boolean relationFirst) {
+        var root = DSL.table(DSL.name("invoice")).as(DSL.name(alias));
+        var number = DSL.field(DSL.name(alias, "number"), String.class).eq("invoice_1");
+        var related = DSL.selectOne().from(DSL.table(DSL.name("invoice__products")))
+                .where(DSL.field(DSL.name("invoice__products", "invoice_id"), UUID.class)
+                        .eq(DSL.field(DSL.name(alias, "id"), UUID.class)));
+        var exists = DSL.exists(related);
+        var valid = DSL.selectFrom(root).where(relationFirst ? exists.and(number) : number.and(exists));
+        assertThat(rootColumnSubqueryLevels(valid, INVOICE_NUMBER.getColumn())).containsOnly(0);
+
+        var invalid = DSL.selectFrom(root).where(DSL.exists(related.$where(related.$where().and(number))));
+        assertThat(rootColumnSubqueryLevels(invalid, INVOICE_NUMBER.getColumn())).containsOnly(1);
+
+        // A missing predicate must not be confused with a correctly placed predicate.
+        var missing = DSL.selectFrom(root).where(exists);
+        assertThat(rootColumnSubqueryLevels(missing, INVOICE_NUMBER.getColumn())).isEmpty();
     }
 
     @Test
