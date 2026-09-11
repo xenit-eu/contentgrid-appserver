@@ -423,9 +423,10 @@ class DatamodelApiImplTest {
                             EntityRequest.forEntity(DOCUMENT.getName(), EntityId.of(UUID.randomUUID())),
                             AuthorizationContext.allowAll())
                     .orElseThrow();
-            assertThat(result.getData().get("tags")).isEqualTo(new ListDataEntry(List.of(
-                    new StringDataEntry("urgent"), new StringDataEntry("archived"))));
-            assertThat(result.getData().get("labels")).isEqualTo(new ListDataEntry(List.of()));
+            assertThat(result.getData())
+                    .containsEntry("tags", new ListDataEntry(List.of(
+                            new StringDataEntry("urgent"), new StringDataEntry("archived"))))
+                    .containsEntry("labels", new ListDataEntry(List.of()));
         }
     }
 

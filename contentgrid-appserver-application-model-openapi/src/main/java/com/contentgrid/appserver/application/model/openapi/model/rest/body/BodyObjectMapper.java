@@ -22,6 +22,7 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import java.util.Collections;
@@ -76,23 +77,12 @@ public final class BodyObjectMapper {
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
                             attribute
                     );
-                    // A search filter carries one value at a time, also on a multi-value attribute.
-                    // The title and description describe the attribute, so they move to the item.
-                    yield value instanceof ArrayBodyValue arrayBodyValue
-                            ? arrayBodyValue.getItems()
-                                    .withTitle(arrayBodyValue.getTitle())
-                                    .withDescription(arrayBodyValue.getDescription())
-                            : value;
+                    yield searchValue(value);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + searchFilter);
             };
 
-            if (
-                    bodyValue instanceof SimpleBodyValue simpleBodyValue &&
-                            !(searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
-                            (attributeSearchFilter.getOperation() == Operation.EXACT
-                                    || attributeSearchFilter.getOperation() == Operation.CONTAINS))
-            ) {
+            if (bodyValue instanceof SimpleBodyValue simpleBodyValue && !matchesExactValue(searchFilter)) {
                 // Constraints don't apply to search filters; except to the 'exact' and 'contains'
                 // filters, where the searched value must match a value exactly
                 bodyValue = simpleBodyValue.toBuilder().clearConstraints().build();
@@ -118,6 +108,22 @@ public final class BodyObjectMapper {
         }
         return new ObjectBodyValue(Collections.unmodifiableMap(fields));
 
+    }
+
+    private static BodyValue searchValue(BodyValue value) {
+        // A search filter carries one value at a time, also on a multi-value attribute.
+        // The title and description describe the attribute, so they move to the item.
+        return value instanceof ArrayBodyValue arrayBodyValue
+                ? arrayBodyValue.getItems()
+                        .withTitle(arrayBodyValue.getTitle())
+                        .withDescription(arrayBodyValue.getDescription())
+                : value;
+    }
+
+    private static boolean matchesExactValue(SearchFilter searchFilter) {
+        return searchFilter instanceof AttributeSearchFilter attributeSearchFilter
+                && (attributeSearchFilter.getOperation() == Operation.EXACT
+                || attributeSearchFilter.getOperation() == Operation.CONTAINS);
     }
 
     /**
