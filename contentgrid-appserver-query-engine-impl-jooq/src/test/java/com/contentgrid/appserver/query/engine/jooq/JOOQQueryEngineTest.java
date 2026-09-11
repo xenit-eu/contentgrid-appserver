@@ -2750,6 +2750,89 @@ class JOOQQueryEngineTest {
                 new RelationSubquery(2, Set.of(PRODUCT.getTable())));
     }
 
+    @ParameterizedTest
+    @CsvSource({"true, 1, 0", "false, 2, 1"})
+    void toManyVariablesDetermineSubquerySharing(boolean sameVariable, int expectedSubqueries, int expectedCount) {
+        var expression = LogicalOperation.conjunction(
+                Comparison.areEqual(productCode("p"), Scalar.of("code_1")),
+                Comparison.areEqual(productCode(sameVariable ? "p" : "q"), Scalar.of("code_2"))
+        );
+        var capturedQuery = new AtomicReference<Select<?>>();
+        var engine = new JOOQQueryEngine(application -> dslContext, (context, query) -> {
+            capturedQuery.set(query);
+            return ItemCount.exact(context.fetchCount(query));
+        });
+
+        // The same product cannot have both codes; distinct variables may match our two linked products.
+        assertThat(engine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(expectedCount));
+        assertThat(relationSubqueries(capturedQuery.get(), Set.of(PRODUCT.getTable())))
+                .hasSize(expectedSubqueries);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void nestedRelationFiltersPreserveSharedAncestors(boolean sameInvoice) {
+        // Alice now has two invoices: invoice_1 has products but no previous invoice;
+        // invoice_2 has a previous invoice but no products. Neither matches both conditions.
+        dslContext.update(DSL.table(DSL.name("invoice")))
+                .set(DSL.field(DSL.name("customer"), UUID.class), ALICE_ID.getValue())
+                .where(DSL.field(DSL.name("id"), UUID.class).eq(INVOICE2_ID.getValue()))
+                .execute();
+        var expression = LogicalOperation.conjunction(
+                Comparison.areEqual(SymbolicReference.of(ENTITY_VAR,
+                                SymbolicReference.path("invoices"), SymbolicReference.pathVar("i"),
+                                SymbolicReference.path("products"), SymbolicReference.pathVar("p"),
+                                SymbolicReference.path("code")), Scalar.of("code_1")),
+                Comparison.areEqual(SymbolicReference.of(ENTITY_VAR,
+                                SymbolicReference.path("invoices"), SymbolicReference.pathVar(sameInvoice ? "i" : "j"),
+                                SymbolicReference.path("previous_invoice"), SymbolicReference.path("number")),
+                        Scalar.of("invoice_1"))
+        );
+        // Although the predicates reference different leaf aliases, sharing their invoice ancestor
+        // means they must stay together. Only distinct invoice variables may match different rows.
+        var expected = sameInvoice ? List.<EntityId>of() : List.of(ALICE_ID);
+        assertThat(queryEngine.findAll(APPLICATION, PERSON, expression, null, DEFAULT_PAGE_DATA).getEntities())
+                .extracting(EntityData::getId).containsExactlyElementsOf(expected);
+        assertThat(queryEngine.count(APPLICATION, PERSON, expression)).isEqualTo(ItemCount.exact(expected.size()));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void comparisonBetweenRelationsKeepsTheirPredicatesTogether(boolean comparisonFirst) {
+        dslContext.update(DSL.table(DSL.name("product")))
+                .set(DSL.field(DSL.name("description"), String.class), "alice")
+                .where(DSL.field(DSL.name("id"), UUID.class).eq(PRODUCT1_ID.getValue()))
+                .execute();
+        var customerName = SymbolicReference.parse("entity.customer.name");
+        var productDescription = SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"),
+                SymbolicReference.pathVar("p"), SymbolicReference.path("description"));
+        var comparison = Comparison.areEqual(customerName, productDescription);
+        var customer = Comparison.areEqual(customerName, Scalar.of("alice"));
+        var product = Comparison.areEqual(productCode("p"), Scalar.of("code_1"));
+        var expression = comparisonFirst
+                ? LogicalOperation.conjunction(comparison, customer, product)
+                : LogicalOperation.conjunction(customer, product, comparison);
+        var capturedQuery = new AtomicReference<Select<?>>();
+        var engine = new JOOQQueryEngine(application -> dslContext, (context, query) -> {
+            capturedQuery.set(query);
+            return ItemCount.exact(context.fetchCount(query));
+        });
+
+        // The cross-relation comparison connects both groups, even if encountered after the
+        // individual filters. Splitting it would leave aliases out of scope or lose constraints.
+        assertThat(engine.count(APPLICATION, INVOICE, expression)).isEqualTo(ItemCount.exact(1));
+        var targets = Set.of(PERSON.getTable(), PRODUCT.getTable());
+        assertThat(relationSubqueries(capturedQuery.get(), targets))
+                .containsExactly(new RelationSubquery(1, targets));
+        assertThat(queryEngine.findAll(APPLICATION, INVOICE, expression, null, DEFAULT_PAGE_DATA).getEntities())
+                .extracting(EntityData::getId).containsExactly(INVOICE1_ID);
+
+        // A second product must not satisfy a constraint on the shared variable p.
+        var conflicting = LogicalOperation.conjunction(expression,
+                Comparison.areEqual(productCode("p"), Scalar.of("code_2")));
+        assertThat(queryEngine.count(APPLICATION, INVOICE, conflicting)).isEqualTo(ItemCount.exact(0));
+    }
+
     static Stream<Arguments> mixedFilterSemantics() {
         var number = Comparison.areEqual(SymbolicReference.parse("entity.number"), Scalar.of("invoice_1"));
         var product1 = Comparison.areEqual(productCode("p"), Scalar.of("code_1"));

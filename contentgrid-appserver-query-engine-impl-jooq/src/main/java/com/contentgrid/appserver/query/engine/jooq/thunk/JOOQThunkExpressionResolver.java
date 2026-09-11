@@ -10,6 +10,7 @@ import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressi
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison.ContentGridPrefixSearch;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
+import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQSymbolicReferenceResolver.ResolvedConjunct;
 import com.contentgrid.thunx.predicates.model.FunctionExpression;
 import com.contentgrid.thunx.predicates.model.FunctionExpression.Operator;
 import com.contentgrid.thunx.predicates.model.ListValue;
@@ -21,8 +22,10 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -70,37 +73,21 @@ public class JOOQThunkExpressionResolver {
         );
 
         private Condition resolveWithJoins(ThunkExpression<?> expression, JOOQContext context) {
-            var outerConditions = new ArrayList<Condition>();
-            var noJoinedConditions = DSL.noCondition();
-            var joinedCondition = context.wrapJoins(joinContext -> {
-                var innerConditions = new ArrayList<Condition>();
+            return context.wrapConjuncts(joinContext -> {
+                var conditions = new ArrayList<ResolvedConjunct>();
                 for (var conjunct : conjuncts(expression).toList()) {
                     // Share the join cache and variable scope, but track table dependencies per conjunct.
                     var conjunctContext = new JOOQContext(joinContext.symbolicReferenceResolver);
                     var field = conjunct.accept(this, conjunctContext);
                     if (!field.getDataType().isBoolean()) {
                         logWarning(Operator.AND, field);
-                        return DSL.falseCondition();
+                        return List.of(new ResolvedConjunct(DSL.falseCondition(), Set.of()));
                     }
-                    var condition = DSL.condition((Field<Boolean>) field);
-                    if (conjunctContext.referencesJoinedTable) {
-                        innerConditions.add(condition);
-                    } else {
-                        outerConditions.add(condition);
-                    }
+                    conditions.add(new ResolvedConjunct(DSL.condition((Field<Boolean>) field),
+                            conjunctContext.referencedAliases));
                 }
-                return innerConditions.isEmpty() ? noJoinedConditions : DSL.and(innerConditions);
+                return conditions;
             });
-            // Root-only conjuncts must not be hidden from the planner inside EXISTS (ETHCG-676).
-            // Keep all joined conjuncts together: shared variables must still match the same row.
-            if (outerConditions.isEmpty()) {
-                return joinedCondition;
-            }
-            // With no joins, wrapJoins returns the original condition unchanged.
-            if (joinedCondition == noJoinedConditions) {
-                return DSL.and(outerConditions);
-            }
-            return DSL.and(DSL.and(outerConditions), joinedCondition);
         }
 
         private static Stream<ThunkExpression<?>> conjuncts(ThunkExpression<?> expression) {
@@ -442,7 +429,7 @@ public class JOOQThunkExpressionResolver {
         private final JOOQSymbolicReferenceResolver symbolicReferenceResolver;
 
         // Direct references in this join scope; nested OR scopes wrap their own joins in EXISTS.
-        private boolean referencesJoinedTable;
+        private final Set<TableName> referencedAliases = new HashSet<>();
 
         public JOOQContext(@NonNull Application application, @NonNull Entity entity) {
             this(new JOOQSymbolicReferenceResolver(application, entity.getName()));
@@ -459,13 +446,13 @@ public class JOOQThunkExpressionResolver {
         private Field<?> resolvePath(List<PathElement> path) {
             var field = symbolicReferenceResolver.resolvePath(path);
             if (!field.getQualifiedName().qualifier().equals(DSL.name(getRootAlias().getValue()))) {
-                referencesJoinedTable = true;
+                referencedAliases.add(TableName.of(field.getQualifiedName().qualifier().last()));
             }
             return field;
         }
 
-        private Condition wrapJoins(Function<JOOQContext, Condition> conditionFunction) {
-            return symbolicReferenceResolver.wrapJoins(resolver ->
+        private Condition wrapConjuncts(Function<JOOQContext, List<ResolvedConjunct>> conditionFunction) {
+            return symbolicReferenceResolver.wrapConjuncts(resolver ->
                     conditionFunction.apply(new JOOQContext(resolver))
             );
         }

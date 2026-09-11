@@ -29,6 +29,8 @@ import com.contentgrid.thunx.predicates.model.SymbolicReference.PathElement;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.StringPathElement;
 import com.contentgrid.thunx.predicates.model.SymbolicReference.VariablePathElement;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -89,7 +91,73 @@ class JOOQSymbolicReferenceResolver {
         var resolver = newResolver();
         var condition = conditionFunction.apply(resolver);
         this.merge(resolver);
-        return resolver.collect(condition);
+        return collect(condition, resolver.joins);
+    }
+
+    record ResolvedConjunct(Condition condition, Set<TableName> referencedAliases) {
+        ResolvedConjunct {
+            referencedAliases = Set.copyOf(referencedAliases);
+        }
+    }
+
+    public Condition wrapConjuncts(Function<JOOQSymbolicReferenceResolver, List<ResolvedConjunct>> conditionFunction) {
+        var resolver = newResolver();
+        var conjuncts = conditionFunction.apply(resolver);
+        this.merge(resolver);
+        return resolver.collectConjuncts(conjuncts);
+    }
+
+    private Condition collectConjuncts(List<ResolvedConjunct> conjuncts) {
+        var joinsByAlias = new HashMap<TableName, Join>();
+        for (var join : joins) {
+            joinsByAlias.put(join.getTargetAlias(), join);
+        }
+
+        var outerConditions = new ArrayList<Condition>();
+        var groups = new ArrayList<ConjunctGroup>();
+        for (var conjunct : conjuncts) {
+            if (conjunct.referencedAliases().isEmpty()) {
+                // Root-only filters (and independently scoped OR expressions) stay outside EXISTS.
+                outerConditions.add(conjunct.condition());
+                continue;
+            }
+
+            var group = new ConjunctGroup();
+            group.conditions.add(conjunct.condition());
+            for (var alias : conjunct.referencedAliases()) {
+                // Include ancestors: predicates on invoice.products.$p and
+                // invoice.products.$p.invoices.$i must agree on the same product row.
+                // Do not include the root alias, which is shared by otherwise independent relations.
+                while (!alias.equals(rootAlias) && group.aliases.add(alias)) {
+                    alias = joinsByAlias.get(alias).getSourceAlias();
+                }
+            }
+
+            // Existing groups are disjoint. A predicate comparing two relations can connect
+            // multiple groups, so merge every intersecting group, not just the first one.
+            var iterator = groups.iterator();
+            while (iterator.hasNext()) {
+                var existing = iterator.next();
+                if (!Collections.disjoint(group.aliases, existing.aliases)) {
+                    group.aliases.addAll(existing.aliases);
+                    group.conditions.addAll(existing.conditions);
+                    iterator.remove();
+                }
+            }
+            groups.add(group);
+        }
+
+        for (var group : groups) {
+            // Preserve the original parent-before-child join order within each independent EXISTS.
+            var groupJoins = joins.stream().filter(join -> group.aliases.contains(join.getTargetAlias())).toList();
+            outerConditions.add(collect(DSL.and(group.conditions), groupJoins));
+        }
+        return DSL.and(outerConditions);
+    }
+
+    private static class ConjunctGroup {
+        private final Set<TableName> aliases = new HashSet<>();
+        private final List<Condition> conditions = new ArrayList<>();
     }
 
     private void merge(JOOQSymbolicReferenceResolver resolver) {
@@ -253,7 +321,7 @@ class JOOQSymbolicReferenceResolver {
         }
     }
 
-    private Condition collect(Condition condition) {
+    private static Condition collect(Condition condition, List<Join> joins) {
         SelectJoinStep<?> selectBuilder = null;
         Condition where = null;
         for (var join : joins) {
