@@ -28,6 +28,7 @@ import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundEx
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -690,7 +691,7 @@ class ApplicationTest {
                                 .flag(CreatedDateFlag.INSTANCE)
                                 .build())
                         .build())
-                .link(EntityLink.builder()
+                .link(PlainEntityLink.builder()
                         .identity(new UnnamedLink(URI.create("https://example.com/rels/lookup")))
                         .owner(PropertyPath.toAttribute(AttributeName.of(owner)))
                         .fallbackTemplate(new SimpleUriTemplateDefinition(
