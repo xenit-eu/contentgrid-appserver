@@ -2,6 +2,9 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.links.EntityLink.EntityLinkBuilder;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
@@ -574,13 +577,21 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                     new UriTemplateDefinition.SimpleUriTemplateDefinition(parameterizedUriTemplate);
         }
 
-        return new EntityLink(
-                identity,
-                entityLink.getProfile(),
-                entityLink.getOwner() != null?fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class):null,
-                entityLink.getStorage() != null?fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class):null,
-                templateDefinition
-        );
+        EntityLinkBuilder<EntityLink, ?> builder;
+        if (entityLink.getStorage() != null) {
+            builder = (EntityLinkBuilder<EntityLink, ?>) StoredEntityLink.builder()
+                    .storage(fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class))
+                    .pathSegment(PathSegmentName.of(entityLink.getPathSegment()));
+        } else {
+            builder = (EntityLinkBuilder<EntityLink, ?>) PlainEntityLink.builder();
+        }
+
+        return builder
+                .identity(identity)
+                .profile(entityLink.getProfile())
+                .owner(entityLink.getOwner() != null?fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class):null)
+                .fallbackTemplate(templateDefinition)
+                .build();
     }
 
 
@@ -827,9 +838,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         entityLink.getOwner()
                 .map(this::toJsonPropertyPath)
                 .ifPresent(jsonEntityLink::setOwner);
-        entityLink.getStorage()
-                .map(this::toJsonPropertyPath)
-                .ifPresent(jsonEntityLink::setStorage);
+
+        switch (entityLink) {
+            case PlainEntityLink plainEntityLink -> {
+                // nothing additional to do
+            }
+            case StoredEntityLink storedEntityLink -> {
+                jsonEntityLink.setStorage(
+                        toJsonPropertyPath(storedEntityLink.getStorage())
+                );
+                jsonEntityLink.setPathSegment(storedEntityLink.getPathSegment().getValue());
+            }
+        }
 
         switch (entityLink.getFallbackTemplate().orElse(null)) {
             case SimpleUriTemplateDefinition simple -> jsonEntityLink.setFallbackTemplate(new com.contentgrid.appserver.application.model.json.model.EntityLink.UriTemplateDefinition(null, null, simple.getTemplate().toTemplate()));

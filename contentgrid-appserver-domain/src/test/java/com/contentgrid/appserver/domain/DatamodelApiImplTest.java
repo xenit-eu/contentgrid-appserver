@@ -18,7 +18,7 @@ import com.contentgrid.appserver.application.model.attributes.MultivalueAttribut
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
@@ -1961,7 +1961,7 @@ class DatamodelApiImplTest {
                 .build();
 
         // Uses all entity substitution variables and the owner value of an attribute
-        private static final EntityLink CATEGORY_LINK = EntityLink.builder()
+        private static final PlainEntityLink CATEGORY_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/category"), "category"))
                 .profile(URI.create("https://links.example/profile/category"))
                 .owner(new SimpleAttributePath(DOCUMENT_CATEGORY.getName()))
@@ -1970,41 +1970,41 @@ class DatamodelApiImplTest {
                 .build();
 
         // Uses only the entity link, without an owner
-        private static final EntityLink PREVIEW_LINK = EntityLink.builder()
+        private static final PlainEntityLink PREVIEW_LINK = PlainEntityLink.builder()
                 .identity(new UnnamedLink(URI.create("https://links.example/rel/preview")))
                 .fallbackTemplate(template("https://preview.example/render?src=%{entity.link}"))
                 .build();
 
         // Uses the owner link of a content attribute
-        private static final EntityLink ATTACHMENT_SCAN_LINK = EntityLink.builder()
+        private static final PlainEntityLink ATTACHMENT_SCAN_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/scan"), "attachment"))
                 .owner(new SimpleAttributePath(DOCUMENT_ATTACHMENT.getName()))
                 .fallbackTemplate(template("https://scanner.example/scan?content=%{owner.link}"))
                 .build();
 
         // Uses the owner link and name of a relation
-        private static final EntityLink AUTHOR_LINK = EntityLink.builder()
+        private static final PlainEntityLink AUTHOR_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/author-info"), "author"))
                 .owner(new SimpleRelationPath(RelationName.of("author")))
                 .fallbackTemplate(template("https://people.example/info?me=%{owner.link}&relation=%{owner.name}"))
                 .build();
 
         // References an automation system and base path name that are registered in the configuration
-        private static final EntityLink AUTOMATION_LINK = EntityLink.builder()
+        private static final PlainEntityLink AUTOMATION_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "automation"))
                 .fallbackTemplate(automationTemplate("my-automation", "api",
                         "/documents/%{entity.id}?app=%{application.id}"))
                 .build();
 
         // References an automation system that is not registered in the configuration
-        private static final EntityLink UNKNOWN_AUTOMATION_LINK = EntityLink.builder()
+        private static final PlainEntityLink UNKNOWN_AUTOMATION_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "unknown-automation"))
                 .fallbackTemplate(automationTemplate("unknown-automation", "api",
                         "/documents/%{entity.id}"))
                 .build();
 
         // References a registered automation system, but with a base path name that is not registered
-        private static final EntityLink UNKNOWN_BASE_PATH_LINK = EntityLink.builder()
+        private static final PlainEntityLink UNKNOWN_BASE_PATH_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/automation"), "unknown-base-path"))
                 .fallbackTemplate(automationTemplate("my-automation", "unknown",
                         "/documents/%{entity.id}"))
