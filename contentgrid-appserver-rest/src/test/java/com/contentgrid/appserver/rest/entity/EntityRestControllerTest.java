@@ -30,6 +30,9 @@ import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
+import com.contentgrid.appserver.security.authority.GatewayAuthClaimNames;
+import com.contentgrid.appserver.security.authority.GatewayJwtAuthenticationDetailsConverter;
+import org.springframework.security.oauth2.core.oidc.StandardClaimNames;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
@@ -1613,6 +1616,60 @@ class EntityRestControllerTest {
                     .andExpect(jsonPath("$.audit_metadata.created_date", startsWith("2009-02-13")))
                     .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("Alice")))
                     .andExpect(jsonPath("$.audit_metadata.last_modified_date", startsWith("2009-02-13")))
+            ;
+        }
+
+        @Test
+        void testUpdateAuditMetadata_gatewayJwt() throws Exception {
+            var createResponse = createInvoice();
+
+            mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    { "number": "456", "amount": "123" }
+                                    """)
+                            .with(jwt().jwt(jwt -> jwt.subject("alice-id")
+                                            .issuer("http://localhost/realms/1")
+                                            .claim(GatewayAuthClaimNames.AUTH_KIND, GatewayAuthClaimNames.AUTH_KIND_USER)
+                                            .claim(GatewayAuthClaimNames.AUTH_PRINCIPAL, Map.of(
+                                                    GatewayAuthClaimNames.KIND, GatewayAuthClaimNames.KIND_USER,
+                                                    "iss", "http://localhost/realms/1",
+                                                    "sub", "alice-id",
+                                                    "name", "Alice"
+                                            )))
+                                    .authorities(new GatewayJwtAuthenticationDetailsConverter()))
+                    )
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                    ).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.audit_metadata.created_by", is("user")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("Alice")))
+            ;
+        }
+
+        @Test
+        void testUpdateAuditMetadata_legacyGatewayJwt() throws Exception {
+            var createResponse = createInvoice();
+
+            mockMvc.perform(patch(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    { "number": "456", "amount": "123" }
+                                    """)
+                            .with(jwt().jwt(jwt -> jwt.subject("alice-id")
+                                    .issuer("http://localhost/realms/1")
+                                    .audience(List.of("contentgrid:app:app-1:deploy-1"))
+                                    .claim(StandardClaimNames.NAME, "Alice")))
+                    )
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get(createResponse.getRedirectedUrl())
+                            .contentType(MediaType.APPLICATION_JSON)
+                    ).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.audit_metadata.created_by", is("user")))
+                    .andExpect(jsonPath("$.audit_metadata.last_modified_by", is("Alice")))
             ;
         }
 
