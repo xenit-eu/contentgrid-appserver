@@ -286,6 +286,34 @@ class JOOQSymbolicReferenceResolverTest {
         assertEquals(expected, result);
     }
 
+    @Test
+    void liftsConditionsOnRootEntityOutOfExists() {
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+        var rootCondition = DSL.field(DSL.name("i0", "number"), String.class).eq("foo");
+        var relationCondition = DSL.field(DSL.name("p2", "code"), String.class).eq("bar");
+
+        var expected = DSL.and(rootCondition, DSL.exists(DSL.selectOne()
+                .from(DSL.table(DSL.name("invoice__products")).as("i1"))
+                .join(DSL.table(DSL.name("product")).as("p2"))
+                .on(DSL.field(DSL.name("p2", "id"), UUID.class)
+                        .eq(DSL.field(DSL.name("i1", "product_id"), UUID.class)))
+                .where(DSL.and(
+                        DSL.field(DSL.name("i1", "invoice_id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i0", "id"), UUID.class)),
+                        relationCondition
+                ))));
+
+        var result = resolver.wrapJoins(newResolver -> {
+            // Use id because path must end in simple attribute
+            newResolver.resolvePath(List.of(SymbolicReference.path("products"), SymbolicReference.pathVar("x"),
+                    SymbolicReference.path("id")));
+
+            return DSL.and(rootCondition, relationCondition);
+        });
+
+        assertEquals(expected, result);
+    }
+
     static Stream<Arguments> illegalPaths() {
         return Stream.of(
                 Arguments.argumentSet("empty path", List.of()),
