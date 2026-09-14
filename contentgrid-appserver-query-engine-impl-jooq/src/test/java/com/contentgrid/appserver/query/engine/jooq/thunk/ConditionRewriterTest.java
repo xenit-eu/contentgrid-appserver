@@ -117,6 +117,22 @@ class ConditionRewriterTest {
     }
 
     @Test
+    void split_liftsSubqueriesOverUnscopedAliases() {
+        // A disjunction over a relation is resolved into its own subquery, which brings its own aliases in scope
+        // and is only correlated to the root entity, so it does not have to stay inside the enclosing subquery.
+        var nestedAlias = TableName.of("p9");
+        var subquery = DSL.exists(DSL.selectOne()
+                .from(DSL.table(DSL.name("person")).as(nestedAlias.getValue()))
+                .where(field(nestedAlias, "id").eq(field(ROOT, "customer"))));
+        var joined = field(JOINED, "name").eq(DSL.value("bar"));
+
+        var split = REWRITER.split(DSL.and(subquery, joined));
+
+        assertThat(split.lifted()).containsExactly(subquery);
+        assertThat(split.scoped()).containsExactly(joined);
+    }
+
+    @Test
     void rewrite_movesLiftedConditionsOutOfTheSubquery() {
         var root = field(ROOT, "number").eq(DSL.value("foo"));
         var joined = field(JOINED, "name").eq(DSL.value("bar"));
