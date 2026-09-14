@@ -833,11 +833,17 @@
         },
         {
           "properties": {
+            "pathSegment": {
+              "type": "string",
+              "pattern": "[a-z0-9-]+",
+              "description": "Path segment that is used for addressing the contents stored for the link"
+            },
             "storage": {
+              "description": "Reference to the attribute where the data for the link is stored",
               "$ref": "#/$defs/attributePath"
             }
           },
-          "required": ["storage"]
+          "required": ["storage", "pathSegment"]
         }
       ]
     },

@@ -30,6 +30,21 @@
           ]
         },
         {
+          "type": "composite",
+          "name": "_links",
+          "attributes": [
+            {
+              "name": "test1",
+              "type": "simple",
+              "dataType": "text",
+              "columnName": "_links__test1"
+            }
+          ],
+          "flags": [
+            "ignored"
+          ]
+        },
+        {
           "type": "simple",
           "name": "first_name",
           "dataType": "text",
@@ -305,7 +320,8 @@
         {
           "rel": "https://calendar.example/related",
           "name": "friends",
-          "owner": [{"type":  "rel", "name":  "friends"}],
+          "owner": [{"type": "rel", "name": "friends"}],
+          "storage": [{ "type": "attr","name": "_links"},{"type": "attr", "name": "test1"}],
           "fallbackTemplate": {
             "template": "https://calendar.example/people?me=%{entity.link}&meType=%{entity.name}&related=%{owner.link}&relatedType=%{owner.name}"
           }

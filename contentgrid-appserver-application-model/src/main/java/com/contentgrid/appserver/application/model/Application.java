@@ -2,6 +2,9 @@ package com.contentgrid.appserver.application.model;
 
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
@@ -415,8 +418,23 @@ public class Application {
                         }
                     }
 
-                    if (link.getStorage().isPresent()) {
-                        throw new InvalidEntityLinkException("Entity links with storage are not supported");
+                    switch (link) {
+                        case PlainEntityLink plainEntityLink -> {
+                            // nothing additional to check
+                        }
+                        case StoredEntityLink storedEntityLink -> {
+                            var attribute = propertyPathResolver.resolveAttribute(entity.getName(), storedEntityLink.getStorage());
+
+                            switch (attribute.getAttribute()) {
+                                case SimpleAttribute sa when sa.getType() == Type.TEXT -> {
+                                    // ok
+                                }
+                                case ContentAttribute ca -> {
+                                    // ok
+                                }
+                                default -> throw new InvalidEntityLinkException("Entity link can only reference text or content attributes as storage");
+                            }
+                        }
                     }
 
                     if(link.getFallbackTemplate().isPresent()) {
