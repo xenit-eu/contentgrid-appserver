@@ -351,6 +351,7 @@
             "double",
             "boolean",
             "text",
+            "text_set",
             "date",
             "datetime",
             "uuid"
@@ -730,6 +731,7 @@
               "description": "The type of filter.",
               "enum": [
                 "exact",
+                "contains",
                 "prefix",
                 "greater",
                 "greater-or-equal",

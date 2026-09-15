@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -223,7 +224,8 @@ public class JsonSchema {
         private String pattern;
         private Boolean uniqueItems;
         private @JsonProperty("$ref") JsonSchemaReference reference;
-        private Map<String, String> items;
+        // TODO: Type the item schema instead of assembling it as a map of magic keys (ACC-3170)
+        private Map<String, Object> items;
         private @JsonUnwrapped PropertiesContainer properties;
 
         JsonSchemaProperty(String name, String title, String description, boolean required) {
@@ -295,6 +297,23 @@ public class JsonSchema {
                     "type", JsonSchemaType.STRING.toString(),
                     "format", JsonSchemaFormat.URI.toString()
             );
+
+            this.uniqueItems = true;
+
+            return withType(JsonSchemaType.ARRAY);
+        }
+
+        /**
+         * Turns the current {@link JsonSchemaProperty} into an array of unique strings, optionally
+         * restricted to the given allowed values.
+         */
+        public JsonSchemaProperty asStringArray(List<String> allowedValues) {
+            var itemSchema = new LinkedHashMap<String, Object>();
+            itemSchema.put("type", JsonSchemaType.STRING.toString());
+            if (allowedValues != null && !allowedValues.isEmpty()) {
+                itemSchema.put("enum", List.copyOf(allowedValues));
+            }
+            this.items = Collections.unmodifiableMap(itemSchema);
 
             this.uniqueItems = true;
 

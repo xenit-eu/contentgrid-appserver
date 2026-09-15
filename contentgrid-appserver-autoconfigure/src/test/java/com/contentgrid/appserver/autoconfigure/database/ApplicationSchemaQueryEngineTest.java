@@ -27,7 +27,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.registry.SingleApplicationResolver;
 import com.contentgrid.thunx.predicates.model.Scalar;
@@ -173,7 +173,7 @@ class ApplicationSchemaQueryEngineTest {
 
             // Only invoices of alice may be read. The predicate is resolved into an EXISTS(...) subquery on the
             // related person table, which correlates back to the invoice table through an alias.
-            ThunkExpression<Boolean> permitReadPredicate = StringComparison.normalizedEqual(
+            ThunkExpression<Boolean> permitReadPredicate = SearchComparison.normalizedEqual(
                     SymbolicReference.of(Variable.named("entity"),
                             SymbolicReference.path("customer"), SymbolicReference.path("name")),
                     Scalar.of("alice"));

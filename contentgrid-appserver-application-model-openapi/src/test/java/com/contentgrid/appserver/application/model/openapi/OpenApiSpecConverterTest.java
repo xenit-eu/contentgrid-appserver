@@ -218,6 +218,7 @@ class OpenApiSpecConverterTest {
                 "problemDetail.input-validation.field.no-content",
                 "problemDetail.input-validation.field.required",
                 "problemDetail.input-validation.field.duplicate",
+                "problemDetail.input-validation.field.duplicate-element",
                 "problemDetail.input-validation.field.allowed-values",
                 "problemDetail.input-validation.field.pattern",
                 "problemDetail.input-validation.field.missing-relation-target",
@@ -333,7 +334,7 @@ class OpenApiSpecConverterTest {
                                             .setFormat(Format.URI)
                                             .setExamples(
                                                     List.of("https://contentgrid-app.example/relation-target-item-path/00000000-0000-0000-0000-000000000000"))
-                            ));
+                            ).setUniqueItems(true));
                         });
                     });
                 });

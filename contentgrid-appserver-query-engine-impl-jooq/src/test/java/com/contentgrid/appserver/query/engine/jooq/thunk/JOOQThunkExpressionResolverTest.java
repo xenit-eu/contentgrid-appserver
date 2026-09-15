@@ -11,6 +11,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -44,7 +45,7 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
-import com.contentgrid.appserver.query.engine.api.thunx.expression.StringComparison;
+import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.appserver.query.engine.jooq.thunk.JOOQThunkExpressionResolver.JOOQContext;
@@ -62,11 +63,14 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochRandomGenerator;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -111,6 +115,12 @@ class JOOQThunkExpressionResolverTest {
             .type(Type.TEXT)
             .build();
 
+    private static final MultivalueAttribute PERSON_TAGS = MultivalueAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .itemType(Type.TEXT)
+            .build();
+
     private static final Entity PERSON = Entity.builder()
             .name(EntityName.of("person"))
             .table(TableName.of("person"))
@@ -119,6 +129,12 @@ class JOOQThunkExpressionResolverTest {
             .attribute(PERSON_NAME)
             .attribute(PERSON_VAT)
             .attribute(PERSON_COMMENT)
+            .attribute(PERSON_TAGS)
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.CONTAINS)
+                    .attribute(PERSON_TAGS)
+                    .name(FilterName.of("tags"))
+                    .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
                     .attribute(PERSON_VAT)
@@ -255,6 +271,12 @@ class JOOQThunkExpressionResolverTest {
             .flag(ETagFlag.INSTANCE)
             .build();
 
+    private static final MultivalueAttribute INVOICE_LABELS = MultivalueAttribute.builder()
+            .name(AttributeName.of("labels"))
+            .column(ColumnName.of("labels"))
+            .itemType(Type.TEXT)
+            .build();
+
     private static final Entity INVOICE = Entity.builder()
             .name(EntityName.of("invoice"))
             .table(TableName.of("invoice"))
@@ -267,6 +289,7 @@ class JOOQThunkExpressionResolverTest {
             .attribute(INVOICE_PAY_BEFORE)
             .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
+            .attribute(INVOICE_LABELS)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .searchFilter(AttributeSearchFilter.builder()
@@ -469,11 +492,16 @@ class JOOQThunkExpressionResolverTest {
                         DSL.field(DSL.name("id"), UUID.class),
                         DSL.field(DSL.name("name"), String.class),
                         DSL.field(DSL.name("vat"), String.class),
-                        DSL.field(DSL.name("comment"), String.class))
-                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.")
-                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.")
-                .values(JOHN_ID, "john", "vat_3", "Just a random comment.")
-                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.")
+                        DSL.field(DSL.name("comment"), String.class),
+                        DSL.field(DSL.name("tags"), String[].class))
+                .values(ALICE_ID, "alice", "vat_1", "Comment with the words foo and bar.",
+                        new String[] {"urgent", "vip"})
+                .values(BOB_ID, "bob", "vat_2", "Another comment mentioning foo.",
+                        new String[] {"vip"})
+                .values(JOHN_ID, "john", "vat_3", "Just a random comment.",
+                        new String[] {})
+                .values(THIJS_ID, "Thĳs", "Thijs", "Comment with bar and foo, but also Thĳs.",
+                        new String[] {"file"})
                 .execute();
         dslContext.insertInto(DSL.table(DSL.name("french-person")),
                         DSL.field(DSL.name("id"), UUID.class),
@@ -588,7 +616,7 @@ class JOOQThunkExpressionResolverTest {
     @Test
     void findAliceWithPrefixSearch() {
         // cg_prefix_search_normalize(entity.name) starts with cg_prefix_search_normalize(ALI)
-        ThunkExpression<Boolean> expression = StringComparison.contentGridPrefixSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridPrefixSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
                 Scalar.of("ALI")
         );
@@ -629,7 +657,7 @@ class JOOQThunkExpressionResolverTest {
 
     @Test
     void findWithFullTextSearch() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridFullTextSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 Scalar.of("bar foo"), Locale.ENGLISH
 
@@ -647,7 +675,7 @@ class JOOQThunkExpressionResolverTest {
 
     @Test
     void findNormalizedWithFullTextSearch() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridFullTextSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 // Actual value in table is "Thĳs", which should be normalized by search to still match this.
                 Scalar.of("Thijs"), Locale.ENGLISH
@@ -662,9 +690,54 @@ class JOOQThunkExpressionResolverTest {
         assertEquals(Set.of("Thĳs"), results);
     }
 
+    static Stream<Arguments> findWithArraySearch() {
+        return Stream.of(
+                Arguments.argumentSet("any element matches the value",
+                        Set.of(ALICE_ID), new String[] {"urgent"}),
+                Arguments.argumentSet("multiple values are a disjunction: any element matches any value",
+                        Set.of(ALICE_ID, BOB_ID), new String[] {"urgent", "vip"}),
+                Arguments.argumentSet("search normalizes NFKC only: case and accents are significant",
+                        Set.of(), new String[] {"URGENT"}),
+                // U+FB01 is the fi ligature; NFKC-normalized it matches the stored element "file"
+                Arguments.argumentSet("a ligature in the search value normalizes to its expansion",
+                        Set.of(THIJS_ID), new String[] {"\ufb01le"})
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void findWithArraySearch(Set<UUID> expectedIds, String[] searchValues) {
+        var values = Arrays.stream(searchValues).<Scalar<?>>map(value -> Scalar.of(value))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
+                new SetValue(values)
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var table = JOOQUtils.resolveTable(context.getRootTable(), context.getRootAlias());
+        var condition = RESOLVER.resolveExpression(expression, context);
+        var results = dslContext.selectFrom(table)
+                .where(condition)
+                .fetch()
+                .intoSet("id", UUID.class);
+
+        assertEquals(expectedIds, results);
+    }
+
+    @Test
+    void arraySearchOnScalarAttributeIsFalse() {
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridArraySearchMatch(
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("name")),
+                new SetValue(Set.of(Scalar.of("alice")))
+        );
+        var context = new JOOQContext(APPLICATION, PERSON);
+        var condition = RESOLVER.resolveExpression(expression, context);
+        assertEquals(DSL.falseCondition(), condition);
+    }
+
     @Test
     void findFullTextSearchInFrench() {
-        ThunkExpression<Boolean> expression = StringComparison.contentGridFullTextSearchMatch(
+        ThunkExpression<Boolean> expression = SearchComparison.contentGridFullTextSearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("comment")),
                 Scalar.of("baguette"), Locale.FRENCH
         );
@@ -1074,12 +1147,12 @@ class JOOQThunkExpressionResolverTest {
                                 Scalar.of(1.0)
                         ), 2),
                 Arguments.argumentSet("normalize",
-                        StringComparison.normalizedEqual(
+                        SearchComparison.normalizedEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                 Scalar.of("invoice_¹") // invoice_1
                         ), 1),
                 Arguments.argumentSet("contentgrid prefix search",
-                        StringComparison.contentGridPrefixSearchMatch(
+                        SearchComparison.contentGridPrefixSearchMatch(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("audit_metadata"), SymbolicReference.path("created_by"), SymbolicReference.path("name")),
                                 Scalar.of("Bö") // bob
                         ), 1),
@@ -1223,12 +1296,26 @@ class JOOQThunkExpressionResolverTest {
         assertTrue(results.stream().anyMatch(result -> INVOICE1_ID.equals(result.get("id"))));
     }
 
+    @Test
+    void multivalueAttributeResolvesToTheAliasedArrayField() {
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+
+        var field = resolver.resolvePath(List.of(SymbolicReference.path("labels")));
+
+        assertEquals(JOOQUtils.resolveField(TableName.of("i0"), INVOICE_LABELS), field);
+    }
+
     static Stream<Arguments> illegalExpressions() {
         return Stream.of(
                 Arguments.argumentSet("null value",
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("id")),
                                 Scalar.nullValue()
+                        )),
+                Arguments.argumentSet("path through a multi-value attribute",
+                        Comparison.areEqual(
+                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("labels"), SymbolicReference.path("nested")),
+                                Scalar.of("x")
                         )),
                 Arguments.argumentSet("null string value",
                         Comparison.areEqual(
@@ -1322,6 +1409,7 @@ class JOOQThunkExpressionResolverTest {
 
     private static final Map<String, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
             "STRING", SymbolicReference.parse("entity.number"),
+            "STRING_SET", SymbolicReference.parse("entity.labels"),
             "NUMBER", SymbolicReference.parse("entity.amount"),
             "BOOLEAN", SymbolicReference.parse("entity.is_paid"),
             "DATE", SymbolicReference.parse("entity.received"),
@@ -1385,7 +1473,17 @@ class JOOQThunkExpressionResolverTest {
                         incompatibleEqualsExpressions(),
                         incompatibleLessThanExpressions()
                 ),
-                incompatibleInExpressions()
+                Stream.concat(
+                        incompatibleInExpressions(),
+                        Stream.of(
+                                Arguments.argumentSet("STRING_SET = STRING_SET",
+                                        Comparison.areEqual(SymbolicReference.parse("entity.labels"),
+                                                SymbolicReference.parse("entity.labels"))),
+                                Arguments.argumentSet("STRING_SET != STRING_SET",
+                                        Comparison.notEqual(SymbolicReference.parse("entity.labels"),
+                                                SymbolicReference.parse("entity.labels")))
+                        )
+                )
         );
     }
 

@@ -1,5 +1,8 @@
 package com.contentgrid.appserver.application.model.searchfilters;
 
+import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
@@ -51,33 +54,36 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
                 .translations(new TranslatableImpl<>(ConfigurableSearchFilterTranslations::new));
     }
 
-    /**
-     * Determines if this search filter supports the given attribute.
-     * <p>
-     * @param attribute the attribute to check support for
-     * @return true if the attribute is supported, false otherwise
-     */
-    public boolean supports(SimpleAttribute attribute) {
+    @Override
+    public boolean supports(Attribute attribute) {
         return operation.supports(attribute);
     }
 
     public enum Operation {
-        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME)),
-        PREFIX(Set.of(Type.TEXT)),
-        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
-        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
-        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
-        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME)),
+        EXACT(Set.of(Type.TEXT, Type.UUID, Type.LONG, Type.DOUBLE, Type.BOOLEAN, Type.DATE, Type.DATETIME), Set.of()),
+        CONTAINS(Set.of(), Set.of(Type.TEXT)),
+        PREFIX(Set.of(Type.TEXT), Set.of()),
+        GREATER_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        GREATER_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        LESS_THAN(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
+        LESS_THAN_OR_EQUAL(Set.of(Type.LONG, Type.DOUBLE, Type.DATE, Type.DATETIME), Set.of()),
         ;
 
         private final Set<Type> supportedTypes;
+        private final Set<Type> supportedItemTypes;
 
-        Operation(Set<Type> supportedTypes) {
+        Operation(Set<Type> supportedTypes, Set<Type> supportedItemTypes) {
             this.supportedTypes = supportedTypes;
+            this.supportedItemTypes = supportedItemTypes;
         }
 
-        public boolean supports(SimpleAttribute attribute) {
-            return supportedTypes.contains(attribute.getType());
+        public boolean supports(Attribute attribute) {
+            return switch (attribute) {
+                case SimpleAttribute simpleAttribute -> supportedTypes.contains(simpleAttribute.getType());
+                case MultivalueAttribute multivalueAttribute ->
+                        supportedItemTypes.contains(multivalueAttribute.getItemType());
+                case CompositeAttribute ignored -> false;
+            };
         }
     }
 
@@ -87,6 +93,11 @@ public class AttributeSearchFilter extends BaseAttributeSearchFilter {
         }
 
         public AttributeSearchFilterBuilder attribute(@NonNull SimpleAttribute attribute) {
+            this.attributePath = new SimpleAttributePath(attribute.getName());
+            return this;
+        }
+
+        public AttributeSearchFilterBuilder attribute(@NonNull MultivalueAttribute attribute) {
             this.attributePath = new SimpleAttributePath(attribute.getName());
             return this;
         }
