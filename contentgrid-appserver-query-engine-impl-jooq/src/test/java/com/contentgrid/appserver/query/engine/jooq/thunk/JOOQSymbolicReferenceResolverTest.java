@@ -415,4 +415,131 @@ class JOOQSymbolicReferenceResolverTest {
         });
         assertEquals(expected, result);
     }
+
+    @Test
+    void permissionsAndFilters_allConditionKinds() {
+        // Mirrors the "permissions and filters (all condition kinds)" case of JOOQThunkExpressionResolverTest:
+        // AND(permissions, filters), where both parts contain conditions on the entity itself, over a to-one relation
+        // and over a to-many relation. Every term of an OR resolves its joins separately, terms of an AND share them.
+        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
+
+        // Conditions are written out on the aliases they are expected to be resolved on,
+        // the paths below only determine the joins that are generated.
+        var isPaid = DSL.field(DSL.name("i0", "is_paid"), Boolean.class).isTrue();
+        var customerIsAlice = DSL.field(DSL.name("p1", "name"), String.class).eq("alice");
+        var productHasCode3 = DSL.field(DSL.name("p3", "code"), String.class).eq("code_3");
+        var customerHasVat2 = DSL.field(DSL.name("p4", "vat"), String.class).eq("vat_2");
+        var hasSmallContent = DSL.field(DSL.name("i0", "content__length"), Long.class).eq(100L);
+        var hasLargeContent = DSL.field(DSL.name("i0", "content__length"), Long.class).eq(1048576L);
+        var customerVatStartsWith = DSL.field(DSL.name("p5", "vat"), String.class).startsWith("vat");
+        var productIsExpensive = DSL.field(DSL.name("p7", "cost"), Double.class).gt(50.0);
+
+        var result = resolver.wrapJoins(root -> {
+            // permissions: OR of two conjunctions, each term resolves its own joins
+            var permissions = DSL.or(
+                    root.wrapJoins(term -> {
+                        // Use id because path must end in simple attribute
+                        term.resolvePath(List.of(SymbolicReference.path("id"))); // on the entity itself
+                        term.resolvePath(List.of(SymbolicReference.path("customer"),
+                                SymbolicReference.path("id"))); // over a to-one relation
+                        return DSL.and(isPaid, customerIsAlice);
+                    }),
+                    root.wrapJoins(term -> {
+                        term.resolvePath(List.of(SymbolicReference.path("products"), SymbolicReference.pathVar("x"),
+                                SymbolicReference.path("id"))); // over a to-many relation
+                        term.resolvePath(List.of(SymbolicReference.path("customer"),
+                                SymbolicReference.path("id"))); // over a to-one relation
+                        return DSL.and(productHasCode3, customerHasVat2);
+                    })
+            );
+
+            // filters: conditions on the entity itself
+            var contentFilter = DSL.or(
+                    root.wrapJoins(term -> {
+                        term.resolvePath(List.of(SymbolicReference.path("id")));
+                        return hasSmallContent;
+                    }),
+                    root.wrapJoins(term -> {
+                        term.resolvePath(List.of(SymbolicReference.path("id")));
+                        return hasLargeContent;
+                    })
+            );
+
+            // filter over a to-one relation: resolved on the root resolver, since it is not inside an OR
+            root.resolvePath(List.of(SymbolicReference.path("customer"), SymbolicReference.path("id")));
+
+            // filter over a to-many relation, OR-ed with a condition on the entity itself
+            var productFilter = DSL.or(
+                    root.wrapJoins(term -> {
+                        term.resolvePath(List.of(SymbolicReference.path("products"), SymbolicReference.pathVar("y"),
+                                SymbolicReference.path("id")));
+                        return productIsExpensive;
+                    }),
+                    root.wrapJoins(term -> {
+                        term.resolvePath(List.of(SymbolicReference.path("id")));
+                        return hasLargeContent;
+                    })
+            );
+
+            return DSL.and(permissions, DSL.and(contentFilter, customerVatStartsWith, productFilter));
+        });
+
+        var expectedPermissions = DSL.or(
+                // condition on the entity itself is lifted out of the exists()
+                DSL.and(isPaid, DSL.exists(DSL.selectOne()
+                        .from(DSL.table(DSL.name("person")).as("p1"))
+                        .where(DSL.and(
+                                DSL.field(DSL.name("p1", "id"), UUID.class)
+                                        .eq(DSL.field(DSL.name("i0", "customer"), UUID.class)),
+                                customerIsAlice
+                        )))),
+                // the to-one relation is joined inside the exists() of the to-many relation
+                DSL.exists(DSL.selectOne()
+                        .from(DSL.table(DSL.name("invoice__products")).as("i2"))
+                        .join(DSL.table(DSL.name("product")).as("p3"))
+                        .on(DSL.field(DSL.name("p3", "id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i2", "product_id"), UUID.class)))
+                        .join(DSL.table(DSL.name("person")).as("p4"))
+                        .on(DSL.field(DSL.name("p4", "id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i0", "customer"), UUID.class)))
+                        .where(DSL.and(
+                                DSL.field(DSL.name("i2", "invoice_id"), UUID.class)
+                                        .eq(DSL.field(DSL.name("i0", "id"), UUID.class)),
+                                DSL.and(productHasCode3, customerHasVat2)
+                        )))
+        );
+
+        // conditions on the entity itself need no joins at all
+        var expectedContentFilter = DSL.or(hasSmallContent, hasLargeContent);
+
+        var expectedProductFilter = DSL.or(
+                DSL.exists(DSL.selectOne()
+                        .from(DSL.table(DSL.name("invoice__products")).as("i6"))
+                        .join(DSL.table(DSL.name("product")).as("p7"))
+                        .on(DSL.field(DSL.name("p7", "id"), UUID.class)
+                                .eq(DSL.field(DSL.name("i6", "product_id"), UUID.class)))
+                        .where(DSL.and(
+                                DSL.field(DSL.name("i6", "invoice_id"), UUID.class)
+                                        .eq(DSL.field(DSL.name("i0", "id"), UUID.class)),
+                                productIsExpensive
+                        ))),
+                hasLargeContent
+        );
+
+        // only the to-one filter resolved on the root resolver stays inside its exists()
+        var expected = DSL.and(
+                expectedPermissions,
+                expectedContentFilter,
+                expectedProductFilter,
+                DSL.exists(DSL.selectOne()
+                        .from(DSL.table(DSL.name("person")).as("p5"))
+                        .where(DSL.and(
+                                DSL.field(DSL.name("p5", "id"), UUID.class)
+                                        .eq(DSL.field(DSL.name("i0", "customer"), UUID.class)),
+                                customerVatStartsWith
+                        )))
+        );
+
+        assertEquals(expected, result);
+    }
 }
