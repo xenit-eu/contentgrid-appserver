@@ -268,9 +268,14 @@ class JOOQSymbolicReferenceResolver {
 
         if (selectBuilder == null || where == null) {
             return condition;
-        } else {
-            return DSL.exists(selectBuilder.where(DSL.and(where, condition)));
         }
+
+        // Conditions on the root entity do not depend on the joined rows, so they are lifted out of the exists()
+        var joinCondition = where;
+        var select = selectBuilder;
+        var rewriter = new ConditionRewriter(joins.stream().map(Join::getTargetAlias).toList());
+        return rewriter.rewrite(condition,
+                scoped -> DSL.exists(select.where(DSL.and(joinCondition, scoped))));
     }
 
     private static String getPathElementName(@NonNull PathElement elem) throws InvalidThunkExpressionException {

@@ -448,6 +448,9 @@ class JOOQThunkExpressionResolverTest {
 
     private static final Variable ENTITY_VAR = Variable.named("entity");
 
+    private static final long CONTENT1_LENGTH = 100L;
+    private static final long CONTENT3_LENGTH = 1048576L;
+
     @Autowired
     private DSLContext dslContext;
 
@@ -494,7 +497,7 @@ class JOOQThunkExpressionResolverTest {
                 .set(DSL.field(DSL.name("content__id"), String.class), "content_1")
                 .set(DSL.field(DSL.name("content__filename"), String.class), "file.pdf")
                 .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/pdf")
-                .set(DSL.field(DSL.name("content__length"), Long.class), 100L)
+                .set(DSL.field(DSL.name("content__length"), Long.class), CONTENT1_LENGTH)
                 .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
                 .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "bob")
                 .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
@@ -530,7 +533,7 @@ class JOOQThunkExpressionResolverTest {
                 .set(DSL.field(DSL.name("content__id"), String.class), "content_3")
                 .set(DSL.field(DSL.name("content__filename"), String.class), "invoice.doc")
                 .set(DSL.field(DSL.name("content__mimetype"), String.class), "application/msword")
-                .set(DSL.field(DSL.name("content__length"), Long.class), 1048576L)
+                .set(DSL.field(DSL.name("content__length"), Long.class), CONTENT3_LENGTH)
                 .set(DSL.field(DSL.name("audit_metadata__created_date"), Instant.class), now)
                 .set(DSL.field(DSL.name("audit_metadata__created_by_name"), String.class), "alice")
                 .set(DSL.field(DSL.name("audit_metadata__last_modified_date"), Instant.class), now)
@@ -942,7 +945,7 @@ class JOOQThunkExpressionResolverTest {
                 Arguments.argumentSet("equals (long)",
                         Comparison.areEqual(
                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
-                                Scalar.of(100L)
+                                Scalar.of(CONTENT1_LENGTH)
                         ), 1),
                 Arguments.argumentSet("equals (string)", // should be normalized
                         Comparison.areEqual(
@@ -1090,7 +1093,7 @@ class JOOQThunkExpressionResolverTest {
                                         Scalar.of(true)
                                 ),
                                 LogicalOperation.conjunction(
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_1")
                                         ),
@@ -1100,7 +1103,7 @@ class JOOQThunkExpressionResolverTest {
                                         )
                                 ),
                                 LogicalOperation.conjunction(
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_2")
                                         ),
@@ -1117,11 +1120,11 @@ class JOOQThunkExpressionResolverTest {
                                         Scalar.of(true)
                                 ),
                                 LogicalOperation.disjunction(
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_1")
                                         ),
-                                        Comparison.less(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_2")
                                         )
@@ -1139,16 +1142,16 @@ class JOOQThunkExpressionResolverTest {
                         ), 1),
                 Arguments.argumentSet("or of ands (to-one relation)", // permissions
                         LogicalOperation.disjunction(
-                                Comparison.areEqual(
+                                StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                 Scalar.of("alice")
                                 ),
                                 LogicalOperation.conjunction(
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                 Scalar.of("bob")
                                         ),
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat_1")
                                         )
@@ -1156,16 +1159,16 @@ class JOOQThunkExpressionResolverTest {
                         ), 1),
                 Arguments.argumentSet("and of ors (to-one relation)", // search filters
                         LogicalOperation.conjunction(
-                                Comparison.areEqual(
+                                StringComparison.normalizedEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                         Scalar.of("alice")
                                 ),
                                 LogicalOperation.disjunction(
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat_1")
                                         ),
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat_2")
                                         )
@@ -1173,12 +1176,12 @@ class JOOQThunkExpressionResolverTest {
                         ), 1),
                 Arguments.argumentSet("or of ands (to-many relation)", // permissions
                         LogicalOperation.disjunction(
-                                Comparison.areEqual(
+                                StringComparison.normalizedEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
                                         Scalar.of("code_2")
                                 ),
                                 LogicalOperation.conjunction(
-                                        Comparison.areEqual(
+                                        StringComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("code")),
                                                 Scalar.of("code_1")
                                         ),
@@ -1190,7 +1193,7 @@ class JOOQThunkExpressionResolverTest {
                         ), 2),
                 Arguments.argumentSet("and of ors (to-many relation)", // search filters
                         LogicalOperation.conjunction(
-                                Comparison.areEqual(
+                                StringComparison.normalizedEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
                                         Scalar.of("code_1")
                                 ),
@@ -1202,6 +1205,198 @@ class JOOQThunkExpressionResolverTest {
                                         Comparison.areEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_03_"), SymbolicReference.path("cost")),
                                                 Scalar.of(10.0)
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("permissions and filters", // permissions and filters combined in one expression
+                        LogicalOperation.conjunction(
+                                // permissions: matches invoice_1 and invoice_2
+                                LogicalOperation.disjunction(
+                                        Comparison.areEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("is_paid")),
+                                                Scalar.of(true)
+                                        ),
+                                        LogicalOperation.conjunction(
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                                        Scalar.of("invoice_1")
+                                                ),
+                                                Comparison.less(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                                        Scalar.of(15.0)
+                                                )
+                                        ),
+                                        LogicalOperation.conjunction(
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
+                                                        Scalar.of("invoice_2")
+                                                ),
+                                                Comparison.greater(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("amount")),
+                                                        Scalar.of(15.0)
+                                                )
+                                        )
+                                ),
+                                // filters: matches invoice_1 and invoice_3
+                                LogicalOperation.conjunction(
+                                        Comparison.greaterOrEquals(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("received")),
+                                                Scalar.of(LocalDate.parse("2025-01-01"))
+                                        ),
+                                        LogicalOperation.disjunction(
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("pay_before")),
+                                                        Scalar.of(LocalDate.parse("2025-01-31"))
+                                                ),
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("pay_before")),
+                                                        Scalar.of(LocalDate.parse("2025-02-28"))
+                                                )
+                                        ),
+                                        LogicalOperation.disjunction(
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                                                        Scalar.of(CONTENT1_LENGTH)
+                                                ),
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                                                        Scalar.of(CONTENT3_LENGTH)
+                                                )
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("permissions and filters (to-one relation)",
+                        LogicalOperation.conjunction(
+                                // permissions: matches invoice_1
+                                LogicalOperation.disjunction(
+                                        StringComparison.normalizedEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                                                Scalar.of("alice")
+                                        ),
+                                        LogicalOperation.conjunction(
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                                                        Scalar.of("bob")
+                                                ),
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                        Scalar.of("vat_1")
+                                                )
+                                        )
+                                ),
+                                // filters: matches invoice_1 and invoice_2
+                                LogicalOperation.conjunction(
+                                        StringComparison.contentGridPrefixSearchMatch(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                Scalar.of("vat")
+                                        ),
+                                        LogicalOperation.disjunction(
+                                                StringComparison.contentGridFullTextSearchMatch(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("comment")),
+                                                        Scalar.of("foo"), Locale.ENGLISH
+                                                ),
+                                                StringComparison.contentGridFullTextSearchMatch(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("comment")),
+                                                        Scalar.of("bar"), Locale.ENGLISH
+                                                )
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("permissions and filters (to-many relation)",
+                        LogicalOperation.conjunction(
+                                // permissions: matches invoice_1 and invoice_2
+                                LogicalOperation.disjunction(
+                                        StringComparison.normalizedEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
+                                                Scalar.of("code_2")
+                                        ),
+                                        LogicalOperation.conjunction(
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("code")),
+                                                        Scalar.of("code_1")
+                                                ),
+                                                Comparison.less(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_03_"), SymbolicReference.path("cost")),
+                                                        Scalar.of(5.0)
+                                                )
+                                        )
+                                ),
+                                // filters: matches invoice_1
+                                LogicalOperation.conjunction(
+                                        StringComparison.normalizedEqual(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_04_"), SymbolicReference.path("code")),
+                                                Scalar.of("code_1")
+                                        ),
+                                        LogicalOperation.disjunction(
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_05_"), SymbolicReference.path("cost")),
+                                                        Scalar.of(9.99)
+                                                ),
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_06_"), SymbolicReference.path("cost")),
+                                                        Scalar.of(10.0)
+                                                )
+                                        )
+                                )
+                        ), 1),
+                Arguments.argumentSet("permissions and filters (all condition kinds)",
+                        LogicalOperation.conjunction(
+                                // permissions: matches invoice_1 and invoice_2
+                                LogicalOperation.disjunction(
+                                        LogicalOperation.conjunction(
+                                                // condition on the entity itself
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("is_paid")),
+                                                        Scalar.of(true)
+                                                ),
+                                                // condition over a to-one relation
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
+                                                        Scalar.of("alice")
+                                                )
+                                        ),
+                                        LogicalOperation.conjunction(
+                                                // condition over a to-many relation
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
+                                                        Scalar.of("code_3")
+                                                ),
+                                                // condition over a to-one relation
+                                                StringComparison.normalizedEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                        Scalar.of("vat_2")
+                                                )
+                                        )
+                                ),
+                                // filters: matches invoice_1 and invoice_3
+                                LogicalOperation.conjunction(
+                                        // condition on the entity itself
+                                        LogicalOperation.disjunction(
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                                                        Scalar.of(CONTENT1_LENGTH)
+                                                ),
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                                                        Scalar.of(CONTENT3_LENGTH)
+                                                )
+                                        ),
+                                        // condition over a to-one relation
+                                        StringComparison.contentGridPrefixSearchMatch(
+                                                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
+                                                Scalar.of("vat")
+                                        ),
+                                        LogicalOperation.disjunction(
+                                                // condition over a to-many relation
+                                                Comparison.greater(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("cost")),
+                                                        Scalar.of(50.0)
+                                                ),
+                                                // condition on the entity itself
+                                                Comparison.areEqual(
+                                                        SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("content"), SymbolicReference.path("length")),
+                                                        Scalar.of(CONTENT3_LENGTH)
+                                                )
                                         )
                                 )
                         ), 1)
