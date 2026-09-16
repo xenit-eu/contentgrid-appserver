@@ -1166,7 +1166,7 @@ class JOOQThunkExpressionResolverTest {
                                         Scalar.of(true)
                                 ),
                                 LogicalOperation.conjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_1")
                                         ),
@@ -1176,7 +1176,7 @@ class JOOQThunkExpressionResolverTest {
                                         )
                                 ),
                                 LogicalOperation.conjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_2")
                                         ),
@@ -1193,11 +1193,11 @@ class JOOQThunkExpressionResolverTest {
                                         Scalar.of(true)
                                 ),
                                 LogicalOperation.disjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_1")
                                         ),
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                 Scalar.of("invoice_2")
                                         )
@@ -1215,16 +1215,16 @@ class JOOQThunkExpressionResolverTest {
                         ), 1),
                 Arguments.argumentSet("or of ands (to-one relation)", // permissions
                         LogicalOperation.disjunction(
-                                StringComparison.normalizedEqual(
+                                SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                 Scalar.of("alice")
                                 ),
                                 LogicalOperation.conjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                 Scalar.of("bob")
                                         ),
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat_1")
                                         )
@@ -1232,16 +1232,16 @@ class JOOQThunkExpressionResolverTest {
                         ), 1),
                 Arguments.argumentSet("and of ors (to-one relation)", // search filters
                         LogicalOperation.conjunction(
-                                StringComparison.normalizedEqual(
+                                SearchComparison.normalizedEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                         Scalar.of("alice")
                                 ),
                                 LogicalOperation.disjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat_1")
                                         ),
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat_2")
                                         )
@@ -1249,12 +1249,12 @@ class JOOQThunkExpressionResolverTest {
                         ), 1),
                 Arguments.argumentSet("or of ands (to-many relation)", // permissions
                         LogicalOperation.disjunction(
-                                StringComparison.normalizedEqual(
+                                SearchComparison.normalizedEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
                                         Scalar.of("code_2")
                                 ),
                                 LogicalOperation.conjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("code")),
                                                 Scalar.of("code_1")
                                         ),
@@ -1266,7 +1266,7 @@ class JOOQThunkExpressionResolverTest {
                         ), 2),
                 Arguments.argumentSet("and of ors (to-many relation)", // search filters
                         LogicalOperation.conjunction(
-                                StringComparison.normalizedEqual(
+                                SearchComparison.normalizedEqual(
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
                                         Scalar.of("code_1")
                                 ),
@@ -1290,7 +1290,7 @@ class JOOQThunkExpressionResolverTest {
                                                 Scalar.of(true)
                                         ),
                                         LogicalOperation.conjunction(
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                         Scalar.of("invoice_1")
                                                 ),
@@ -1300,7 +1300,7 @@ class JOOQThunkExpressionResolverTest {
                                                 )
                                         ),
                                         LogicalOperation.conjunction(
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("number")),
                                                         Scalar.of("invoice_2")
                                                 ),
@@ -1342,16 +1342,16 @@ class JOOQThunkExpressionResolverTest {
                         LogicalOperation.conjunction(
                                 // permissions: matches invoice_1
                                 LogicalOperation.disjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                 Scalar.of("alice")
                                         ),
                                         LogicalOperation.conjunction(
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                         Scalar.of("bob")
                                                 ),
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                         Scalar.of("vat_1")
                                                 )
@@ -1359,16 +1359,16 @@ class JOOQThunkExpressionResolverTest {
                                 ),
                                 // filters: matches invoice_1 and invoice_2
                                 LogicalOperation.conjunction(
-                                        StringComparison.contentGridPrefixSearchMatch(
+                                        SearchComparison.contentGridPrefixSearchMatch(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat")
                                         ),
                                         LogicalOperation.disjunction(
-                                                StringComparison.contentGridFullTextSearchMatch(
+                                                SearchComparison.contentGridFullTextSearchMatch(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("comment")),
                                                         Scalar.of("foo"), Locale.ENGLISH
                                                 ),
-                                                StringComparison.contentGridFullTextSearchMatch(
+                                                SearchComparison.contentGridFullTextSearchMatch(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("comment")),
                                                         Scalar.of("bar"), Locale.ENGLISH
                                                 )
@@ -1379,12 +1379,12 @@ class JOOQThunkExpressionResolverTest {
                         LogicalOperation.conjunction(
                                 // permissions: matches invoice_1 and invoice_2
                                 LogicalOperation.disjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
                                                 Scalar.of("code_2")
                                         ),
                                         LogicalOperation.conjunction(
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_02_"), SymbolicReference.path("code")),
                                                         Scalar.of("code_1")
                                                 ),
@@ -1396,7 +1396,7 @@ class JOOQThunkExpressionResolverTest {
                                 ),
                                 // filters: matches invoice_1
                                 LogicalOperation.conjunction(
-                                        StringComparison.normalizedEqual(
+                                        SearchComparison.normalizedEqual(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_04_"), SymbolicReference.path("code")),
                                                 Scalar.of("code_1")
                                         ),
@@ -1423,19 +1423,19 @@ class JOOQThunkExpressionResolverTest {
                                                         Scalar.of(true)
                                                 ),
                                                 // condition over a to-one relation
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("name")),
                                                         Scalar.of("alice")
                                                 )
                                         ),
                                         LogicalOperation.conjunction(
                                                 // condition over a to-many relation
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("products"), SymbolicReference.pathVar("_01_"), SymbolicReference.path("code")),
                                                         Scalar.of("code_3")
                                                 ),
                                                 // condition over a to-one relation
-                                                StringComparison.normalizedEqual(
+                                                SearchComparison.normalizedEqual(
                                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                         Scalar.of("vat_2")
                                                 )
@@ -1455,7 +1455,7 @@ class JOOQThunkExpressionResolverTest {
                                                 )
                                         ),
                                         // condition over a to-one relation
-                                        StringComparison.contentGridPrefixSearchMatch(
+                                        SearchComparison.contentGridPrefixSearchMatch(
                                                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("vat")),
                                                 Scalar.of("vat")
                                         ),
