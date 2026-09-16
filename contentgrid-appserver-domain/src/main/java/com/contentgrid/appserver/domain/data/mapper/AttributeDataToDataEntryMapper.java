@@ -39,8 +39,8 @@ public class AttributeDataToDataEntryMapper implements
             case ContentAttribute contentAttribute -> mapContentAttribute(contentAttribute, (CompositeAttributeData)data);
             case UserAttribute userAttribute -> mapUserAttribute(userAttribute, (CompositeAttributeData)data);
             case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, (CompositeAttributeData)data);
-        }).orElseGet(() -> attribute instanceof MultivalueAttribute multivalueAttribute
-                ? mapMultivalueAttribute(multivalueAttribute.getItemType(), null)
+        }).orElseGet(() -> attribute instanceof MultivalueAttribute
+                ? new ListDataEntry(List.of())
                 : NullDataEntry.INSTANCE);
     }
 
@@ -80,9 +80,6 @@ public class AttributeDataToDataEntryMapper implements
     }
 
     private PlainDataEntry mapMultivalueAttribute(@NonNull SimpleAttribute.Type itemType, Object data) {
-        if (data == null) {
-            return new ListDataEntry(List.of());
-        }
         return new ListDataEntry(((List<?>) data).stream()
                 .map(element -> mapSimpleAttribute(itemType, element))
                 .toList());
