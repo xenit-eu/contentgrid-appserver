@@ -366,7 +366,7 @@ class DatamodelApiImplTest {
                     .toList();
             var cause = expectCreateFailure(Map.of("tags", overLimit), "tags",
                     InvalidDataFormatException.class);
-            assertThat(cause.getExpectedType().getTechnicalName()).isEqualTo("string_set");
+            assertThat(cause.getExpectedType().getTechnicalName()).isEqualTo("set:string");
         }
 
         @Test
@@ -378,7 +378,7 @@ class DatamodelApiImplTest {
                                 assertThat(ex.getPath()).hasToString("tags");
                                 assertThat(ex.getCause()).isInstanceOfSatisfying(InvalidDataTypeException.class,
                                         invalidType -> assertThat(invalidType.getExpectedType().getTechnicalName())
-                                                .isEqualTo("string_set"));
+                                                .isEqualTo("set:string"));
                             }));
             Mockito.verifyNoInteractions(queryEngine, contentStore);
         }

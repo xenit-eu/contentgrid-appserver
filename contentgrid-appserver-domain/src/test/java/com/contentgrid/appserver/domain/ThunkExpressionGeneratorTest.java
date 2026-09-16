@@ -964,7 +964,7 @@ class ThunkExpressionGeneratorTest {
 
         var exception = assertThrows(InvalidFilterParameterException.class,
                 () -> ThunkExpressionGenerator.from(testApplication, testEntity, params));
-        assertEquals("string_set", exception.getType().getTechnicalName());
+        assertEquals("set:string", exception.getType().getTechnicalName());
     }
 
     @Test

@@ -12,7 +12,7 @@ final class SetDataType implements DataType {
 
     @Override
     public String getTechnicalName() {
-        return itemType.getTechnicalName() + "_set";
+        return "set:"+itemType.getTechnicalName();
     }
 
     @Override
