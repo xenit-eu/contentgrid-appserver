@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.mapper;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
@@ -45,6 +46,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
         try {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData);
+                case MultivalueAttribute ignored -> inputData;
                 case CompositeAttribute compositeAttribute -> mapCompositeAttribute(path, compositeAttribute, inputData);
             };
         } catch (InvalidDataException e) {

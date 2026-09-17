@@ -8,6 +8,7 @@ import org.springframework.context.MessageSourceResolvable;
 public enum ProblemType implements ProblemTypeResolvable {
     INPUT_VALIDATION("input", "validation"),
     INPUT_VALIDATION_DUPLICATE_VALUE("input", "validation", "duplicate"),
+    INPUT_VALIDATION_DUPLICATE_ELEMENT("input", "validation", "duplicate-element"),
     INPUT_VALIDATION_INVALID_TYPE("input", "validation", "type"),
     INPUT_VALIDATION_INVALID_TYPE_FORMAT("input", "validation", "type", "format"),
     INPUT_VALIDATION_REQUIRED_VALUE("input", "validation", "required"),

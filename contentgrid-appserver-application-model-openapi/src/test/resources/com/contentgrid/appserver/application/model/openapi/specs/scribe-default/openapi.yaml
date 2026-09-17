@@ -294,6 +294,7 @@ paths:
                 format: "uri"
                 examples:
                 - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+              uniqueItems: true
       responses:
         "204":
           description: "The list of insurance-case is linked with insurance-case as\
@@ -1321,6 +1322,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "case_number"
       - "owning_party"
@@ -1346,6 +1348,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "case_number"
       - "owning_party"
@@ -1377,6 +1380,7 @@ components:
             format: "uri"
             examples:
             - "https://contentgrid-app.example/insurance-cases/00000000-0000-0000-0000-000000000000"
+          uniqueItems: true
       required:
       - "case_number"
       - "owning_party"
@@ -1738,6 +1742,7 @@ components:
         mapping:
           https://contentgrid.cloud/problems/input/validation/allowed-values: "#/components/schemas/problemDetail.input-validation.field.allowed-values"
           https://contentgrid.cloud/problems/input/validation/duplicate: "#/components/schemas/problemDetail.input-validation.field.duplicate"
+          https://contentgrid.cloud/problems/input/validation/duplicate-element: "#/components/schemas/problemDetail.input-validation.field.duplicate-element"
           https://contentgrid.cloud/problems/input/validation/missing-relation-target: "#/components/schemas/problemDetail.input-validation.field.missing-relation-target"
           https://contentgrid.cloud/problems/input/validation/no-content: "#/components/schemas/problemDetail.input-validation.field.no-content"
           https://contentgrid.cloud/problems/input/validation/pattern: "#/components/schemas/problemDetail.input-validation.field.pattern"
@@ -1770,6 +1775,17 @@ components:
             format: "uri"
         required:
         - "conflicting_item"
+    problemDetail.input-validation.field.duplicate-element:
+      allOf:
+      - $ref: "#/components/schemas/problemDetail.input-validation.field"
+      - type: "object"
+        title: "Duplicate value in list"
+        description: "A multi-value field contains the same value more than once"
+        properties:
+          duplicate_value:
+            type: "string"
+        required:
+        - "duplicate_value"
     problemDetail.input-validation.field.missing-relation-target:
       allOf:
       - $ref: "#/components/schemas/problemDetail.input-validation.field"

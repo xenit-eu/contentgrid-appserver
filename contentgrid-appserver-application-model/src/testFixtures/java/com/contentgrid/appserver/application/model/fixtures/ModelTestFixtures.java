@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
@@ -96,6 +97,13 @@ public class ModelTestFixtures {
             .constraint(Constraint.allowedValues(List.of("female", "male")))
             .build();
 
+    public static final MultivalueAttribute PERSON_TAGS = MultivalueAttribute.builder()
+            .name(AttributeName.of("tags"))
+            .column(ColumnName.of("tags"))
+            .translationsBy(Locale.ENGLISH, t -> t.withName("Tags"))
+            .itemType(Type.TEXT)
+            .build();
+
     public static final EntityLink PERSON_VAT_LINK = EntityLink.builder()
             .identity(new NamedLink(URI.create("https://vat.example/rel/lookup"), "vat"))
             .profile(URI.create("https://vat.example/profile"))
@@ -128,6 +136,7 @@ public class ModelTestFixtures {
             .attribute(PERSON_VAT)
             .attribute(PERSON_AGE)
             .attribute(PERSON_GENDER)
+            .attribute(PERSON_TAGS)
             .link(PERSON_VAT_LINK)
             .link(PERSON_PREVIEW_LINK)
             .searchFilter(AttributeSearchFilter.builder()
@@ -137,6 +146,11 @@ public class ModelTestFixtures {
                     .translationsBy(Locale.ENGLISH, t -> t.withName("Name starts with"))
                     .translationsBy(Locale.FRENCH, t -> t.withName("Nom commence par"))
                     .translationsBy(Locale.of("nl"), t -> t.withName("Naam begint met"))
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.CONTAINS)
+                    .attribute(PERSON_TAGS)
+                    .name(FilterName.of("tags"))
                     .build())
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.EXACT)
@@ -318,6 +332,13 @@ public class ModelTestFixtures {
             .constraint(Constraint.required())
             .build();
 
+    public static final MultivalueAttribute INVOICE_LABELS = MultivalueAttribute.builder()
+            .name(AttributeName.of("labels"))
+            .column(ColumnName.of("labels"))
+            .itemType(Type.TEXT)
+            .constraint(Constraint.allowedValues(List.of("urgent", "review")))
+            .build();
+
     public static final ContentAttribute INVOICE_CONTENT = ContentAttribute.builder()
             .name(AttributeName.of("content"))
             .pathSegment(PathSegmentName.of("content"))
@@ -380,6 +401,7 @@ public class ModelTestFixtures {
             .attribute(INVOICE_PAY_TIMESTAMP)
             .attribute(INVOICE_IS_PAID)
             .attribute(INVOICE_CONFIDENTIALITY)
+            .attribute(INVOICE_LABELS)
             .attribute(INVOICE_CONTENT)
             .attribute(INVOICE_AUDIT_METADATA)
             .searchFilter(AttributeSearchFilter.builder()
@@ -529,6 +551,11 @@ public class ModelTestFixtures {
             .sortableField(SortableField.builder()
                     .name(SortableName.of("confidentiality"))
                     .propertyPath(PropertyPath.toAttribute(AttributeName.of("confidentiality")))
+                    .build())
+            .searchFilter(AttributeSearchFilter.builder()
+                    .operation(Operation.CONTAINS)
+                    .attribute(INVOICE_LABELS)
+                    .name(FilterName.of("labels"))
                     .build())
             .build();
 

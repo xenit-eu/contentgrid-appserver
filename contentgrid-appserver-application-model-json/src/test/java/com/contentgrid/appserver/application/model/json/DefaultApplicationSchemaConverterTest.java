@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.json;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +15,7 @@ import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
 import com.contentgrid.appserver.application.model.settings.database.DatabaseSettings;
 import com.contentgrid.appserver.application.model.settings.encryption.ContentEncryptionSettings;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -30,6 +32,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.application.model.json.exceptions.InvalidAttributeTypeException;
 import com.contentgrid.appserver.application.model.json.exceptions.InvalidJsonException;
 import com.contentgrid.appserver.application.model.json.exceptions.SchemaValidationException;
 import java.io.ByteArrayInputStream;
@@ -52,7 +55,15 @@ class DefaultApplicationSchemaConverterTest {
             assertTrue(app.getSettings().getContentEncryption().isEmpty());
             assertFalse(app.getEntities().isEmpty());
             assertFalse(app.getRelations().isEmpty());
-            // Optionally, add more assertions for entities, attributes, and relations
+
+            var department = app.getRequiredEntityByName(EntityName.of("department"));
+            var labels = department.getAttributeByName(AttributeName.of("labels")).orElseThrow();
+            var multivalueAttribute = assertInstanceOf(MultivalueAttribute.class, labels);
+            assertEquals(Type.TEXT, multivalueAttribute.getItemType());
+            assertEquals(ColumnName.of("dept_labels"), multivalueAttribute.getColumn());
+            var allowedValues = multivalueAttribute.getConstraint(Constraint.AllowedValuesConstraint.class)
+                    .orElseThrow();
+            assertEquals(List.of("hr", "it", "finance"), allowedValues.getValues());
         }
     }
 
@@ -251,6 +262,38 @@ class DefaultApplicationSchemaConverterTest {
         var converter = new DefaultApplicationSchemaConverter();
         assertThrows(SchemaValidationException.class, () -> converter.convert(
                 new ByteArrayInputStream(jsonWithUnknownFlag.getBytes(StandardCharsets.UTF_8))));
+    }
+
+    @Test
+    void testMultivaluePrimaryKeyRejected() {
+        var jsonWithMultivaluePrimaryKey = """
+                {
+                    "$schema": "https://contentgrid.cloud/schemas/application-schema.json",
+                    "applicationName": "HR application",
+                    "version": "1.0.0",
+                    "entities": [
+                        {
+                            "name": "Employee",
+                            "table": "employees",
+                            "pathSegment": "employee",
+                            "linkName": "employee",
+                            "primaryKey":
+                                {
+                                    "name": "id",
+                                    "type": "simple",
+                                    "dataType": "text_set",
+                                    "columnName": "id",
+                                    "flags": ["readOnly"]
+                                }
+                        }
+                    ]
+                }
+                """;
+
+        var converter = new DefaultApplicationSchemaConverter();
+        var exception = assertThrows(InvalidAttributeTypeException.class, () -> converter.convert(
+                new ByteArrayInputStream(jsonWithMultivaluePrimaryKey.getBytes(StandardCharsets.UTF_8))));
+        assertTrue(exception.getMessage().contains("must be a scalar attribute"));
     }
 
     @Test

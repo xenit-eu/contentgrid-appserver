@@ -7,6 +7,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
@@ -21,6 +22,7 @@ import com.contentgrid.appserver.application.model.relations.flags.HiddenEndpoin
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.BaseAttributeSearchFilter;
+import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.flags.HiddenSearchFilterFlag;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import java.util.Collections;
@@ -67,23 +69,22 @@ public final class BodyObjectMapper {
             var translations = searchFilter.getTranslations(context.userLocales());
             var bodyValue = switch (searchFilter) {
                 case BaseAttributeSearchFilter attributeSearchFilter -> {
-                    var attribute = context.application().resolvePropertyPath(entity, attributeSearchFilter.getAttributePath());
-                    yield getBodyValue(
+                    var attribute = context.application().getPropertyPathResolver()
+                            .resolveAttribute(entityName, attributeSearchFilter.getAttributePath())
+                            .getAttribute();
+                    var value = getBodyValue(
                             context,
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
                             attribute
                     );
+                    yield searchValue(value);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + searchFilter);
             };
 
-            if (
-                    bodyValue instanceof SimpleBodyValue simpleBodyValue &&
-                            !(searchFilter instanceof AttributeSearchFilter attributeSearchFilter &&
-                            attributeSearchFilter.getOperation() == Operation.EXACT)
-            ) {
-                // Constraints don't apply to search filters; except to the 'exact' filter,
-                // where the searched value must match a value exactly
+            if (bodyValue instanceof SimpleBodyValue simpleBodyValue && !matchesExactValue(searchFilter)) {
+                // Constraints don't apply to search filters; except to the 'exact' and 'contains'
+                // filters, where the searched value must match a value exactly
                 bodyValue = simpleBodyValue.toBuilder().clearConstraints().build();
             }
 
@@ -107,6 +108,22 @@ public final class BodyObjectMapper {
         }
         return new ObjectBodyValue(Collections.unmodifiableMap(fields));
 
+    }
+
+    private static BodyValue searchValue(BodyValue value) {
+        // A search filter carries one value at a time, also on a multi-value attribute.
+        // The title and description describe the attribute, so they move to the item.
+        return value instanceof ArrayBodyValue arrayBodyValue
+                ? arrayBodyValue.getItems()
+                        .withTitle(arrayBodyValue.getTitle())
+                        .withDescription(arrayBodyValue.getDescription())
+                : value;
+    }
+
+    private static boolean matchesExactValue(SearchFilter searchFilter) {
+        return searchFilter instanceof AttributeSearchFilter attributeSearchFilter
+                && (attributeSearchFilter.getOperation() == Operation.EXACT
+                || attributeSearchFilter.getOperation() == Operation.CONTAINS);
     }
 
     /**
@@ -146,8 +163,13 @@ public final class BodyObjectMapper {
                 // Multi-valued relations are an array
                 if (relation instanceof OneToManyRelation
                         || relation instanceof ManyToManyRelation) {
-                    // The array for to-many relations can't contain null values, and can not be null itself (it can be left out)
-                    relationValue = new ArrayBodyValue(relationValue.withNullable(false)).withNullable(false);
+                    // The array for to-many relations can't contain null values, can't contain the
+                    // same relation target twice, and can not be null itself (it can be left out)
+                    relationValue = ArrayBodyValue.builder()
+                            .items(relationValue.withNullable(false))
+                            .uniqueItems(true)
+                            .nullable(false)
+                            .build();
                 } else {
                     relationValue = relationValue
                             // For to-one relations that are required, they are required.
@@ -269,6 +291,20 @@ public final class BodyObjectMapper {
                             .toList()
                     )
                     .build();
+            case MultivalueAttribute ma ->
+                    // A multi-value attribute is a set of elements: the element type carries the
+                    // constraints, the array itself is always present and never null
+                    ArrayBodyValue.builder()
+                            .sourceType(sourceType)
+                            .items(SimpleBodyValue.builder()
+                                    .sourceType(sourceType)
+                                    .type(ma.getItemType())
+                                    .nullable(false)
+                                    .constraints(ma.getConstraints())
+                                    .build())
+                            .uniqueItems(true)
+                            .nullable(false)
+                            .build();
             case ContentAttribute ca -> {
                 if (context.mediaType().canTransportContent()) {
                     // For multipart forms, use a special type for content upload
@@ -330,8 +366,11 @@ public final class BodyObjectMapper {
         if (bodyValue != null) {
             bodyValue = switch (context.bodyType()) {
                 case RESPONSE -> bodyValue.withMandatory(true); // All items are always present in the response
-                case PUT, POST -> bodyValue.isNullable() ? bodyValue : bodyValue.withMandatory(
-                        true); // All non-nullable values are required when POST or PUT (keys that are left out are set to null)
+                // An array can always be left out: a missing multi-value attribute is the empty array.
+                // All non-nullable values are required when POST or PUT (keys left out are set to null)
+                case PUT, POST -> bodyValue.isNullable() || bodyValue instanceof ArrayBodyValue
+                        ? bodyValue
+                        : bodyValue.withMandatory(true);
                 case PATCH -> bodyValue.withMandatory(false); // No items are mandatory for PATCH (keys that are left out are kept as-is)
             };
 

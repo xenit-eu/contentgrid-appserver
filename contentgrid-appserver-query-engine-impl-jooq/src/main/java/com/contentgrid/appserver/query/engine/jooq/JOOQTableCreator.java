@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.query.engine.jooq.resolver.DSLContextResolver;
@@ -34,7 +35,7 @@ public class JOOQTableCreator implements TableCreator {
             strategy.make(dslContext, application, relation);
         }
         // Create extensions schema and functions
-        createCGPrefixSearchNormalize(dslContext);
+        createSearchNormalizeFunctions(dslContext);
     }
 
     private void createTableForEntity(DSLContext dslContext, Entity entity) {
@@ -55,6 +56,9 @@ public class JOOQTableCreator implements TableCreator {
                     result = result.constraint(DSL.unique(simpleAttribute.getColumn().getValue()));
                 }
                 return result;
+            }
+            case MultivalueAttribute multivalueAttribute -> {
+                return step.column(JOOQUtils.resolveField(multivalueAttribute));
             }
             case CompositeAttribute compositeAttribute -> {
                 for (var nestedAttribute : compositeAttribute.getAttributes()) {
@@ -82,11 +86,11 @@ public class JOOQTableCreator implements TableCreator {
         }
 
         // Drop extensions schema and functions
-        dropCGPrefixSearchNormalize(dslContext);
+        dropSearchNormalizeFunctions(dslContext);
     }
 
     @Allow.PlainSQL
-    private void createCGPrefixSearchNormalize(DSLContext dslContext) {
+    private void createSearchNormalizeFunctions(DSLContext dslContext) {
         var schema = DSL.schema("extensions");
         dslContext.createSchemaIfNotExists(schema).execute();
         dslContext.execute(DSL.sql("CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA ?;", schema));
@@ -96,11 +100,18 @@ public class JOOQTableCreator implements TableCreator {
                   LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
                 RETURN ?.unaccent('extensions.unaccent', lower(normalize(arg, NFKC)));
                 """, schema, schema));
+        dslContext.execute(DSL.sql("""
+                CREATE OR REPLACE FUNCTION ?.contentgrid_array_search_normalize(arr text[])
+                  RETURNS text[]
+                  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+                RETURN (SELECT ARRAY(SELECT normalize(e, NFKC) FROM unnest(arr) AS e));
+                """, schema));
     }
 
     @Allow.PlainSQL
-    private void dropCGPrefixSearchNormalize(DSLContext dslContext) {
+    private void dropSearchNormalizeFunctions(DSLContext dslContext) {
         var schema = DSL.schema("extensions");
+        dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_array_search_normalize(text[]);", schema));
         dslContext.execute(DSL.sql("DROP FUNCTION IF EXISTS ?.contentgrid_prefix_search_normalize(text);", schema));
         dslContext.execute(DSL.sql("DROP EXTENSION IF EXISTS unaccent;"));
         dslContext.dropSchemaIfExists(schema).execute();
