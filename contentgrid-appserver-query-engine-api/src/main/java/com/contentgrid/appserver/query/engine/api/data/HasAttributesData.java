@@ -14,22 +14,22 @@ public interface HasAttributesData {
 
     Optional<AttributeData> getAttributeByName(AttributeName name);
 
-    default Optional<SimpleAttributeData<?>> getNestedAttributeByPath(@NonNull AttributePath path) {
-        var maybeAttributeData = getAttributeByName(path.getFirst());
-        return switch (path) {
-            case SimpleAttributePath simpleAttributePath -> maybeAttributeData.flatMap(attr -> {
-                if (attr instanceof SimpleAttributeData<?> simpleAttributeData) {
-                    return Optional.of(simpleAttributeData);
-                }
-                return Optional.empty();
-            });
-            case CompositeAttributePath compositeAttributePath -> maybeAttributeData.flatMap(attr -> {
-                if(attr instanceof HasAttributesData hasAttributesData) {
-                    return hasAttributesData.getNestedAttributeByPath(path.getRest());
-                }
-                return Optional.empty();
-            });
-        };
+    default Optional<AttributeData> getNestedAttributeByPath(@NonNull AttributePath path) {
+        return getNestedAttributeByPath(path, AttributeData.class);
     }
 
+    default <T extends AttributeData> Optional<T> getNestedAttributeByPath(@NonNull AttributePath path,
+            @NonNull Class<T> attributeDataClass) {
+        var maybeAttributeData = getAttributeByName(path.getFirst());
+        if (path.getRest() == null) {
+            return maybeAttributeData
+                    .filter(attributeDataClass::isInstance)
+                    .map(attributeDataClass::cast);
+        }
+        return maybeAttributeData
+                .filter(HasAttributesData.class::isInstance)
+                .map(HasAttributesData.class::cast)
+                .flatMap(hasAttributesData -> hasAttributesData.getNestedAttributeByPath(path.getRest(),
+                        attributeDataClass));
+    }
 }

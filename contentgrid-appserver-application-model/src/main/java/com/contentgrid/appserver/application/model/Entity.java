@@ -18,6 +18,7 @@ import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSuppor
 import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
@@ -445,6 +446,14 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
         throw new AttributeNotFoundException(
                 "Resolving property path '%s' on entity '%s' did not result in a SimpleAttribute".formatted(
                         attributePath, name));
+    }
+
+    public <T extends EntityLink> Optional<T> findLinkByIdentity(@NonNull LinkIdentity linkIdentity, @NonNull Class<T> linkClass) {
+        return getLinks().stream()
+                .filter(entityLink -> entityLink.getIdentity().equals(linkIdentity))
+                .filter(linkClass::isInstance)
+                .map(linkClass::cast)
+                .findFirst();
     }
 
     public static EntityBuilder builder() {
