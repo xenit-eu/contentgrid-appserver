@@ -710,7 +710,7 @@ class JOOQThunkExpressionResolverTest {
     @ParameterizedTest
     @MethodSource
     void findWithArraySearch(Set<UUID> expectedIds, String[] searchValues) {
-        var values = Arrays.stream(searchValues).<Scalar<?>>map(value -> Scalar.of(value))
+        var values = Arrays.stream(searchValues).<Scalar<?>>map(Scalar::of)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         ThunkExpression<Boolean> expression = SearchComparison.contentGridArraySearchMatch(
                 SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags")),
