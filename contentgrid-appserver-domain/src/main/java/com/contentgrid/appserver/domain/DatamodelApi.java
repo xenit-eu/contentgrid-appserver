@@ -29,7 +29,7 @@ import lombok.NonNull;
  * Primarily it relays operations to the QueryEngine, with arguments slightly transformed; as well as to the Content
  * service.
  */
-public interface DatamodelApi {
+public interface DatamodelApi extends EntityLinkApi {
 
     /**
      * Finds all entities that match the given params.

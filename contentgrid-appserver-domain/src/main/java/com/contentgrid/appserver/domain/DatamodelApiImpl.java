@@ -3,15 +3,24 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.VersionedString;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
@@ -45,14 +54,15 @@ import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
-import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
@@ -60,9 +70,11 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -82,7 +94,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -214,7 +225,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private void validateSortData(Entity entity, SortData sortData) {
         for (FieldSort field : sortData.getSortedFields()) {
             var name = field.getName();
-            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterException.InvalidSortParameterNameException(entity.getName(), name));
+            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterNameException(entity.getName(), name));
         }
     }
 
@@ -462,6 +473,70 @@ public class DatamodelApiImpl implements DatamodelApi {
         );
     }
 
+    @Override
+    public Optional<StoredLinkValue> findLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+            @NonNull AuthorizationContext authorizationContext) {
+        var entityFromApplication = application
+                .getRequiredEntityByName(linkRequest.getEntityName());
+        var entityLink = entityFromApplication
+                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest));
+        var storage = entityLink.getStorage();
+
+        return queryEngine
+                .findById(application, EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
+                        authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.getEntityName(), linkRequest.getEntityId()))
+                .getNestedAttributeByPath(entityLink.getStorage())
+                .map(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
+                        linkRequest.getEntityName(), storage));
+    }
+
+    private StoredLinkValue mapAttributeDataToStoredValue(AttributeData attributeData, Application application,
+            EntityName entityName, AttributePath attributeName) {
+        return switch (attributeData) {
+            case SimpleAttributeData<?> simpleAttributeData ->
+                    new TextValue(new VersionedString((String) simpleAttributeData.getValue(), null));
+            case CompositeAttributeData compositeAttributeData ->
+                    createContentValue(application, entityName, attributeName, compositeAttributeData);
+        };
+    }
+
+    private ContentValue createContentValue(
+            @NonNull Application application,
+            @NonNull EntityName entityName,
+            @NonNull AttributePath attributePath,
+            @NonNull CompositeAttributeData compositeAttributeData
+    ) {
+        var contentAttribute = Optional.of(application
+                        .getPropertyPathResolver()
+                        .resolveAttribute(entityName, attributePath)
+                        .getAttribute())
+                .filter(ContentAttribute.class::isInstance)
+                .map(ContentAttribute.class::cast)
+                .orElseThrow();
+        var contentStore = contentStoreResolver.resolve(application);
+        return new ContentValue(
+                new AttributeDataContent(contentStore, contentAttribute, compositeAttributeData));
+    }
+
+    @Override
+    public StoredLinkValue updateLink(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull StoredEntityLink link, @NonNull DataEntry value,
+            @NonNull AuthorizationContext authorizationContext) throws InvalidPropertyDataException {
+        return null;
+        // Build Attribute chain
+        // raw update
+        // Extract info to StoredLinkValue
+    }
+
+    @Override
+    public void deleteLink(@NonNull Application application, @NonNull EntityRequest entityRequest,
+            @NonNull LinkIdentity link, @NonNull AuthorizationContext authorizationContext)
+            throws InvalidPropertyDataException {
+
+    }
+
     @RequiredArgsConstructor
     private static class ResponseOutputDataMapper {
         private final List<Attribute> attributes;
@@ -514,7 +589,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                 // Whether the owner has data stored
                 var ownerHasData = entityLink.getOwner().map(owner -> {
                     try {
-                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue() != null;
+                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                SimpleAttributeData.class).orElseThrow().getValue() != null;
                     } catch (InvalidPropertyPathException e) {
                         throw new IllegalStateException(e);
                     }
@@ -533,7 +609,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                     case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
                     case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
                         try {
-                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue(), null);
+                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                    SimpleAttributeData.class).orElseThrow().getValue(), null);
                         } catch (InvalidPropertyPathException e) {
                             throw new IllegalStateException(e);
                         }
