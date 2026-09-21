@@ -19,9 +19,11 @@ import com.contentgrid.appserver.rest.entity.ContentRestController;
 import com.contentgrid.appserver.rest.entity.XToOneRelationRestController;
 import com.contentgrid.hateoas.spring.links.UriTemplateMatcher;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -30,6 +32,7 @@ import lombok.With;
 import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriTemplate;
 
 /**
  * Generates {@link LinkFactory}s for entity-based paths
@@ -147,20 +150,40 @@ public class LinkFactoryProvider {
     public UriTemplateMatcher<EntityId> itemMatcher(@NonNull EntityName entityName) {
         var entity = application.getRequiredEntityByName(entityName);
 
+        var rootTemplateHref = linkTo(methodOn(RootRestController.class)
+                .getRoot(application, this)
+        ).toUri().resolve("/").toString();
+
+        var itemTemplateHref = linkTo(methodOn(EntityRestController.class)
+                .getEntity(
+                        application,
+                        entity.getPathSegment(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        userLocales,
+                        this
+                )).withSelfRel().getHref();
+
+
+
         return UriTemplateMatcher.<EntityId>builder()
-                .matcherFor(methodOn(EntityRestController.class)
-                                .getEntity(
-                                        application,
-                                        entity.getPathSegment(),
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        userLocales,
-                                        this
-                                ),
-                        params -> EntityId.of(UUID.fromString(params.get("id"))))
+                // Matcher for full path
+                .matcherFor(
+                        new UriTemplate(itemTemplateHref),
+                        LinkFactoryProvider::convertToEntityId
+                )
+                // Matcher for path without host prefix
+                .matcherFor(
+                        new UriTemplate(itemTemplateHref.replaceFirst(Pattern.quote(rootTemplateHref), "/")),
+                        LinkFactoryProvider::convertToEntityId
+                )
                 .build();
+    }
+
+    private static EntityId convertToEntityId(Map<String, String> params) {
+        return EntityId.of(UUID.fromString(params.get("id")));
     }
 
     /**

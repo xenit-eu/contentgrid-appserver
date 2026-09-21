@@ -387,6 +387,23 @@ class RelationRestControllerTest {
         }
 
         @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void setToOneRelation_pathUri(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .contentType("text/uri-list")
+                            .content("/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())))
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().exists(HttpHeaders.ETAG));
+
+            assertThat(datamodelApi.hasRelationTarget(APPLICATION, relation, sourceEntityIdentity.getEntityId(), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll())).isTrue();
+        }
+
+        @ParameterizedTest
         @MethodSource("toOneRelations_eTag")
         void setToOneRelation_eTag(Relation relation, ETagHandler eTagHandler, boolean succeeds) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
@@ -468,7 +485,7 @@ class RelationRestControllerTest {
 
             mockMvc.perform(post("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
                             .contentType("text/uri-list")
-                            .content("http://localhost/%s/%s%nhttp://localhost/%1$s/%s%n".formatted(targetEntity.getPathSegment(),
+                            .content("http://localhost/%s/%s%n/%1$s/%s%n".formatted(targetEntity.getPathSegment(),
                                     targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()))
                     )
                     .andExpect(status().isNoContent());
@@ -626,10 +643,10 @@ class RelationRestControllerTest {
                         .withError(error -> error.withType(
                                         "https://contentgrid.cloud/problems/input/validation/type/format")
                                 .withDetail(
-                                        "Expected value of type relation to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}'")
+                                        "Expected value of type relation to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}' or '/invoices/{id}'")
                                 .withField("expected_type", "entity:invoice")
                                 .withField("field", "previous_invoice")
-                                .withField("format_error", "Must match 'http://localhost/invoices/{id}'")
+                                .withField("format_error", "Must match 'http://localhost/invoices/{id}' or '/invoices/{id}'")
                         )
                 );
             } else {
@@ -698,10 +715,10 @@ class RelationRestControllerTest {
                         .withError(error -> error
                                 .withType("https://contentgrid.cloud/problems/input/validation/type/format")
                                 .withTitle("Invalid format")
-                                .withDetail("Expected value of type relations to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}'")
+                                .withDetail("Expected value of type relations to entity 'invoice', but the format is incorrect: Must match 'http://localhost/invoices/{id}' or '/invoices/{id}'")
                                 .withField("field", "invoices")
                                 .withField("expected_type", "entity_collection:invoice")
-                                .withField("format_error", "Must match 'http://localhost/invoices/{id}'")
+                                .withField("format_error", "Must match 'http://localhost/invoices/{id}' or '/invoices/{id}'")
                         )
                 );
             } else {
