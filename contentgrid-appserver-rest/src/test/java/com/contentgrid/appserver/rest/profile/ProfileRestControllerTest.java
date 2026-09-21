@@ -912,6 +912,7 @@ class ProfileRestControllerTest {
                                 labels: {
                                     type: "array",
                                     uniqueItems: true,
+                                    maxItems: 100,
                                     items: {
                                         type: "string",
                                         enum: ["urgent", "review"]

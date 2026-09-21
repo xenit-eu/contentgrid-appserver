@@ -104,7 +104,7 @@ public class JsonSchemaAssembler {
                 case SimpleBodyValue itemValue when itemValue.getType() == SimpleAttribute.Type.TEXT ->
                         property.asStringArray(itemValue.getConstraint(AllowedValuesConstraint.class)
                                 .map(AllowedValuesConstraint::getValues)
-                                .orElse(null));
+                                .orElse(null), arrayBodyValue.getMaxItems());
                 default -> throw new IllegalArgumentException(
                         "Array value with items %s is not supported".formatted(arrayBodyValue.getItems()));
             };

@@ -4583,6 +4583,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type:
           - "integer"
@@ -4684,6 +4685,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -4772,6 +4774,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type:
           - "integer"
@@ -4873,6 +4876,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -4954,6 +4958,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -5042,6 +5047,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type:
           - "integer"
@@ -5145,6 +5151,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type: "integer"
           format: "int64"
@@ -5264,6 +5271,7 @@ components:
             examples:
             - "alpha"
           uniqueItems: true
+          maxItems: 100
         integer_attribute:
           type:
           - "integer"

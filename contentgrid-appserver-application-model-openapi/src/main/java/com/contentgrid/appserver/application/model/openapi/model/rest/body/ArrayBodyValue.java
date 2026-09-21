@@ -28,4 +28,9 @@ public class ArrayBodyValue extends BodyValue {
     @Builder.Default
     boolean uniqueItems = false;
 
+    /**
+     * The maximum number of items the array can hold, or {@code null} when it is unbounded.
+     */
+    Integer maxItems;
+
 }

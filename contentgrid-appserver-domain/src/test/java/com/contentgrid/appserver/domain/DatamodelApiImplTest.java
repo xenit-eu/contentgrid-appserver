@@ -62,7 +62,6 @@ import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintV
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.DuplicateElementInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
-import com.contentgrid.appserver.domain.data.validation.TextSetValidator;
 import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
@@ -361,7 +360,7 @@ class DatamodelApiImplTest {
 
         @Test
         void tooManyElements_fails() {
-            var overLimit = IntStream.rangeClosed(0, TextSetValidator.MAX_ELEMENTS)
+            var overLimit = IntStream.rangeClosed(0, MultivalueAttribute.MAX_ELEMENTS)
                     .mapToObj("value-%d"::formatted)
                     .toList();
             var cause = expectCreateFailure(Map.of("tags", overLimit), "tags",

@@ -203,6 +203,7 @@ class BodyObjectMapperTest {
                     assertThat(value).isInstanceOfSatisfying(ArrayBodyValue.class, arrayBodyValue -> {
                         assertThat(arrayBodyValue.isNullable()).isFalse();
                         assertThat(arrayBodyValue.isUniqueItems()).isTrue();
+                        assertThat(arrayBodyValue.getMaxItems()).isEqualTo(MultivalueAttribute.MAX_ELEMENTS);
                         assertThat(arrayBodyValue.getItems()).isInstanceOfSatisfying(SimpleBodyValue.class, items -> {
                             assertThat(items.getType()).isEqualTo(Type.TEXT);
                             assertThat(items.isNullable()).isFalse();

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
@@ -117,7 +118,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("review")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isEqualTo(MultivalueAttribute.MAX_ELEMENTS);
                     });
                 },
                 content -> {
@@ -223,11 +224,11 @@ class HalFormsTemplateGeneratorTest {
                     // A multi-value attribute can always be omitted (a missing value is the empty set)
                     assertThat(tags.isRequired()).isFalse();
                     assertThat(tags.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
-                    // The options without maxItems mark the property as multi-valued, without a value list
+                    // The options without a value list mark the property as multi-valued free text
                     assertThat(tags.getOptions()).isInstanceOfSatisfying(Inline.class, options -> {
                         assertThat(options.getInline()).isNullOrEmpty();
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isEqualTo(MultivalueAttribute.MAX_ELEMENTS);
                     });
                 },
                 invoices -> {
@@ -349,7 +350,7 @@ class HalFormsTemplateGeneratorTest {
                                 value2 -> assertThat(value2).isEqualTo("review")
                         );
                         assertThat(options.getMinItems()).isZero();
-                        assertThat(options.getMaxItems()).isNull();
+                        assertThat(options.getMaxItems()).isEqualTo(MultivalueAttribute.MAX_ELEMENTS);
                     });
                 },
                 contentFilename -> {

@@ -580,9 +580,8 @@ public class OpenApiSpecConverter {
         AbstractJsonSchemaDataType jsonSchema = switch (bodyValue) {
             case ArrayBodyValue arrayBodyValue -> {
                 var array = new JsonSchemaArray(bodyValueToJsonSchema(context, arrayBodyValue.getItems(), bodyType));
-                if (arrayBodyValue.isUniqueItems()) {
-                    array.setUniqueItems(true);
-                }
+                array.setUniqueItems(arrayBodyValue.isUniqueItems());
+                array.setMaxItems(arrayBodyValue.getMaxItems());
                 yield array;
             }
             case ContentBodyValue contentBodyValue -> new JsonSchemaString().setFormat(Format.BINARY);

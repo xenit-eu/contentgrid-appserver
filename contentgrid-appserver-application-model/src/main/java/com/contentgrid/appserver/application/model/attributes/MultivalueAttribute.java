@@ -34,6 +34,11 @@ import lombok.experimental.Delegate;
 public class MultivalueAttribute implements Attribute {
 
     /**
+     * The maximum number of elements a multi-value attribute can hold, as a guard against unbounded arrays.
+     */
+    public static final int MAX_ELEMENTS = 100;
+
+    /**
      * The name of the attribute.
      */
     @NonNull

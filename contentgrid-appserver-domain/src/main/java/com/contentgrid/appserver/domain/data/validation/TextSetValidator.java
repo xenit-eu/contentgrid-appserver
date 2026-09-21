@@ -18,11 +18,9 @@ import java.util.List;
 /**
  * Enforces the set semantics of a multi-value text attribute: a write containing duplicate elements is
  * rejected, where elements are compared NFKC-normalized (so two encodings of the same character are
- * duplicates), and the number of elements is capped as a robustness guard against unbounded arrays.
+ * duplicates), and the number of elements is capped at {@link MultivalueAttribute#MAX_ELEMENTS}.
  */
 public class TextSetValidator implements AttributeValidationDataMapper.Validator {
-
-    public static final int MAX_ELEMENTS = 100;
 
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
@@ -35,10 +33,10 @@ public class TextSetValidator implements AttributeValidationDataMapper.Validator
 
     private static void validateSet(DataType attributeType, List<PlainDataEntry> items)
             throws InvalidDataException {
-        if (items.size() > MAX_ELEMENTS) {
+        if (items.size() > MultivalueAttribute.MAX_ELEMENTS) {
             throw new InvalidDataFormatException(attributeType,
-                    new IllegalArgumentException(
-                            "A multi-value attribute can contain at most %d elements".formatted(MAX_ELEMENTS)));
+                    new IllegalArgumentException("A multi-value attribute can contain at most %d elements"
+                            .formatted(MultivalueAttribute.MAX_ELEMENTS)));
         }
         var seen = new HashSet<String>();
         for (var item : items) {

@@ -24,6 +24,11 @@ public final class JsonSchemaArray extends AbstractJsonSchemaDataType {
     @JsonInclude(Include.NON_DEFAULT)
     private boolean uniqueItems;
 
+    @Setter
+    @Accessors(chain = true)
+    @JsonInclude(Include.NON_NULL)
+    private Integer maxItems;
+
     public JsonSchemaArray(@NonNull OpenApiPotentialReference<JsonSchema> items) {
         super("array");
         this.items = items;
