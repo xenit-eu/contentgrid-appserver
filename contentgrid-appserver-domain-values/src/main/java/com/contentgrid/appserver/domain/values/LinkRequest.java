@@ -36,6 +36,10 @@ public class LinkRequest {
         return new LinkRequest(entityName, entityId, linkIdentity, VersionConstraint.ANY);
     }
 
+    public EntityRequest toEntityRequest() {
+        return EntityRequest.forEntity(getEntityName(), getEntityId());
+    }
+
     public String toString() {
         return "Link '%s' on '%s' %s (matching version %s)".formatted(linkIdentity, entityName, entityId,
                 versionConstraint);
