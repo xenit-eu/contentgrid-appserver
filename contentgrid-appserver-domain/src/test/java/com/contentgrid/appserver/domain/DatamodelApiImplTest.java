@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -51,6 +52,7 @@ import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.A
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -150,6 +152,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactory;
+import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -1004,7 +1009,7 @@ class DatamodelApiImplTest {
         return invocation -> {
             InputStream inputStream = invocation.getArgument(0);
             inputStream.readAllBytes(); // read the bytes, so the underlying CountingInputStream has the correct size
-            var ca = Mockito.mock(ContentAccessor.class, Answers.RETURNS_SMART_NULLS);
+            var ca = mock(ContentAccessor.class, Answers.RETURNS_SMART_NULLS);
             Mockito.when(ca.getReference()).thenReturn(ContentReference.of(fileId));
             return ca;
         };
@@ -2049,6 +2054,7 @@ class DatamodelApiImplTest {
                 .column(ColumnName.of("_links__text__content"))
                 .flag(IgnoredFlag.INSTANCE)
                 .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
                 .build();
         private static final ContentAttribute PDF_ATTRIBUTE = ContentAttribute.builder()
                 .name(AttributeName.of("pdf"))
@@ -2178,6 +2184,26 @@ class DatamodelApiImplTest {
                 .relation(DOCUMENT_AUTHOR)
                 .build();
 
+        private static EntityData createDocumentData(EntityId id) {
+            return new EntityData(
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id),
+                    List.of(CompositeAttributeData.builder()
+                            .name(LINKS_ATTRIBUTE.getName())
+                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
+                            .attribute(CompositeAttributeData.builder()
+                                    .name(PDF_ATTRIBUTE.getName())
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                            "pdf-content-id"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                            "invoice.pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                            "application/pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
+                                    .build())
+                            .build()
+                    ));
+        }
+
         private static UriTemplateDefinition template(String template) {
             return new SimpleUriTemplateDefinition(
                     new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
@@ -2208,24 +2234,7 @@ class DatamodelApiImplTest {
         private void setupDocumentLinksQuery() {
             Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
                 var request = args.getArgument(1, EntityRequest.class);
-                return Optional.of(new EntityData(
-                        EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
-                        List.of(CompositeAttributeData.builder()
-                                .name(LINKS_ATTRIBUTE.getName())
-                                .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
-                                .attribute(CompositeAttributeData.builder()
-                                        .name(PDF_ATTRIBUTE.getName())
-                                        .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
-                                                "pdf-content-id"))
-                                        .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
-                                                "invoice.pdf"))
-                                        .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
-                                                "application/pdf"))
-                                        .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
-                                        .build())
-                                .build()
-                        ))
-                );
+                return Optional.of(createDocumentData(request.getEntityId()));
             });
         }
 
@@ -2280,7 +2289,8 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             PDF_RENDITION_LINK.getIdentity(),
                             null,
-                            "https://automation.example/my-automation/rendition?document="  + encodedUriProviderLink(entityId, "/attachment")
+                            "https://automation.example/my-automation/rendition?document=" + encodedUriProviderLink(
+                                    entityId, "/attachment")
                     )
             );
         }
@@ -2334,7 +2344,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void findLink_returnsEmptyWhenNoLinks() {
+        void findLink_throwsEntityIdNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
             assertThrows(EntityIdNotFoundException.class,
                     () -> datamodelApi.findLink(DOCUMENT_APPLICATION,
@@ -2343,7 +2353,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void findLink_returnsEmptyWhenLinkDoesntExist() {
+        void findLink_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
             assertThrows(LinkNotFoundException.class,
                     () -> datamodelApi.findLink(DOCUMENT_APPLICATION,
@@ -2373,16 +2383,162 @@ class DatamodelApiImplTest {
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
                     AuthorizationContext.allowAll());
 
-            assertThat(result).isNotEmpty().get().isInstanceOf(ContentValue.class);
-            var value = ((ContentValue) result.get());
-            assertThat(value.content()).satisfies(content -> {
-                assertThat(content.getDescription()).isEqualTo(
-                        "ContentAttribute pdf: 'ContentReference(value=pdf-content-id)'");
-                assertThat(content.getMimeType()).isEqualTo("application/pdf");
-                assertThat(content.getFilename()).isEqualTo("invoice.pdf");
-                assertThat(content.getLength()).isEqualTo(1);
-                assertThat(content.getVersion()).isNotNull();
-            });
+            assertThat(result).isNotEmpty()
+                    .get()
+                    .isInstanceOf(ContentValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
+                    .satisfies(contentValue -> {
+                        var content = contentValue.content();
+                        assertThat(content.getDescription()).isEqualTo(
+                                "ContentAttribute pdf: 'ContentReference(value=pdf-content-id)'");
+                        assertThat(content.getMimeType()).isEqualTo("application/pdf");
+                        assertThat(content.getFilename()).isEqualTo("invoice.pdf");
+                        assertThat(content.getLength()).isEqualTo(1);
+                        assertThat(content.getVersion()).isNotNull();
+                    });
+        }
+
+        @Test
+        void update_throwsLinkNotFound() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            assertThrows(LinkNotFoundException.class, () ->
+                    datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                            LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
+                            new StringDataEntry("Full text extraction"), AuthorizationContext.allowAll()));
+        }
+
+        @Test
+        void updateLink_storesTextData() {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+            var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    new StringDataEntry(EXTRACTION), AuthorizationContext.allowAll());
+            assertThat(result).isNotNull()
+                    .isInstanceOf(TextValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(TextValue.class))
+                    .satisfies(textValue -> {
+                                assertThat(textValue.versionedString().stringValue()).isEqualTo(EXTRACTION);
+                                assertThat(textValue.versionedString().version()).isNull();
+                            }
+                    );
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo(EXTRACTION));
+        }
+
+        @Test
+        void updateLink_storesContentData() throws UnwritableContentException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
+            var fileId = "my-file.bin";
+            var fileName = "invoice.pdf";
+            var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
+
+            var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
+                    AuthorizationContext.allowAll());
+            assertThat(result).isNotNull()
+                    .isInstanceOf(ContentValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
+                    .satisfies(contentValue -> {
+                        var content = contentValue.content();
+                        assertThat(content.getDescription()).isEqualTo(
+                                "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
+                        assertThat(content.getMimeType()).isEqualTo(contentType);
+                        assertThat(content.getFilename()).isEqualTo(fileName);
+                        assertThat(content.getLength()).isEqualTo(150);
+                        assertThat(content.getVersion()).isNotNull();
+                    });
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links"))).isNotEmpty()
+                    .get()
+                    .isInstanceOf(CompositeAttributeData.class)
+                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
+                    .satisfies(attributeData -> {
+                        assertThat(attributeData).isNotNull();
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                                .get()
+                                .isInstanceOf(CompositeAttributeData.class)
+                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
+                                        Assertions::assertThat))
+                                .satisfies(pdfAttribute ->
+                                        assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                                        fileId),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                                        fileName),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                                        contentType),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 150L)
+                                        )
+                                );
+                    });
+        }
+
+        @Test
+        void deleteLink_throwsLinkNotFound() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing"));
+            var allowAll = AuthorizationContext.allowAll();
+            assertThrows(LinkNotFoundException.class, () -> datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll));
+        }
+
+        @Test
+        void deleteLink_deletesText() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity());
+            var allowAll = AuthorizationContext.allowAll();
+            var entityData = createDocumentData(entityId);
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll);
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isNull());
+        }
+
+        @Test
+        void deleteLink_deletesContent() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity());
+            var allowAll = AuthorizationContext.allowAll();
+            var entityData = createDocumentData(entityId);
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll);
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("pdf")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isNull());
         }
     }
 
@@ -2419,5 +2575,9 @@ class DatamodelApiImplTest {
             ).isInstanceOf(EntityIdNotFoundException.class);
 
         }
+    }
+
+    private static <T> InstanceOfAssertFactory<T, ObjectAssert<T>> instanceOfAssertFactory(Class<T> instanceClass) {
+        return new InstanceOfAssertFactory<>(instanceClass, Assertions::assertThat);
     }
 }
