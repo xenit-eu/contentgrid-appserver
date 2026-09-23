@@ -223,6 +223,7 @@ public class JsonSchema {
         private JsonSchemaFormat format;
         private String pattern;
         private Boolean uniqueItems;
+        private Integer maxItems;
         private @JsonProperty("$ref") JsonSchemaReference reference;
         // TODO: Type the item schema instead of assembling it as a map of magic keys (ACC-3170)
         private Map<String, Object> items;
@@ -283,6 +284,7 @@ public class JsonSchema {
         public JsonSchemaProperty asAssociation() {
             this.items = null;
             this.uniqueItems = null;
+            this.maxItems = null;
 
             return withFormat(JsonSchemaFormat.URI);
         }
@@ -305,9 +307,9 @@ public class JsonSchema {
 
         /**
          * Turns the current {@link JsonSchemaProperty} into an array of unique strings, optionally
-         * restricted to the given allowed values.
+         * restricted to the given allowed values and to at most {@code maxItems} elements.
          */
-        public JsonSchemaProperty asStringArray(List<String> allowedValues) {
+        public JsonSchemaProperty asStringArray(List<String> allowedValues, Integer maxItems) {
             var itemSchema = new LinkedHashMap<String, Object>();
             itemSchema.put("type", JsonSchemaType.STRING.toString());
             if (allowedValues != null && !allowedValues.isEmpty()) {
@@ -316,6 +318,7 @@ public class JsonSchema {
             this.items = Collections.unmodifiableMap(itemSchema);
 
             this.uniqueItems = true;
+            this.maxItems = maxItems;
 
             return withType(JsonSchemaType.ARRAY);
         }

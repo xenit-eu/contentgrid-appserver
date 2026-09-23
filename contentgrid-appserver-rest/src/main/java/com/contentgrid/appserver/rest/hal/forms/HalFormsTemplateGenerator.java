@@ -199,8 +199,9 @@ public class HalFormsTemplateGenerator {
                     options = HalFormsOptions.inline().withMinItems(0L);
                 }
                 if (options instanceof AbstractHalFormsOptions<?> halFormsOptions) {
-                    // Set max items to unlimited when we have an array
-                    options = halFormsOptions.withMaxItems(null);
+                    // An array carries as many items as its body value allows; null means unlimited
+                    options = halFormsOptions.withMaxItems(
+                            av.getMaxItems() == null ? null : av.getMaxItems().longValue());
                 }
                 yield item.withOptions(options);
             }

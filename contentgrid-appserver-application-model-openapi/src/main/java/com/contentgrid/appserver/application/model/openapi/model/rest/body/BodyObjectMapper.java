@@ -303,6 +303,7 @@ public final class BodyObjectMapper {
                                     .constraints(ma.getConstraints())
                                     .build())
                             .uniqueItems(true)
+                            .maxItems(MultivalueAttribute.MAX_ELEMENTS)
                             .nullable(false)
                             .build();
             case ContentAttribute ca -> {

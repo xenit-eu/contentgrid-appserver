@@ -63,12 +63,12 @@ class TextSetValidatorTest {
 
     @Test
     void elementCountIsCapped() {
-        var atLimit = IntStream.rangeClosed(1, TextSetValidator.MAX_ELEMENTS)
+        var atLimit = IntStream.rangeClosed(1, MultivalueAttribute.MAX_ELEMENTS)
                 .mapToObj("value-%d"::formatted)
                 .toArray(String[]::new);
         assertDoesNotThrow(() -> validator.validate(PATH, TAGS_ATTR, listOf(atLimit)));
 
-        var overLimit = IntStream.rangeClosed(0, TextSetValidator.MAX_ELEMENTS)
+        var overLimit = IntStream.rangeClosed(0, MultivalueAttribute.MAX_ELEMENTS)
                 .mapToObj("value-%d"::formatted)
                 .toArray(String[]::new);
         assertThrows(InvalidDataFormatException.class,
