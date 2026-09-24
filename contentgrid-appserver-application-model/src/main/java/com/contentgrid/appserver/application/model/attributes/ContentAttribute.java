@@ -52,10 +52,8 @@ public class ContentAttribute implements CompositeAttribute {
     @Getter(value = AccessLevel.NONE)
     Translatable<AttributeTranslations> translations;
 
-    @NonNull
     PathSegmentName pathSegment;
 
-    @NonNull
     LinkName linkName;
 
     Set<AttributeFlag> flags;
@@ -77,8 +75,8 @@ public class ContentAttribute implements CompositeAttribute {
             @NonNull AttributeName name,
             @NonNull ConfigurableTranslatable<AttributeTranslations, ConfigurableAttributeTranslations> translations,
             @Singular Set<AttributeFlag> flags,
-            @NonNull PathSegmentName pathSegment,
-            @NonNull LinkName linkName,
+            PathSegmentName pathSegment,
+            LinkName linkName,
             @NonNull ColumnName idColumn,
             @NonNull ColumnName filenameColumn,
             @NonNull ColumnName mimetypeColumn,
@@ -92,8 +90,14 @@ public class ContentAttribute implements CompositeAttribute {
             return t;
         });
         this.flags = flags;
-        this.pathSegment = pathSegment;
-        this.linkName = linkName;
+        if (!isIgnored()) {
+            this.pathSegment = Objects.requireNonNull(pathSegment,
+                    "pathSegment is required on a non-ignored content attribute");
+            this.linkName = Objects.requireNonNull(linkName, "linkName is required on a non-ignored content attribute");
+        } else {
+            this.pathSegment = pathSegment;
+            this.linkName = linkName;
+        }
         var resourceBundleTranslations = ResourceBundleTranslatable.<AttributeTranslations, ConfigurableAttributeTranslations>builder(ConfigurableAttributeTranslations::new)
                 .bundleName(getClass().getName())
                 .mapping("name", ConfigurableAttributeTranslations::withName)

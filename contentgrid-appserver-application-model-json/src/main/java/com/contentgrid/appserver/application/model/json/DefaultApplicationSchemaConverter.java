@@ -97,6 +97,7 @@ import com.contentgrid.hateoas.uritemplate.InvalidUriTemplateException;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplate;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
 import java.util.EnumSet;
+import java.util.Optional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -355,8 +356,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return ATTRIBUTE_TRANSLATIONS.mapInto(ca, com.contentgrid.appserver.application.model.attributes.ContentAttribute.builder())
                 .name(AttributeName.of(ca.getName()))
                 .flags(fromJsonAttributeFlags(ca.getFlags()))
-                .pathSegment(PathSegmentName.of(ca.getPathSegment()))
-                .linkName(LinkName.of(ca.getLinkName()))
+                .pathSegment(Optional.ofNullable(ca.getPathSegment()).map(PathSegmentName::of).orElse(null))
+                .linkName(Optional.ofNullable(ca.getLinkName()).map(LinkName::of).orElse(null))
                 .idColumn(ColumnName.of(ca.getIdColumn()))
                 .filenameColumn(ColumnName.of(ca.getFileNameColumn()))
                 .mimetypeColumn(ColumnName.of(ca.getMimeTypeColumn()))
@@ -732,8 +733,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             com.contentgrid.appserver.application.model.attributes.ContentAttribute ca) {
         var jsonAttr = new ContentAttribute();
         jsonAttr.setFlags(ca.getFlags().stream().map(this::toJsonAttribute).toList());
-        jsonAttr.setPathSegment(ca.getPathSegment().getValue());
-        jsonAttr.setLinkName(ca.getLinkName().getValue());
+        jsonAttr.setPathSegment(Optional.ofNullable(ca.getPathSegment()).map(PathSegmentName::getValue).orElse(null));
+        jsonAttr.setLinkName(Optional.ofNullable(ca.getLinkName()).map(LinkName::getValue).orElse(null));
         jsonAttr.setIdColumn(ca.getId().getColumn().getValue());
         jsonAttr.setFileNameColumn(ca.getFilename().getColumn().getValue());
         jsonAttr.setMimeTypeColumn(ca.getMimetype().getColumn().getValue());
