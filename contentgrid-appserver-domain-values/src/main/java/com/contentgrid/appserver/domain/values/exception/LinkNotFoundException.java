@@ -1,16 +1,21 @@
 package com.contentgrid.appserver.domain.values.exception;
 
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
-import lombok.experimental.StandardException;
+import lombok.Getter;
+import lombok.NonNull;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 
 /**
  * Exception thrown when a referenced Link is not found.
  */
-@StandardException
+@Getter
 public class LinkNotFoundException extends ApplicationModelException {
 
-    public LinkNotFoundException(LinkRequest linkRequest) {
-        this("Link '%s' not found".formatted(linkRequest));
+    @NonNull
+    private final LinkRequest linkRequest;
+
+    public LinkNotFoundException(@NonNull LinkRequest linkRequest) {
+        super("Link '%s' not found".formatted(linkRequest));
+        this.linkRequest = linkRequest;
     }
 }
