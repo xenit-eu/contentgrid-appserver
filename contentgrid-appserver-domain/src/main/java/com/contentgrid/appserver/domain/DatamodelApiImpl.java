@@ -503,7 +503,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .getAttribute();
         return switch (attribute) {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new TextValue(new VersionedString(((String) ((SimpleAttributeData<?>) attributeData).getValue()), null));
+                    new TextValue(new VersionedString(((String) ((SimpleAttributeData<?>) attributeData).getValue())));
             case ContentAttribute contentAttribute -> {
                 var contentStore = contentStoreResolver.resolve(application);
                 yield new ContentValue(
@@ -560,18 +560,21 @@ public class DatamodelApiImpl implements DatamodelApi {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
                     new SimpleAttributeData<>(attributeName, ((ScalarDataEntry) dataEntry).getValue());
             case ContentAttribute contentAttribute -> {
-                if (dataEntry.equals(NullDataEntry.INSTANCE)) {
-                    yield new SimpleAttributeData<>(attributeName, ((NullDataEntry) dataEntry).getValue());
-                }
                 var builder = CompositeAttributeData.builder().name(attributeName);
-                try {
-                    var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
+                if (dataEntry.equals(NullDataEntry.INSTANCE)) {
                     for (var nestedAttr : contentAttribute.getAttributes()) {
-                        builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
-                                nestedAttr.getName().getValue())).getValue()));
+                        builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), null));
                     }
-                } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
-                    throw new RuntimeException(e);
+                } else {
+                    try {
+                        var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
+                        for (var nestedAttr : contentAttribute.getAttributes()) {
+                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
+                                    nestedAttr.getName().getValue())).getValue()));
+                        }
+                    } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
                 yield builder.build();
             }
