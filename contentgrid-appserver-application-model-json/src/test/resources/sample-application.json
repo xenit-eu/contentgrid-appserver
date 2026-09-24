@@ -578,6 +578,23 @@
           "type": "simple",
           "columnName": "description",
           "dataType": "text"
+        },
+        {
+          "name": "nested",
+          "type": "composite",
+          "attributes": [
+            {
+              "name": "content",
+              "type": "content",
+              "idColumn": "nested_content_id",
+              "lengthColumn": "nested_content_length",
+              "fileNameColumn": "nested_content_filename",
+              "mimeTypeColumn": "nested_content_mimetype",
+              "flags": [
+                "ignored"
+              ]
+            }
+          ]
         }
       ],
       "searchFilters": [
