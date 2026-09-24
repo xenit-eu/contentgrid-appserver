@@ -93,8 +93,8 @@ public class ContentAttribute implements CompositeAttribute {
                     "pathSegment is required on a non-ignored content attribute");
             this.linkName = Objects.requireNonNull(linkName, "linkName is required on a non-ignored content attribute");
         } else {
-            this.pathSegment = null;
-            this.linkName = null;
+            this.pathSegment = pathSegment;
+            this.linkName = linkName;
         }
         var resourceBundleTranslations = ResourceBundleTranslatable.<AttributeTranslations, ConfigurableAttributeTranslations>builder(ConfigurableAttributeTranslations::new)
                 .bundleName(getClass().getName())
