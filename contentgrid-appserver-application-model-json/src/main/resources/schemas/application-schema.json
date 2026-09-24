@@ -577,8 +577,6 @@
       },
       "required": [
         "name",
-        "pathSegment",
-        "linkName",
         "idColumn",
         "fileNameColumn",
         "mimeTypeColumn",
