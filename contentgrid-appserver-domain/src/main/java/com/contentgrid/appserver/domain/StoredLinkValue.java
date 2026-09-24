@@ -11,8 +11,14 @@ import lombok.NonNull;
 public sealed interface StoredLinkValue {
 
     record TextValue(@NonNull StoredLinkValue.VersionedString versionedString) implements StoredLinkValue {}
+
     record ContentValue(@NonNull ContentApi.Content content) implements StoredLinkValue {}
 
-    record VersionedString(@NonNull String stringValue, Version version) {}
+    record VersionedString(String stringValue, Version version) {
+
+        public VersionedString(String stringValue) {
+            this(stringValue, stringValue == null ? Version.nonExisting() : Version.exactly(stringValue));
+        }
+    }
 
 }
