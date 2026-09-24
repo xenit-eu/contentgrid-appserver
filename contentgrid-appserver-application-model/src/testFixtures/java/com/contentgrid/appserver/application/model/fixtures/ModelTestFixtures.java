@@ -14,15 +14,18 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -116,6 +119,52 @@ public class ModelTestFixtures {
             .fallbackTemplate(linkTemplate("https://people.example/preview?src=%{entity.link}"))
             .build();
 
+    public static final ContentAttribute PERSON_PORTRAIT = ContentAttribute.builder()
+            .name(AttributeName.of("portrait"))
+            .pathSegment(PathSegmentName.of("portrait"))
+            .linkName(LinkName.of("portrait"))
+            .idColumn(ColumnName.of("portrait"))
+            .filenameColumn(ColumnName.of("_portrait__filename"))
+            .mimetypeColumn(ColumnName.of("portrait__mimetype"))
+            .lengthColumn(ColumnName.of("portrait__length"))
+            .build();
+
+    public static final SimpleAttribute PERSON_SUMMARY = SimpleAttribute.builder()
+            .name(AttributeName.of("summary"))
+            .column(ColumnName.of("_links__summary"))
+            .type(Type.TEXT)
+            .flag(IgnoredFlag.INSTANCE)
+            .build();
+
+    public static final ContentAttribute PERSON_PORTRAIT_RENDITION = ContentAttribute.builder()
+            .name(AttributeName.of("portrait"))
+            .idColumn(ColumnName.of("_links__portrait__id"))
+            .filenameColumn(ColumnName.of("_links__portrait__filename"))
+            .mimetypeColumn(ColumnName.of("_links__portrait__mimetype"))
+            .lengthColumn(ColumnName.of("_links__portrait__length"))
+            .flag(IgnoredFlag.INSTANCE)
+            .build();
+
+    public static final CompositeAttribute PERSON_LINKS = CompositeAttributeImpl.builder()
+            .name(AttributeName.of("_links"))
+            .attribute(PERSON_SUMMARY)
+            .attribute(PERSON_PORTRAIT_RENDITION)
+            .flag(IgnoredFlag.INSTANCE)
+            .build();
+
+    public static final StoredEntityLink PERSON_SUMMARY_LINK = StoredEntityLink.builder()
+            .identity(new UnnamedLink(URI.create("https://people.example/rel/summary")))
+            .pathSegments(List.of(PathSegmentName.of("_links"), PathSegmentName.of("summary-hash123")))
+            .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_SUMMARY.getName())))
+            .build();
+
+    public static final StoredEntityLink PERSON_PORTRAIT_LINK = StoredEntityLink.builder()
+            .identity(new NamedLink(URI.create("https://people.example/rel/portrait/16-9"), "portrait"))
+            .pathSegments(List.of(PathSegmentName.of("_links"), PathSegmentName.of("16-9-hash123"),
+                    PathSegmentName.of("portrait")))
+            .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_PORTRAIT.getName())))
+            .build();
+
     private static UriTemplateDefinition linkTemplate(String template) {
         return new SimpleUriTemplateDefinition(
                 new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
@@ -137,8 +186,12 @@ public class ModelTestFixtures {
             .attribute(PERSON_AGE)
             .attribute(PERSON_GENDER)
             .attribute(PERSON_TAGS)
+            .attribute(PERSON_PORTRAIT)
+            .attribute(PERSON_LINKS)
             .link(PERSON_VAT_LINK)
             .link(PERSON_PREVIEW_LINK)
+            .link(PERSON_SUMMARY_LINK)
+            .link(PERSON_PORTRAIT_LINK)
             .searchFilter(AttributeSearchFilter.builder()
                     .operation(Operation.PREFIX)
                     .attribute(PERSON_NAME)
