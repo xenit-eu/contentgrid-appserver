@@ -4,6 +4,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
@@ -14,6 +15,7 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
@@ -24,6 +26,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.UUID;
 import lombok.Data;
@@ -95,6 +98,10 @@ class RestFormatterTest {
         final EntityIdentity identity;
         final SequencedMap<String, PlainDataEntry> data;
         final Collection<EntityLinkData> links;
+        @Override
+        public Optional<Version> getContentVersion(ContentAttribute contentAttribute) {
+            return Optional.empty();
+        }
     }
 
     private static final String EXPECTED = """

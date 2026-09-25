@@ -23,7 +23,7 @@ public class RestEntityFormatter {
         var locales = new DummyLocales();
         var linkFactoryProvider = new LinkFactoryProvider(application, locales, linkBuilderFactory);
         var name = entityInstance.getIdentity().getEntityName();
-        var model = assembler.withContext(application, name, locales, linkFactoryProvider).toModel(entityInstance);
+        var model = assembler.withContext(application, name, locales, linkFactoryProvider, false).toModel(entityInstance);
 
         return mapper.valueToTree(model);
     }

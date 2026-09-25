@@ -21,6 +21,10 @@ public final class ContentVersion {
             ContentAttribute contentAttribute,
             CompositeAttributeData attributeData
     ) {
+        if (attributeData == null) {
+            return Optional.empty();
+        }
+
         var contentId = getAttribute(contentAttribute.getId(), attributeData);
 
         if (contentId == null) {
