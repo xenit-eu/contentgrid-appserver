@@ -824,17 +824,23 @@
         },
         {
           "properties": {
-            "pathSegment": {
-              "type": "string",
-              "pattern": "[a-z0-9-]+",
-              "description": "Path segment that is used for addressing the contents stored for the link"
+            "pathSegments": {
+              "type": "array",
+              "description": "Path segments that are used to build a path for addressing the contents stored for the link",
+              "items": {
+                "type": "string",
+                "pattern": "[a-z0-9-]+"
+              }
             },
             "storage": {
               "description": "Reference to the attribute where the data for the link is stored",
               "$ref": "#/$defs/attributePath"
             }
           },
-          "required": ["storage", "pathSegment"]
+          "required": [
+            "storage",
+            "pathSegments"
+          ]
         }
       ],
       "unevaluatedProperties": false

@@ -210,7 +210,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
 
 
         // link path segments have to be unique for each owner
-        var linkPathSegments = new HashMap<PropertyPath, Set<PathSegmentName>>();
+        var linkPathSegments = new HashMap<PropertyPath, Set<List<PathSegmentName>>>();
         for (var link : links) {
             switch (link) {
                 case PlainEntityLink plainEntityLink -> {
@@ -218,8 +218,8 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                 }
                 case StoredEntityLink storedEntityLink -> {
                     var pathSegmentSet = linkPathSegments.computeIfAbsent(link.getOwner().orElse(null), owner -> new HashSet<>());
-                    if(!pathSegmentSet.add(storedEntityLink.getPathSegment())) {
-                        throw new DuplicateElementException("Duplicate EntityLink with owner '%s' and pathSegment '%s'".formatted(link.getOwner().orElse(null), pathSegment));
+                    if (!pathSegmentSet.add(storedEntityLink.getPathSegments())) {
+                        throw new DuplicateElementException("Duplicate EntityLink with owner '%s' and pathSegments '%s'".formatted(link.getOwner().orElse(null), storedEntityLink.getPathSegments()));
                     }
                 }
             }
