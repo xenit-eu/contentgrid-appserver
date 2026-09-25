@@ -43,6 +43,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -204,18 +205,28 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
         );
         this.attributes.remove(this.primaryKey.getName());
 
-
-        // link path segments have to be unique for each owner
-        var linkPathSegments = new HashMap<PropertyPath, Set<PathSegmentName>>();
+        // link path segments have to be unique for the entity
+        var linkPathSegments = new HashSet<String>();
         for (var link : links) {
             switch (link) {
                 case PlainEntityLink plainEntityLink -> {
                     // nothing do do here, it doesn't have a path segment
                 }
                 case StoredEntityLink storedEntityLink -> {
-                    var pathSegmentSet = linkPathSegments.computeIfAbsent(link.getOwner().orElse(null), owner -> new HashSet<>());
-                    if(!pathSegmentSet.add(storedEntityLink.getPathSegment())) {
-                        throw new DuplicateElementException("Duplicate EntityLink with owner '%s' and pathSegment '%s'".formatted(link.getOwner().orElse(null), pathSegment));
+                    var stringifiedSegments = storedEntityLink.getPathSegments().stream()
+                            .map(PathSegmentName::getValue)
+                            .collect(Collectors.joining("/"));
+                    if (!linkPathSegments.add(stringifiedSegments)) {
+                        throw new DuplicateElementException(
+                                "Duplicate EntityLink with pathSegments '%s'".formatted(stringifiedSegments));
+                    }
+                    if (storedEntityLink.getPathSegments().size() == 1) {
+                        this.getContentByPathSegment(storedEntityLink.getPathSegments().getFirst())
+                                .ifPresent(contentAttribute -> {
+                                    throw new DuplicateElementException(
+                                            "EntityLink with pathSegments '%s' conflicts with ContentAttribute '%s'".formatted(
+                                                    stringifiedSegments, contentAttribute.getName()));
+                                });
                     }
                 }
             }
