@@ -122,7 +122,7 @@ class ContentApiImplTest {
 
     }
 
-    private CompositeAttributeData createContentData(String contentId) {
+    private static CompositeAttributeData createContentData(String contentId) {
         var hasContent = contentId != null;
         return CompositeAttributeData.builder()
                 .name(PRODUCT_PICTURE.getName())
@@ -154,7 +154,7 @@ class ContentApiImplTest {
                 Arguments.of(VersionConstraint.ANY, false),
                 Arguments.of(Version.unspecified(), true),
                 // This is an implementation detail: version hash is calculated from content id + mimetype
-                Arguments.of(Version.exactly(ContentApiImpl.hash("content-id", "text/plain")), true),
+                Arguments.of(ContentVersion.calculate(PRODUCT_PICTURE, createContentData("content-id")).orElseThrow(), true),
                 Arguments.of(Version.nonExisting(), false)
         );
     }
