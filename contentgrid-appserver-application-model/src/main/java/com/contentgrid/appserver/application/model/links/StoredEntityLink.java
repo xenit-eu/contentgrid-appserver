@@ -4,9 +4,8 @@ import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.net.URI;
-import java.util.Optional;
+import java.util.List;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
@@ -18,7 +17,7 @@ import lombok.experimental.SuperBuilder;
 final public class StoredEntityLink extends EntityLink {
 
     @NonNull
-    PathSegmentName pathSegment;
+    List<PathSegmentName> pathSegments;
 
     @NonNull
     AttributePath storage;
@@ -28,11 +27,11 @@ final public class StoredEntityLink extends EntityLink {
             URI profile,
             PropertyPath owner,
             @NonNull AttributePath storage,
-            @NonNull PathSegmentName pathSegment,
+            @NonNull List<PathSegmentName> pathSegments,
             UriTemplateDefinition fallbackTemplate
     ) {
         super(identity, profile, owner, fallbackTemplate);
-        this.pathSegment = pathSegment;
+        this.pathSegments = pathSegments;
         this.storage = storage;
     }
 }
