@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundE
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidArgumentModelException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTypeException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.i18n.ConfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.Translatable;
@@ -18,6 +19,9 @@ import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSuppor
 import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -33,6 +37,7 @@ import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -201,6 +207,23 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
+
+
+        // link path segments have to be unique for each owner
+        var linkPathSegments = new HashMap<PropertyPath, Set<List<PathSegmentName>>>();
+        for (var link : links) {
+            switch (link) {
+                case PlainEntityLink plainEntityLink -> {
+                    // nothing do do here, it doesn't have a path segment
+                }
+                case StoredEntityLink storedEntityLink -> {
+                    var pathSegmentSet = linkPathSegments.computeIfAbsent(link.getOwner().orElse(null), owner -> new HashSet<>());
+                    if (!pathSegmentSet.add(storedEntityLink.getPathSegments())) {
+                        throw new DuplicateElementException("Duplicate EntityLink with owner '%s' and pathSegments '%s'".formatted(link.getOwner().orElse(null), storedEntityLink.getPathSegments()));
+                    }
+                }
+            }
+        }
 
         this.links.addAll(links);
     }

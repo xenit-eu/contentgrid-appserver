@@ -577,8 +577,6 @@
       },
       "required": [
         "name",
-        "pathSegment",
-        "linkName",
         "idColumn",
         "fileNameColumn",
         "mimeTypeColumn",
@@ -804,10 +802,10 @@
       },
       "required": [
         "rel"
-      ],
-      "additionalProperties": false
+      ]
     },
     "plainLink": {
+      "description": "A link that is always rendered from its fallbackTemplate.",
       "allOf": [
         {
           "$ref": "#/$defs/linkBase"
@@ -815,22 +813,37 @@
         {
           "required": ["fallbackTemplate"]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "storageLink": {
+      "description": "A link of which the target can be stored on the entity. The fallbackTemplate is used when no data is stored.",
       "allOf": [
         {
           "$ref": "#/$defs/linkBase"
         },
         {
           "properties": {
+            "pathSegments": {
+              "type": "array",
+              "description": "Path segments that are used to build a path for addressing the contents stored for the link",
+              "items": {
+                "type": "string",
+                "pattern": "[a-z0-9-]+"
+              }
+            },
             "storage": {
+              "description": "Reference to the attribute where the data for the link is stored",
               "$ref": "#/$defs/attributePath"
             }
           },
-          "required": ["storage"]
+          "required": [
+            "storage",
+            "pathSegments"
+          ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false
     },
     "linkUriTemplateDefinition": {
       "type": "object",
