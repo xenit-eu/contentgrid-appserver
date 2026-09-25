@@ -1,11 +1,14 @@
 package com.contentgrid.appserver.domain;
 
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -35,5 +38,11 @@ class InternalEntityInstance implements EntityInstance {
     /* package-private */ <T extends AttributeData> Optional<T> getByAttributeName(AttributeName attributeName, Class<T> expectedType) {
         return getByAttributeName(attributeName)
                 .map(expectedType::cast);
+    }
+
+    @Override
+    public Optional<Version> getContentVersion(ContentAttribute contentAttribute) {
+        return getByAttributeName(contentAttribute.getName(), CompositeAttributeData.class)
+                .flatMap(attributeData -> ContentVersion.calculate(contentAttribute, attributeData));
     }
 }
