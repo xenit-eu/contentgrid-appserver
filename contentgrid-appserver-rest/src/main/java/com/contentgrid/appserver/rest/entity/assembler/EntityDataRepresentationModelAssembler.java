@@ -9,10 +9,12 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.rest.VersionConstraintArgumentResolver;
 import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler.EntityContext;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplate;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsTemplateGenerator;
 import com.contentgrid.appserver.rest.hal.links.ContentGridLinkRelations;
+import com.contentgrid.appserver.rest.hal.links.EtagLink;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider.CollectionParameters;
 import com.contentgrid.appserver.rest.hal.serializer.RenderAsLinkRelation;
@@ -42,6 +44,7 @@ import org.springframework.util.MultiValueMap;
 public class EntityDataRepresentationModelAssembler implements RepresentationModelContextAssembler<EntityInstance, EntityDataRepresentationModel, EntityContext> {
 
     private final SlicedResourcesAssembler<EntityInstance> slicedResourcesAssembler;
+    private final VersionConstraintArgumentResolver versionConstraintArgumentResolver;
 
     @Override
     public EntityDataRepresentationModel toModel(@NonNull EntityInstance entityData, @NonNull EntityContext context) {
@@ -49,7 +52,18 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         var id = entityData.getIdentity().getEntityId();
 
         var model = EntityDataRepresentationModel.from(entityData);
-        model.add(context.linkFactoryProvider().toItem(entityData.getIdentity()).withSelfRel());
+        var selfLink = context.linkFactoryProvider()
+                .toItem(entityData.getIdentity())
+                .withSelfRel();
+
+        var entityEtag = versionConstraintArgumentResolver.convert(entityData.getIdentity().getVersion());
+
+        if (entityEtag != null) {
+            model.add(new EtagLink(selfLink, entityEtag.toString()));
+        } else {
+            model.add(selfLink);
+        }
+
         for (var relation : context.application().getRelationsForSourceEntity(entity)) {
             if (relation.getSourceEndPoint().getLinkName() != null && relation.getSourceEndPoint().getPathSegment() != null) {
                 var relationIdentity = RelationIdentity.forRelation(entity.getName(), id, relation.getSourceEndPoint().getName());
@@ -62,6 +76,15 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                     entityData.getIdentity(),
                     content.getName()
             ).withRel(ContentGridLinkRelations.CONTENT);
+
+            var contentEtag = entityData.getContentVersion(content)
+                    .map(versionConstraintArgumentResolver::convert)
+                    .orElse(null);
+
+            if (contentEtag != null) {
+                contentLink = new EtagLink(contentLink, contentEtag.toString());
+            }
+
             var contentTemplates = context.templateGenerator().generateContentTemplates(entity, content);
             model.add(contentLink).addTemplates(contentTemplates);
         }
