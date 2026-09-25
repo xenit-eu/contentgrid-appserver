@@ -38,10 +38,10 @@ public class EntityLink {
     private List<PropertyPathElement> storage;
 
     /**
-     * Optional path segment that is used to reference the stored data (for links that can store data).
+     * Optional path segments that are used to build a path that references the stored data (for links that can store data).
      * This field is required only if {@link #storage} is present as well
      */
-    private String pathSegment;
+    private List<String> pathSegments;
 
     /**
      * Optional 'profile' URI that will be placed as-is on the link object

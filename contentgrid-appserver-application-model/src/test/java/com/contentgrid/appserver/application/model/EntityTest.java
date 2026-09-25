@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.application.model;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
@@ -16,6 +17,8 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidAttributeTy
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.MissingFlagException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
@@ -30,6 +33,7 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
@@ -444,6 +448,73 @@ class EntityTest {
                 .attribute(CONTENT1)
                 .attribute(duplicate);
         assertThrows(DuplicateElementException.class, builder::build);
+    }
+
+    @Test
+    void entity_duplicateLinkPathSegment() {
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("test"))
+                        .column(ColumnName.of("test"))
+                        .type(Type.TEXT)
+                        .build()
+                )
+                .link(StoredEntityLink.builder()
+                        .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com")))
+                        .storage(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .pathSegments(List.of(
+                                PathSegmentName.of("_links"),
+                                PathSegmentName.of("test")
+                        ))
+                        .build()
+                )
+                .link(StoredEntityLink.builder()
+                        .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.org")))
+                        .storage(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .pathSegments(List.of(
+                                PathSegmentName.of("_links"),
+                                PathSegmentName.of("test")
+                        ))
+                        .build()
+                );
+
+        assertThatThrownBy(builder::build)
+                .hasMessage("Duplicate EntityLink with pathSegments '_links/test'");
+    }
+
+    @Test
+    void entity_conflictLinkPathSegment_contentAttribute() {
+        var builder = Entity.builder()
+                .name(EntityName.of("entity"))
+                .pathSegment(PathSegmentName.of("segment"))
+                .linkName(LinkName.of("link"))
+                .table(TableName.of("table"))
+                .attribute(
+                        ContentAttribute.builder()
+                                .name(AttributeName.of("test"))
+                                .idColumn(ColumnName.of("content3__id"))
+                                .lengthColumn(ColumnName.of("content3__length"))
+                                .mimetypeColumn(ColumnName.of("content3__mimetype"))
+                                .filenameColumn(ColumnName.of("content3__filename"))
+                                .linkName(LinkName.of("test"))
+                                .pathSegment(PathSegmentName.of("path-segment"))
+                                .build()
+                )
+                .link(StoredEntityLink.builder()
+                        .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com")))
+                        .storage(PropertyPath.toAttribute(AttributeName.of("test")))
+                        .pathSegments(List.of(
+                                PathSegmentName.of("path-segment")
+                        ))
+                        .build()
+                );
+
+        assertThatThrownBy(builder::build)
+                .hasMessage("EntityLink with pathSegments 'path-segment' conflicts with ContentAttribute 'test'");
     }
 
     @Test
