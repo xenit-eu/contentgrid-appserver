@@ -390,6 +390,19 @@
           "dataType": "text",
           "columnName": "address_residence_number",
           "title": "Address residence number"
+        },
+        {
+          "type": "simple",
+          "name": "labels",
+          "dataType": "text_set",
+          "columnName": "labels",
+          "title": "Labels",
+          "constraints": [
+            {
+              "type": "allowedValues",
+              "values": ["dangerous", "fragile", "heavy", "urgent", "valuable"]
+            }
+          ]
         }
       ],
       "searchFilters": [
@@ -436,6 +449,17 @@
           ],
           "title": "Address residence number",
           "type": "exact"
+        },
+        {
+          "name": "labels",
+          "attributePath": [
+            {
+              "name": "labels",
+              "type": "attr"
+            }
+          ],
+          "title": "Labels",
+          "type": "contains"
         },
         {
           "name": "invoice.number",
