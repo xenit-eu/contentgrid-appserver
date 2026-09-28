@@ -332,6 +332,10 @@ public class OpenApiSpecConverter {
                                         resolveCollectionSchema(entityName, context):
                                         resolveItemSchema(entityName, context, BodyType.RESPONSE, JSON)
                         );
+                        if(!isCollection) {
+                            resp.getContent().addMediaType(MediaType.TEXT_URI_LIST, bodyValueToJsonSchema(context,
+                                    new RelationBodyValue(relation.getTargetEndPoint().getEntity())));
+                        }
                     });
                     if(!isCollection) {
                         op.response(404, resp -> {

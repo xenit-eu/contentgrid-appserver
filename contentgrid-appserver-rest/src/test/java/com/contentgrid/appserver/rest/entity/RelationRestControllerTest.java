@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,6 +32,7 @@ import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -330,6 +332,100 @@ class RelationRestControllerTest {
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
                             .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
                     .andExpect(status().isPreconditionFailed());
+        }
+
+        @ParameterizedTest
+        @MethodSource("toOneRelations")
+        void getToOneRelation_uriList(Relation relation) throws Exception {
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            // First create the relation
+            var item = datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            var eTag = versionValidator.calculateETag(item.getRelationIdentity().getVersion());
+
+            // Then check that the uri-list is returned instead of a redirect
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
+                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .accept("text/uri-list"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith("text/uri-list"))
+                    .andExpect(content().string("http://localhost/%s/%s\r\n".formatted(targetEntity.getPathSegment(),
+                            targetEntityIdentity.getEntityId())))
+                    .andExpect(header().string(HttpHeaders.ETAG, eTag))
+                    .andExpect(header().doesNotExist(HttpHeaders.LOCATION));
+
+            // Conditional requests work the same as for the redirect
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
+                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .accept("text/uri-list")
+                            .header(HttpHeaders.IF_NONE_MATCH, eTag))
+                    .andExpect(status().isNotModified());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "text/uri-list, application/json;q=0.5",
+                "application/hal+json;q=0.5, text/uri-list",
+                "text/uri-list;q=0.9, */*;q=0.8",
+                "text/*",
+        })
+        void getToOneRelation_uriListPreferred(String accept) throws Exception {
+            var relation = INVOICE_PREVIOUS;
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
+                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(HttpHeaders.ACCEPT, accept))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentTypeCompatibleWith("text/uri-list"))
+                    .andExpect(content().string("http://localhost/%s/%s\r\n".formatted(targetEntity.getPathSegment(),
+                            targetEntityIdentity.getEntityId())));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "*/*",
+                "application/json",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
+        void getToOneRelation_uriListNotPreferred(String accept) throws Exception {
+            var relation = INVOICE_PREVIOUS;
+            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
+            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
+            var sourceEntityIdentity = createEntity(sourceEntity);
+            var targetEntityIdentity = createEntity(targetEntity);
+
+            datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
+                    relation.getSourceEndPoint().getEntity(),
+                    sourceEntityIdentity.getEntityId(),
+                    relation.getSourceEndPoint().getName()
+            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
+
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
+                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .header(HttpHeaders.ACCEPT, accept))
+                    .andExpect(status().isFound())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.LOCATION,
+                            "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(),
+                                    targetEntityIdentity.getEntityId())));
         }
 
         @ParameterizedTest

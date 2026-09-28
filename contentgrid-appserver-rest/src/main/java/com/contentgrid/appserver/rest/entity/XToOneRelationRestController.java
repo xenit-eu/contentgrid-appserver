@@ -21,6 +21,7 @@ import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
+import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -83,6 +84,27 @@ public class XToOneRelationRestController {
         } catch (EntityIdNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
         }
+    }
+
+    @GetMapping(produces = "text/uri-list")
+    public ResponseEntity<URIList> getRelationAsUriList(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+        var resp = getRelation(application, entityName, id, propertyName, versionConstraint, webRequest,
+                authorizationContext, linkFactoryProvider);
+        if (resp == null) {
+            return null;
+        }
+        return ResponseEntity.ok()
+                .eTag(resp.getHeaders().getETag())
+                .body(new URIList(List.of(resp.getHeaders().getLocation())));
     }
 
     @PutMapping(consumes = "text/uri-list")
