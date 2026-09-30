@@ -1,7 +1,9 @@
 package com.contentgrid.appserver.domain;
 
+import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.values.version.Version;
 import lombok.NonNull;
+import lombok.Value;
 
 /**
  * The data that is stored for a {@link com.contentgrid.appserver.application.model.links.StoredEntityLink}.
@@ -10,14 +12,27 @@ import lombok.NonNull;
  */
 public sealed interface StoredLinkValue {
 
-    record TextValue(@NonNull StoredLinkValue.VersionedString versionedString) implements StoredLinkValue {}
+    Version getVersion();
 
-    record ContentValue(@NonNull ContentApi.Content content) implements StoredLinkValue {}
+    @Value
+    class TextValue implements StoredLinkValue {
 
-    record VersionedString(String stringValue, Version version) {
+        @NonNull
+        String value;
 
-        public VersionedString(String stringValue) {
-            this(stringValue, stringValue == null ? Version.nonExisting() : Version.exactly(stringValue));
+        @NonNull
+        Version version;
+    }
+
+    @Value
+    class ContentValue implements StoredLinkValue {
+
+        @NonNull
+        Content content;
+
+        @Override
+        public Version getVersion() {
+            return content.getVersion();
         }
     }
 
