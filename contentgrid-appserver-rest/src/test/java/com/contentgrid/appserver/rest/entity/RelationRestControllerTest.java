@@ -32,7 +32,9 @@ import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
+import java.util.function.Supplier;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.test.web.servlet.ResultMatcher;
 import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -50,7 +52,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.Arguments.ArgumentSet;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -71,6 +72,7 @@ class RelationRestControllerTest {
 
     private static final EntityId PERSON_ID = EntityId.of(UUID.randomUUID());
     private static final EntityId INVOICE_ID = EntityId.of(UUID.randomUUID());
+    private static final MediaType TEXT_URILIST = MediaType.valueOf("text/uri-list");
 
     @Autowired
     private MockMvc mockMvc;
@@ -86,6 +88,45 @@ class RelationRestControllerTest {
 
     @Autowired
     private TableCreator tableCreator;
+
+    /**
+     * Makes a cross-product of all the argument streams provided by different argument sets
+     */
+    private static Stream<ArgumentSet> crossProduct(Supplier<Stream<ArgumentSet>>... streams) {
+        var output = Stream.of(Arguments.argumentSet("\0"));
+
+        for (var stream : streams) {
+            output = output.flatMap(a1 -> stream.get().map(a2 -> {
+                var args = Stream.concat(
+                        Stream.of(a1.get()),
+                        Stream.of(a2.get())
+                ).toArray(Object[]::new);
+                return Arguments.argumentSet(argumentSetName(a1, a2), args);
+            }));
+        }
+
+        return output;
+    }
+
+    private static String argumentSetName(ArgumentSet... argumentSets) {
+        StringBuilder name = new StringBuilder();
+        for (var argumentSet : argumentSets) {
+            if (argumentSet.getName().equals("\0")) {
+                continue;
+            }
+            name.append(" ").append(argumentSet.getName());
+        }
+
+        return name.substring(1);
+
+    }
+
+    static Stream<ArgumentSet> mediaTypes() {
+        return Stream.of(
+                Arguments.argumentSet("json", MediaType.APPLICATION_JSON),
+                Arguments.argumentSet("uri-list", TEXT_URILIST)
+        );
+    }
 
     @BeforeEach
     void setup() {
@@ -157,6 +198,10 @@ class RelationRestControllerTest {
             );
         }
 
+        static Stream<ArgumentSet> toOneRelations_mediaTypes() {
+            return crossProduct(ValidInput::toOneRelations, RelationRestControllerTest::mediaTypes);
+        }
+
         interface ETagHandler {
             Map.Entry<String, String> prepareETag(DatamodelApi api, RelationRequest relation, EntityIdentity targetIdentity);
         }
@@ -201,15 +246,8 @@ class RelationRestControllerTest {
             );
         }
 
-        static Stream<Arguments> toOneRelations_eTag() {
-            return toOneRelations()
-                    .flatMap(toOneRel -> eTagHandlers().map(eTagHandler -> {
-                        var args = Stream.concat(
-                                Stream.of(toOneRel.get()),
-                                Stream.of(eTagHandler.get())
-                        ).toArray();
-                        return Arguments.argumentSet(toOneRel.getName()+" "+eTagHandler.getName(), args);
-                    }));
+        static Stream<ArgumentSet> toOneRelations_eTag() {
+            return crossProduct(ValidInput::toOneRelations, ValidInput::eTagHandlers);
         }
 
         static Stream<Arguments> toManyRelations() {
@@ -220,9 +258,27 @@ class RelationRestControllerTest {
             );
         }
 
+        static ResultMatcher checkRelationResponse(MediaType mediaType, Entity targetEntity,
+                EntityIdentity targetEntityIdentity) {
+            var uri = "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(),
+                    targetEntityIdentity.getEntityId());
+            if (mediaType.equalsTypeAndSubtype(TEXT_URILIST)) {
+                return r -> {
+                    status().isOk();
+                    content().contentType(mediaType);
+                    content().string(uri + "\r\n").match(r);
+                };
+            } else {
+                return r -> {
+                    status().isFound();
+                    header().string(HttpHeaders.LOCATION, uri);
+                };
+            }
+        }
+
         @ParameterizedTest
-        @MethodSource("toOneRelations")
-        void getToOneRelation(Relation relation) throws Exception {
+        @MethodSource("toOneRelations_mediaTypes")
+        void getToOneRelation(Relation relation, MediaType accept) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
             var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
             var sourceEntityIdentity = createEntity(sourceEntity);
@@ -236,15 +292,17 @@ class RelationRestControllerTest {
             ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
 
             // Then check if the redirect is correct
-            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment()))
-                    .andExpect(status().isFound())
+            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
+                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
+                            .accept(accept)
+                    )
                     .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
+                    .andExpect(checkRelationResponse(accept, targetEntity, targetEntityIdentity));
         }
 
         @ParameterizedTest
-        @MethodSource("toOneRelations")
-        void getToOneRelation_ifNoneMatchUnmodified(Relation relation) throws Exception {
+        @MethodSource("toOneRelations_mediaTypes")
+        void getToOneRelation_ifNoneMatchUnmodified(Relation relation, MediaType accept) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
             var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
             var sourceEntityIdentity = createEntity(sourceEntity);
@@ -261,13 +319,15 @@ class RelationRestControllerTest {
 
             // Then follow the relation
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .header(HttpHeaders.IF_NONE_MATCH, eTag))
+                            .accept(accept)
+                            .header(HttpHeaders.IF_NONE_MATCH, eTag)
+                    )
                     .andExpect(status().isNotModified());
         }
 
         @ParameterizedTest
-        @MethodSource("toOneRelations")
-        void getToOneRelation_ifNoneMatchModified(Relation relation) throws Exception {
+        @MethodSource("toOneRelations_mediaTypes")
+        void getToOneRelation_ifNoneMatchModified(Relation relation, MediaType accept) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
             var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
             var sourceEntityIdentity = createEntity(sourceEntity);
@@ -282,15 +342,16 @@ class RelationRestControllerTest {
 
             // Then follow the relation
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .header(HttpHeaders.IF_NONE_MATCH, "\"my-etag\""))
-                    .andExpect(status().isFound())
+                            .accept(accept)
+                            .header(HttpHeaders.IF_NONE_MATCH, "\"my-etag\"")
+                    )
                     .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
+                    .andExpect(checkRelationResponse(accept, targetEntity, targetEntityIdentity));
         }
 
         @ParameterizedTest
-        @MethodSource("toOneRelations")
-        void getToOneRelation_ifMatchSuccess(Relation relation) throws Exception {
+        @MethodSource("toOneRelations_mediaTypes")
+        void getToOneRelation_ifMatchSuccess(Relation relation, MediaType accept) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
             var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
             var sourceEntityIdentity = createEntity(sourceEntity);
@@ -307,15 +368,18 @@ class RelationRestControllerTest {
 
             // Then follow the relation
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .header(HttpHeaders.IF_MATCH, eTag))
-                    .andExpect(status().isFound())
+                            .accept(accept)
+                            .header(HttpHeaders.IF_MATCH, eTag)
+                    )
                     .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(header().string(HttpHeaders.LOCATION, "http://localhost/%s/%s".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())));
+                    .andExpect(checkRelationResponse(accept, targetEntity, targetEntityIdentity));
+
+
         }
 
         @ParameterizedTest
-        @MethodSource("toOneRelations")
-        void getToOneRelation_ifMatchFail(Relation relation) throws Exception {
+        @MethodSource("toOneRelations_mediaTypes")
+        void getToOneRelation_ifMatchFail(Relation relation, MediaType accept) throws Exception {
             var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
             var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
             var sourceEntityIdentity = createEntity(sourceEntity);
@@ -330,44 +394,10 @@ class RelationRestControllerTest {
 
             // Then follow the relation
             mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .header(HttpHeaders.IF_MATCH, "\"my-etag\""))
+                            .accept(accept)
+                            .header(HttpHeaders.IF_MATCH, "\"my-etag\"")
+                    )
                     .andExpect(status().isPreconditionFailed());
-        }
-
-        @ParameterizedTest
-        @MethodSource("toOneRelations")
-        void getToOneRelation_uriList(Relation relation) throws Exception {
-            var sourceEntity = APPLICATION.getEntityByName(relation.getSourceEndPoint().getEntity()).orElseThrow();
-            var targetEntity = APPLICATION.getEntityByName(relation.getTargetEndPoint().getEntity()).orElseThrow();
-            var sourceEntityIdentity = createEntity(sourceEntity);
-            var targetEntityIdentity = createEntity(targetEntity);
-
-            // First create the relation
-            var item = datamodelApi.setRelation(APPLICATION, RelationRequest.forRelation(
-                    relation.getSourceEndPoint().getEntity(),
-                    sourceEntityIdentity.getEntityId(),
-                    relation.getSourceEndPoint().getName()
-            ), targetEntityIdentity.getEntityId(), AuthorizationContext.allowAll());
-
-            var eTag = versionValidator.calculateETag(item.getRelationIdentity().getVersion());
-
-            // Then check that the uri-list is returned instead of a redirect
-            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
-                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .accept("text/uri-list"))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentTypeCompatibleWith("text/uri-list"))
-                    .andExpect(content().string("http://localhost/%s/%s\r\n".formatted(targetEntity.getPathSegment(),
-                            targetEntityIdentity.getEntityId())))
-                    .andExpect(header().string(HttpHeaders.ETAG, eTag))
-                    .andExpect(header().doesNotExist(HttpHeaders.LOCATION));
-
-            // Conditional requests work the same as for the redirect
-            mockMvc.perform(get("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(),
-                            sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .accept("text/uri-list")
-                            .header(HttpHeaders.IF_NONE_MATCH, eTag))
-                    .andExpect(status().isNotModified());
         }
 
         @ParameterizedTest
@@ -474,7 +504,7 @@ class RelationRestControllerTest {
             var targetEntityIdentity = createEntity(targetEntity);
 
             mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .contentType("text/uri-list")
+                            .contentType(TEXT_URILIST)
                             .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())))
                     .andExpect(status().isNoContent())
                     .andExpect(header().exists(HttpHeaders.ETAG));
@@ -491,7 +521,7 @@ class RelationRestControllerTest {
             var targetEntityIdentity = createEntity(targetEntity);
 
             mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .contentType("text/uri-list")
+                            .contentType(TEXT_URILIST)
                             .content("/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId())))
                     .andExpect(status().isNoContent())
                     .andExpect(header().exists(HttpHeaders.ETAG));
@@ -516,7 +546,7 @@ class RelationRestControllerTest {
             var eTagHeader = eTagHandler.prepareETag(datamodelApi, relationRequest, targetEntityIdentity);
 
             mockMvc.perform(put("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .contentType("text/uri-list")
+                            .contentType(TEXT_URILIST)
                             .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId()))
                             .header(eTagHeader.getKey(), eTagHeader.getValue())
                     )
@@ -534,7 +564,7 @@ class RelationRestControllerTest {
             var createMethod = relation instanceof OneToManyRelation|| relation instanceof ManyToManyRelation?HttpMethod.POST:HttpMethod.PUT;
             // First create the relation
             mockMvc.perform(request(createMethod, "/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .contentType("text/uri-list")
+                    .contentType(TEXT_URILIST)
                     .content("http://localhost/%s/%s%n".formatted(targetEntity.getPathSegment(), targetEntityIdentity.getEntityId()))
             ).andExpect(status().is2xxSuccessful());
 
@@ -580,7 +610,7 @@ class RelationRestControllerTest {
             var targetEntityIdentity2 = createEntity(targetEntity);
 
             mockMvc.perform(post("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .contentType("text/uri-list")
+                            .contentType(TEXT_URILIST)
                             .content("http://localhost/%s/%s%n/%1$s/%s%n".formatted(targetEntity.getPathSegment(),
                                     targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()))
                     )
@@ -612,7 +642,7 @@ class RelationRestControllerTest {
             // This should not fail because adding an item is an idempotent operation.
             // If one is already present in the relation, it's not an error to add it again
             mockMvc.perform(post("/{entity}/{sourceId}/{relation}", sourceEntity.getPathSegment(), sourceEntityIdentity.getEntityId(), relation.getSourceEndPoint().getPathSegment())
-                            .contentType("text/uri-list")
+                            .contentType(TEXT_URILIST)
                             .content("http://localhost/%s/%s%nhttp://localhost/%1$s/%s%n".formatted(targetEntity.getPathSegment(),
                                     targetEntityIdentity1.getEntityId(), targetEntityIdentity2.getEntityId()))
                     )
@@ -672,21 +702,35 @@ class RelationRestControllerTest {
             );
         }
 
+        static Stream<ArgumentSet> followRelationInvalidUrl() {
+            return crossProduct(
+                    () -> Stream.of(
+                            Arguments.argumentSet("non-existing relation",
+                                    "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing"),
+                            Arguments.argumentSet("invalid entity id", "/invoices/invalid-id/previous-invoice"),
+                            Arguments.argumentSet("non-existing entitiy",
+                                    "/non-existing/01234567-89ab-cdef-0123-456789abcdef/previous-invoice"),
+                            Arguments.argumentSet("non-existing relation",
+                                    "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing/01234567-89ab-cdef-0123-456789abcdef"),
+                            Arguments.argumentSet("invalid relation item id",
+                                    "/invoices/01234567-89ab-cdef-0123-456789abcdef/products/invalid-id")
+                    ),
+                    RelationRestControllerTest::mediaTypes
+            );
+        }
+
         @ParameterizedTest
-        @CsvSource({
-                "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing", // non-existing relation
-                "/invoices/invalid-id/previous-invoice", // invalid entity id
-                "/non-existing/01234567-89ab-cdef-0123-456789abcdef/previous-invoice", // non-existing entity
-                "/invoices/01234567-89ab-cdef-0123-456789abcdef/non-existing/01234567-89ab-cdef-0123-456789abcdef", // non-existing relation
-                "/invoices/01234567-89ab-cdef-0123-456789abcdef/products/invalid-id", // invalid relation item id
-        })
-        void followRelationInvalidUrl(String url) throws Exception {
-            mockMvc.perform(get(url))
+        @MethodSource
+        void followRelationInvalidUrl(String url, MediaType accept) throws Exception {
+            mockMvc.perform(get(url)
+                            .accept(accept)
+                    )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/endpoint")
                             .withTitle("Endpoint not found")
                     );
+
         }
 
         @Test
@@ -892,19 +936,25 @@ class RelationRestControllerTest {
     @Nested
     class DatabaseFailures {
 
-        @Test
-        void followToOneRelationSourceIdNotFound() throws Exception {
-            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID))
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.RelationRestControllerTest#mediaTypes")
+        void followToOneRelationSourceIdNotFound(MediaType accept) throws Exception {
+            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", INVOICE_ID)
+                            .accept(accept)
+                    )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                     );
         }
 
-        @Test
-        void followToOneRelationTargetIdNotFound() throws Exception {
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.RelationRestControllerTest#mediaTypes")
+        void followToOneRelationTargetIdNotFound(MediaType accept) throws Exception {
             var invoice = createEntity(INVOICE);
-            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", invoice.getEntityId()))
+            mockMvc.perform(get("/invoices/{sourceId}/previous-invoice", invoice.getEntityId())
+                            .accept(accept)
+                    )
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
                             .withStatusCode(HttpStatus.NOT_FOUND)
                             .withType("https://contentgrid.cloud/problems/not-found/relation-item")
