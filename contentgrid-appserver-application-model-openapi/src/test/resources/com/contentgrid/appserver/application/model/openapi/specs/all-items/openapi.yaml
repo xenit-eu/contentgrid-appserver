@@ -1068,6 +1068,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -1180,6 +1186,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -1293,6 +1305,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -1737,6 +1755,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -1849,6 +1873,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -1962,6 +1992,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-bResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-bs/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -2686,6 +2722,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
@@ -2964,6 +3006,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/entity-aResponse"
+            text/uri-list:
+              schema:
+                type: "string"
+                format: "uri"
+                examples:
+                - "https://contentgrid-app.example/entity-as/00000000-0000-0000-0000-000000000000"
         "400":
           description: "Bad request: Invalid header"
           content:
