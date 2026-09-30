@@ -73,7 +73,6 @@ import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
-import com.contentgrid.appserver.domain.StoredLinkValue.VersionedString;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
@@ -2378,8 +2377,7 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result).isNotEmpty().get()
-                    // TODO: We don't want the version to be the extraction itself, this is just what is currently necessary to make the test pass
-                    .isEqualTo(new TextValue(new VersionedString(EXTRACTION, Version.exactly(EXTRACTION))));
+                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
         }
 
         @Test
@@ -2396,7 +2394,7 @@ class DatamodelApiImplTest {
                     .isInstanceOf(ContentValue.class)
                     .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
                     .satisfies(contentValue -> {
-                        var content = contentValue.content();
+                        var content = contentValue.getContent();
                         assertThat(content.getDescription()).isEqualTo(
                                 "ContentAttribute pdf: 'ContentReference(value=pdf-content-id)'");
                         assertThat(content.getMimeType()).isEqualTo("application/pdf");
@@ -2429,7 +2427,7 @@ class DatamodelApiImplTest {
                     .isInstanceOf(TextValue.class)
                     .asInstanceOf(instanceOfAssertFactory(TextValue.class))
                     .satisfies(textValue -> {
-                                assertThat(textValue.versionedString().stringValue()).isEqualTo(EXTRACTION);
+                        assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
                             }
                     );
 
@@ -2462,7 +2460,7 @@ class DatamodelApiImplTest {
                     .isInstanceOf(ContentValue.class)
                     .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
                     .satisfies(contentValue -> {
-                        var content = contentValue.content();
+                        var content = contentValue.getContent();
                         assertThat(content.getDescription()).isEqualTo(
                                 "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
                         assertThat(content.getMimeType()).isEqualTo(contentType);

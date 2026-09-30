@@ -19,7 +19,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
-import com.contentgrid.appserver.domain.StoredLinkValue.VersionedString;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
@@ -68,6 +67,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -503,7 +503,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .getAttribute();
         return switch (attribute) {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new TextValue(new VersionedString(((String) ((SimpleAttributeData<?>) attributeData).getValue())));
+                    new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified());
             case ContentAttribute contentAttribute -> {
                 var contentStore = contentStoreResolver.resolve(application);
                 yield new ContentValue(
