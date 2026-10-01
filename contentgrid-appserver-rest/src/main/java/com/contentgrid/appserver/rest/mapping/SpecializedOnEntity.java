@@ -13,7 +13,6 @@ import java.lang.annotation.Target;
  * further restricted at runtime to only match existing entity names
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Inherited
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface SpecializedOnEntity {
 
