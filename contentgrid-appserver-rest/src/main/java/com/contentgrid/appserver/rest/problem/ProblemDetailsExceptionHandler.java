@@ -25,7 +25,7 @@ import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedExce
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;
 import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
 import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
