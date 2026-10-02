@@ -1,30 +1,59 @@
 package com.contentgrid.appserver.domain;
 
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.*;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.APPLICATION;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AMOUNT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_AUDIT_METADATA;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONFIDENTIALITY;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CONTENT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_CUSTOMER;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_IS_PAID;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_LABELS;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_NUMBER;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_PAY_BEFORE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_PAY_TIMESTAMP;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.INVOICE_RECEIVED;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_GENDER;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_TAGS;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
+import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
+import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
@@ -42,6 +71,8 @@ import com.contentgrid.appserver.contentstore.api.ContentAccessor;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
+import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
@@ -62,7 +93,6 @@ import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintV
 import com.contentgrid.appserver.domain.data.validation.ContentMissingInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.DuplicateElementInvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolationInvalidDataException;
-import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.paging.PageBasedPagination;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorContext;
@@ -72,7 +102,11 @@ import com.contentgrid.appserver.domain.paging.cursor.SimplePageBasedCursorCodec
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.User;
+import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -113,11 +147,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.InstanceOfAssertFactory;
+import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -222,7 +260,7 @@ class DatamodelApiImplTest {
     }
 
     void setupEntityQuery() {
-        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
+        Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
             var request = args.getArgument(1, EntityRequest.class);
 
             return Optional.of(
@@ -235,7 +273,7 @@ class DatamodelApiImplTest {
     }
 
     void setupEntityQueryWithContent(String contentId) {
-        Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
+        Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
             var request = args.getArgument(1, EntityRequest.class);
             return Optional.of(
                     new EntityData(
@@ -431,12 +469,13 @@ class DatamodelApiImplTest {
 
     @Nested
     class CreateEntity {
+
         @Test
         void allSimpleProperties_succeeds() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                             "number", "1",
@@ -457,23 +496,27 @@ class DatamodelApiImplTest {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
                         .containsExactlyInAnyOrder(
-                        new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
-                        new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
-                        new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
-                        new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), LocalDate.now(clock).plusDays(30)),
-                        new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), Instant.now(clock).plus(7, ChronoUnit.DAYS)),
-                        new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), false),
-                        new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
-                        new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
-                        CompositeAttributeData.builder()
-                                .name(INVOICE_CONTENT.getName())
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                                .build(),
+                                new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
+                                new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                                new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), LocalDate.now(clock)),
+                                new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(),
+                                        LocalDate.now(clock).plusDays(30)),
+                                new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(),
+                                        Instant.now(clock).plus(7, ChronoUnit.DAYS)),
+                                new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), false),
+                                new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                                new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),CompositeAttributeData.builder()
+                                        .name(INVOICE_CONTENT.getName())
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(),
+                                                null))
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                                null))
+                                        .attribute(
+                                                new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
+                                        .build(),
                                 getAuditMetadataData(true)
-                );
+                        );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
                                 .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
@@ -495,7 +538,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    RequiredConstraintViolationInvalidDataException.class);
                         })
                         .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
@@ -556,7 +600,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(AllowedValuesConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    AllowedValuesConstraintViolationInvalidDataException.class);
                         })
                         .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
@@ -573,7 +618,7 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
             var productIds = List.of(EntityId.of(UUID.randomUUID()), EntityId.of(UUID.randomUUID()));
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -594,23 +639,26 @@ class DatamodelApiImplTest {
                 assertThat(createData.getEntityName()).isEqualTo(INVOICE.getName());
                 assertThat(createData.getAttributes())
                         .containsExactlyInAnyOrder(
-                        new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
-                        new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
-                        new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
-                        new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
+                                new SimpleAttributeData<>(INVOICE_NUMBER.getName(), "1"),
+                                new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), BigDecimal.valueOf(1.50)),
+                                new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
+                                new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
                         new SimpleAttributeData<>(INVOICE_RECEIVED.getName(), null),
-                        new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
-                        new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), null),
-                        new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
-                        CompositeAttributeData.builder()
-                                .name(INVOICE_CONTENT.getName())
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), null))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), null))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
-                                .build(),
+                                new SimpleAttributeData<>(INVOICE_PAY_BEFORE.getName(), null),
+                                new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), null),
+                                new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
+                                CompositeAttributeData.builder()
+                                        .name(INVOICE_CONTENT.getName())
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), null))
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(),
+                                                null))
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                                null))
+                                        .attribute(
+                                                new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), null))
+                                        .build(),
                                 getAuditMetadataData(true)
-                );
+                        );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
                                 .name(RelationName.of("customer"))
@@ -631,7 +679,7 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId)
                             // The vat attribute is referenced by the owner of PERSON_VAT_LINK
                             .attribute(new SimpleAttributeData<>(PERSON_VAT.getName(), "XXXX"))
@@ -639,7 +687,7 @@ class DatamodelApiImplTest {
             var result = datamodelApi.create(APPLICATION, PERSON.getName(), MapRequestInputData.fromMap(Map.of(
                             "name", "Test person",
                             "vat", "XXXX",
-                            "friends", List.of(new DataEntry.RelationDataEntry(
+                            "friends", List.of(new RelationDataEntry(
                                     PERSON.getName(),
                                     personId
                             )),
@@ -667,7 +715,7 @@ class DatamodelApiImplTest {
         void inverseRelation_unmapped_ignored() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(EntityData.builder().name(PERSON.getName()).id(entityId)
                             // The vat attribute is referenced by the owner of PERSON_VAT_LINK
                             .attribute(new SimpleAttributeData<>(PERSON_VAT.getName(), "XXXX"))
@@ -688,7 +736,14 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
                         new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
-                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of())
+                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of()),
+                        CompositeAttributeData.builder()
+                                .name(PERSON_PORTRAIT.getName())
+                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getId().getName(), null))
+                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getFilename().getName(), null))
+                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getMimetype().getName(), null))
+                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getLength().getName(), null))
+                                .build()
                 );
 
                 assertThat(createData.getRelations()).isEmpty();
@@ -702,7 +757,7 @@ class DatamodelApiImplTest {
             var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
@@ -725,7 +780,7 @@ class DatamodelApiImplTest {
                             assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
                             assertThat(((CompositeAttributeData) data).getAttributes())
                                     .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_by"))
-                                            &&  subValueMatches(sub, "name", "alice@example.com"))
+                                            && subValueMatches(sub, "name", "alice@example.com"))
                                     .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
                                             && subValueMatches(sub, "name", "alice@example.com"))
                             ;
@@ -740,7 +795,7 @@ class DatamodelApiImplTest {
             var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build()
@@ -784,7 +839,7 @@ class DatamodelApiImplTest {
             var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.update(Mockito.any(), updateDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build()
@@ -842,13 +897,13 @@ class DatamodelApiImplTest {
         void incorrectRelation_fails(Object customer, Object products) {
 
             assertThatThrownBy(() -> {
-                 datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                         "number", "1",
                         "amount", 1.50,
                         "confidentiality", "public",
                         "customer", customer,
                         "products", products
-                 )), AuthorizationContext.allowAll());
+                )), AuthorizationContext.allowAll());
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
@@ -868,11 +923,14 @@ class DatamodelApiImplTest {
             var personId = EntityId.of(UUID.randomUUID());
             var productIds = List.of(EntityId.of(UUID.randomUUID()), EntityId.of(UUID.randomUUID()));
             return Stream.of(
-                    Arguments.argumentSet("incorrect target entity", new RelationDataEntry(INVOICE.getName(), personId), productIds.stream()
-                                .map(pid -> new RelationDataEntry(PERSON.getName(), pid))
-                                .toList()),
+                    Arguments.argumentSet("incorrect target entity", new RelationDataEntry(INVOICE.getName(), personId),
+                            productIds.stream()
+                                    .map(pid -> new RelationDataEntry(PERSON.getName(), pid))
+                                    .toList()),
                     Arguments.argumentSet("incorrect data type", "my-person", List.of(123456)),
-                    Arguments.argumentSet("mixed up one/many", List.of(new RelationDataEntry(PERSON.getName(), personId)), new RelationDataEntry(PRODUCT.getName(), productIds.get(0)))
+                    Arguments.argumentSet("mixed up one/many",
+                            List.of(new RelationDataEntry(PERSON.getName(), personId)),
+                            new RelationDataEntry(PRODUCT.getName(), productIds.get(0)))
                     // TODO: re-enable when null-values are not considered valid for a to-many relation
                     //Arguments.argumentSet("incorrect empty value", List.of(), NullDataEntry.INSTANCE)
             );
@@ -885,9 +943,9 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
             var fileId = "my-file-123.bin";
-            Mockito.when(queryEngine.create(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
-            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
 
             var result = datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
                     "number", "1",
@@ -910,16 +968,18 @@ class DatamodelApiImplTest {
                                 new SimpleAttributeData<>(INVOICE_PAY_TIMESTAMP.getName(), null),
                                 new SimpleAttributeData<>(INVOICE_IS_PAID.getName(), null),
                                 new SimpleAttributeData<>(INVOICE_CONFIDENTIALITY.getName(), "public"),
-                                new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),
-                        CompositeAttributeData.builder()
-                                .name(INVOICE_CONTENT.getName())
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), fileId))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(), "my-file.pdf"))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(), "application/pdf"))
-                                .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 110L))
-                                .build(),
+                                new SimpleAttributeData<>(INVOICE_LABELS.getName(), List.of()),CompositeAttributeData.builder()
+                                        .name(INVOICE_CONTENT.getName())
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getId().getName(), fileId))
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getFilename().getName(),
+                                                "my-file.pdf"))
+                                        .attribute(new SimpleAttributeData<>(INVOICE_CONTENT.getMimetype().getName(),
+                                                "application/pdf"))
+                                        .attribute(
+                                                new SimpleAttributeData<>(INVOICE_CONTENT.getLength().getName(), 110L))
+                                        .build(),
                                 getAuditMetadataData(true)
-                );
+                        );
                 assertThat(createData.getRelations()).containsExactlyInAnyOrder(
                         XToOneRelationData.builder()
                                 .name(RelationName.of("customer"))
@@ -932,18 +992,19 @@ class DatamodelApiImplTest {
         @Test
         void contentAttributes_fails() {
             var personId = EntityId.of(UUID.randomUUID());
-            assertThatThrownBy(() -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
-                    "number", "1",
-                    "amount", 1.50,
-                    "confidentiality", "public",
-                    "customer", new RelationDataEntry(PERSON.getName(), personId),
-                    "content", Map.of(
-                            "id", "123",
-                            "filename", "test-file.pdf",
-                            "mimetype", "application/pdf",
-                            "length", 120
-                    )
-            )), AuthorizationContext.allowAll()))
+            assertThatThrownBy(
+                    () -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                            "number", "1",
+                            "amount", 1.50,
+                            "confidentiality", "public",
+                            "customer", new RelationDataEntry(PERSON.getName(), personId),
+                            "content", Map.of(
+                                    "id", "123",
+                                    "filename", "test-file.pdf",
+                                    "mimetype", "application/pdf",
+                                    "length", 120
+                            )
+                    )), AuthorizationContext.allowAll()))
                     .isInstanceOfSatisfying(InvalidPropertyDataException.class, e -> {
                         assertThat(e.getPath()).hasToString("content");
                     });
@@ -956,7 +1017,7 @@ class DatamodelApiImplTest {
         return invocation -> {
             InputStream inputStream = invocation.getArgument(0);
             inputStream.readAllBytes(); // read the bytes, so the underlying CountingInputStream has the correct size
-            var ca = Mockito.mock(ContentAccessor.class, Answers.RETURNS_SMART_NULLS);
+            var ca = mock(ContentAccessor.class, Answers.RETURNS_SMART_NULLS);
             Mockito.when(ca.getReference()).thenReturn(ContentReference.of(fileId));
             return ca;
         };
@@ -978,7 +1039,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1031,7 +1092,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    RequiredConstraintViolationInvalidDataException.class);
                         })
                         .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
@@ -1040,7 +1102,8 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine, Mockito.never())
+                    .update(any(), any(), any(), any());
             Mockito.verifyNoInteractions(contentStore);
         }
 
@@ -1053,7 +1116,7 @@ class DatamodelApiImplTest {
                     .id(entityId)
                     .build();
             setupEntityQueryWithContent("content.bin");
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1145,7 +1208,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    RequiredConstraintViolationInvalidDataException.class);
                             assertThat(ex.getPath()).hasToString("content.mimetype");
                         });
             });
@@ -1161,7 +1225,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1211,10 +1275,10 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
 
-            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
 
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1267,7 +1331,7 @@ class DatamodelApiImplTest {
                     .build();
 
             setupEntityQuery();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1311,7 +1375,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    RequiredConstraintViolationInvalidDataException.class);
                         })
                         .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
@@ -1319,7 +1384,8 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine, Mockito.never())
+                    .update(any(), any(), any(), any());
             Mockito.verifyNoInteractions(contentStore);
         }
 
@@ -1335,7 +1401,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .allSatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(AllowedValuesConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    AllowedValuesConstraintViolationInvalidDataException.class);
                         })
                         .extracting(e -> e.getPath().toString())
                         .containsExactlyInAnyOrder(
@@ -1343,7 +1410,8 @@ class DatamodelApiImplTest {
                         );
             });
 
-            Mockito.verify(queryEngine, Mockito.never()).update(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine, Mockito.never())
+                    .update(any(), any(), any(), any());
             Mockito.verifyNoInteractions(contentStore);
 
         }
@@ -1357,16 +1425,18 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "customer", NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
+                            "customer",
+                            NullDataEntry.INSTANCE // Relation is set to null; but updates do not affect relations
                     )), AuthorizationContext.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(INVOICE.getName());
-            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(getAuditMetadataData(false));
+            assertThat(createDataCaptor.getValue().getAttributes()).containsExactlyInAnyOrder(
+                    getAuditMetadataData(false));
 
             Mockito.verifyNoInteractions(contentStore);
         }
@@ -1382,7 +1452,7 @@ class DatamodelApiImplTest {
 
             setupEntityQueryWithContent("content.bin");
 
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1419,15 +1489,15 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                 datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                         MapRequestInputData.fromMap(Map.of(
-                        "number", "1",
-                        "amount", 1.50,
-                        "confidentiality", "public",
-                        "content", Map.of(
-                                "filename", "file-123.pdf",
-                                "mimetype", "application/pdf",
-                                "id", "will-be-ignored",
-                                "length", 0xbad
-                        )
+                                "number", "1",
+                                "amount", 1.50,
+                                "confidentiality", "public",
+                                "content", Map.of(
+                                        "filename", "file-123.pdf",
+                                        "mimetype", "application/pdf",
+                                        "id", "will-be-ignored",
+                                        "length", 0xbad
+                                )
                         )),
                         AuthorizationContext.allowAll()
                 );
@@ -1439,7 +1509,7 @@ class DatamodelApiImplTest {
                         });
             });
 
-            Mockito.verify(queryEngine).findById(Mockito.any(), Mockito.any(), Mockito.any());
+            Mockito.verify(queryEngine).findById(any(), any(), any());
 
             Mockito.verifyNoMoreInteractions(queryEngine, contentStore);
 
@@ -1462,7 +1532,8 @@ class DatamodelApiImplTest {
             }).isInstanceOfSatisfying(InvalidPropertyDataException.class, exception -> {
                 assertThat(exception.allExceptions())
                         .anySatisfy(ex -> {
-                            assertThat(ex.getCause()).isInstanceOf(RequiredConstraintViolationInvalidDataException.class);
+                            assertThat(ex.getCause()).isInstanceOf(
+                                    RequiredConstraintViolationInvalidDataException.class);
                             assertThat(ex.getPath()).hasToString("content.mimetype");
                         });
             });
@@ -1477,7 +1548,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1512,7 +1583,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1548,7 +1619,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1585,12 +1656,12 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(Mockito.any(), createDataCaptor.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
-            Mockito.when(contentStore.writeContent(Mockito.any())).thenAnswer(contentAccessorFor(fileId));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
-                    "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(150))
+                            "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(150))
                     )), AuthorizationContext.allowAll());
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -1629,7 +1700,8 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(2000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1637,9 +1709,11 @@ class DatamodelApiImplTest {
             assertNull(firstPage.previous().orElse(null));
 
             // get the cursor for the next page from the result of the first page
-            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next()
+                    .orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest,
+                    AuthorizationContext.allowAll());
             assertEquals(2100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(4000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1648,7 +1722,8 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest,
+                    AuthorizationContext.allowAll());
             assertEquals(4100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(6000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1662,7 +1737,8 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 50, SortData.unsorted()), AuthorizationContext.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    new EncodedCursorPagination(null, 50, SortData.unsorted()), AuthorizationContext.allowAll());
             assertEquals(100.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(5000.0, getAmount(firstPage.getContent().getLast()));
 
@@ -1670,9 +1746,11 @@ class DatamodelApiImplTest {
             assertNull(firstPage.previous().orElse(null));
 
             // get the cursor for the next page from the result of the first page
-            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next()
+                    .orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest,
+                    AuthorizationContext.allowAll());
             assertEquals(5_100.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(10_000.0, getAmount(secondPage.getContent().getLast()));
 
@@ -1681,7 +1759,8 @@ class DatamodelApiImplTest {
 
             nextPageRequest = (EncodedCursorPagination) secondPage.next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest,
+                    AuthorizationContext.allowAll());
             assertEquals(10_100.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(15_000.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1707,7 +1786,8 @@ class DatamodelApiImplTest {
             assertEquals(3900.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
-            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next()
+                    .orElseThrow();
 
             var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, Map.of("confidentiality", List.of("public")),
                     nextPageRequest, AuthorizationContext.allowAll());
@@ -1732,20 +1812,24 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, sort), AuthorizationContext.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    new EncodedCursorPagination(null, 20, sort), AuthorizationContext.allowAll());
             assertEquals(100_000_000.0, getAmount(firstPage.getContent().getFirst()));
             assertEquals(99_998_100.0, getAmount(firstPage.getContent().getLast()));
 
             // get the cursor for the next page from the result of the first page
-            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next().orElseThrow();
+            EncodedCursorPagination nextPageRequest = (EncodedCursorPagination) firstPage.getControls().next()
+                    .orElseThrow();
 
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest,
+                    AuthorizationContext.allowAll());
             assertEquals(99_998_000.0, getAmount(secondPage.getContent().getFirst()));
             assertEquals(99_996_100.0, getAmount(secondPage.getContent().getLast()));
 
             nextPageRequest = (EncodedCursorPagination) secondPage.getControls().next().orElseThrow();
 
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest, AuthorizationContext.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, nextPageRequest,
+                    AuthorizationContext.allowAll());
             assertEquals(99_996_000.0, getAmount(thirdPage.getContent().getFirst()));
             assertEquals(99_994_100.0, getAmount(thirdPage.getContent().getLast()));
         }
@@ -1759,24 +1843,30 @@ class DatamodelApiImplTest {
             mockCount();
 
             // cursor `null` -> first page
-            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
+            var startPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    new EncodedCursorPagination(null, 20, SortData.unsorted()), AuthorizationContext.allowAll());
 
             // Navigate to third page (next page is tested in other tests)
-            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) startPage.next().orElseThrow(), AuthorizationContext.allowAll());
-            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) secondPage.next().orElseThrow(), AuthorizationContext.allowAll());
+            var secondPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    (EncodedCursorPagination) startPage.next().orElseThrow(), AuthorizationContext.allowAll());
+            var thirdPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    (EncodedCursorPagination) secondPage.next().orElseThrow(), AuthorizationContext.allowAll());
 
             // Verify that navigating to current page remains the same
-            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.current(), AuthorizationContext.allowAll());
+            var currentPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    (EncodedCursorPagination) thirdPage.current(), AuthorizationContext.allowAll());
             assertEquals(getAmount(thirdPage.getContent().getFirst()), getAmount(currentPage.getContent().getFirst()));
             assertEquals(getAmount(thirdPage.getContent().getLast()), getAmount(currentPage.getContent().getLast()));
 
             // Verify that previous page is the same as second page
-            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.previous().orElseThrow(), AuthorizationContext.allowAll());
+            var prevPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    (EncodedCursorPagination) thirdPage.previous().orElseThrow(), AuthorizationContext.allowAll());
             assertEquals(getAmount(secondPage.getContent().getFirst()), getAmount(prevPage.getContent().getFirst()));
             assertEquals(getAmount(secondPage.getContent().getLast()), getAmount(prevPage.getContent().getLast()));
 
             // Verify that first page is the same as starting page
-            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, (EncodedCursorPagination) thirdPage.first(), AuthorizationContext.allowAll());
+            var firstPage = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    (EncodedCursorPagination) thirdPage.first(), AuthorizationContext.allowAll());
             assertEquals(getAmount(startPage.getContent().getFirst()), getAmount(firstPage.getContent().getFirst()));
             assertEquals(getAmount(startPage.getContent().getLast()), getAmount(firstPage.getContent().getLast()));
         }
@@ -1848,7 +1938,9 @@ class DatamodelApiImplTest {
                         .when(queryEngine).count(any(), any(), any());
             }
 
-            var result = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS, new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()), AuthorizationContext.allowAll());
+            var result = datamodelApi.findAll(APPLICATION, INVOICE, PARAMS,
+                    new EncodedCursorPagination(fakeCursor(page), size, SortData.unsorted()),
+                    AuthorizationContext.allowAll());
             assertEquals(expected, result.getTotalItemCount());
 
             // assert count was not called when stubNeeded is false
@@ -1859,6 +1951,7 @@ class DatamodelApiImplTest {
             var data = entity.getData().get(INVOICE_AMOUNT.getName().getValue());
             return ((DecimalDataEntry) data).getValue().doubleValue();
         }
+
         private String getConfidentiality(EntityData entity) {
             var data = entity.getAttributeByName(INVOICE_CONFIDENTIALITY.getName()).orElseThrow();
             return ((SimpleAttributeData<String>) data).getValue();
@@ -1891,7 +1984,7 @@ class DatamodelApiImplTest {
 
             List<EntityData> entities = Stream
                     // stream of 1, 2, 3, ..., count
-                    .iterate(1, i -> i <= count, i -> i+1)
+                    .iterate(1, i -> i <= count, i -> i + 1)
                     // count down if descending
                     .map(descending ? i -> count + 1 - i : Function.identity())
                     // transform to {foo, 100}, {bar, 200}, {foo, 300}, ...
@@ -1960,6 +2053,36 @@ class DatamodelApiImplTest {
                 .lengthColumn(ColumnName.of("attachment__length"))
                 .build();
 
+        private static final SimpleAttributePath ATTACHMENT_PATH = new SimpleAttributePath(
+                DOCUMENT_ATTACHMENT.getName());
+
+        private static final AttributeName FTS = AttributeName.of("fts");
+        private static final SimpleAttribute FTS_ATTRIBUTE = SimpleAttribute.builder()
+                .name(FTS)
+                .column(ColumnName.of("_links__text__content"))
+                .flag(IgnoredFlag.INSTANCE)
+                .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
+        private static final ContentAttribute PDF_ATTRIBUTE = ContentAttribute.builder()
+                .name(AttributeName.of("pdf"))
+                .idColumn(ColumnName.of("pdf__id"))
+                .filenameColumn(ColumnName.of("pdf__filename"))
+                .mimetypeColumn(ColumnName.of("pdf__mimetype"))
+                .lengthColumn(ColumnName.of("pdf__length"))
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
+        private static final CompositeAttribute LINKS_ATTRIBUTE = CompositeAttributeImpl.builder()
+                .name(AttributeName.of("_links"))
+                .attributes(Set.of(FTS_ATTRIBUTE, PDF_ATTRIBUTE))
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
+
+        private static final CompositeAttributePath FTS_LINK_PATH = new CompositeAttributePath(
+                LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(FTS_ATTRIBUTE.getName()));
+        private static final CompositeAttributePath PDF_LINK_PATH = new CompositeAttributePath(
+                LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(PDF_ATTRIBUTE.getName()));
+
         // Uses all entity substitution variables and the owner value of an attribute
         private static final PlainEntityLink CATEGORY_LINK = PlainEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rel/category"), "category"))
@@ -2010,6 +2133,24 @@ class DatamodelApiImplTest {
                         "/documents/%{entity.id}"))
                 .build();
 
+        // Stored Links
+        private static final String EXTRACTION = "Invoice 2024-07, supplier Acme, total 15.95 EUR";
+        private static final StoredEntityLink PDF_RENDITION_LINK = StoredEntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rels/renditions/pdf"), "content"))
+                .owner(ATTACHMENT_PATH)
+                .pathSegments(List.of(DOCUMENT_ATTACHMENT.getPathSegment(), PathSegmentName.of("_links"),
+                        PathSegmentName.of("pdf")))
+                .storage(PDF_LINK_PATH)
+                .fallbackTemplate(automationTemplate("my-automation", "api", "/rendition?document=%{owner.link}"))
+                .build();
+        private static final StoredEntityLink FTS_LINK = StoredEntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fts"))
+                .owner(ATTACHMENT_PATH)
+                .pathSegments(List.of(DOCUMENT_ATTACHMENT.getPathSegment(), PathSegmentName.of("_links"),
+                        PathSegmentName.of("fts")))
+                .storage(FTS_LINK_PATH)
+                .build();
+
         private static final Entity DOCUMENT = Entity.builder()
                 .name(EntityName.of("document"))
                 .table(TableName.of("document"))
@@ -2018,6 +2159,7 @@ class DatamodelApiImplTest {
                 .primaryKey(DOCUMENT_ID)
                 .attribute(DOCUMENT_CATEGORY)
                 .attribute(DOCUMENT_ATTACHMENT)
+                .attribute(LINKS_ATTRIBUTE)
                 .link(CATEGORY_LINK)
                 .link(PREVIEW_LINK)
                 .link(ATTACHMENT_SCAN_LINK)
@@ -2025,6 +2167,8 @@ class DatamodelApiImplTest {
                 .link(AUTOMATION_LINK)
                 .link(UNKNOWN_AUTOMATION_LINK)
                 .link(UNKNOWN_BASE_PATH_LINK)
+                .link(PDF_RENDITION_LINK)
+                .link(FTS_LINK)
                 .build();
 
         private static final ManyToOneRelation DOCUMENT_AUTHOR = ManyToOneRelation.builder()
@@ -2046,6 +2190,26 @@ class DatamodelApiImplTest {
                 .relation(DOCUMENT_AUTHOR)
                 .build();
 
+        private static EntityData createDocumentData(EntityId id) {
+            return new EntityData(
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id),
+                    List.of(CompositeAttributeData.builder()
+                            .name(LINKS_ATTRIBUTE.getName())
+                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
+                            .attribute(CompositeAttributeData.builder()
+                                    .name(PDF_ATTRIBUTE.getName())
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                            "pdf-content-id"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                            "invoice.pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                            "application/pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
+                                    .build())
+                            .build()
+                    ));
+        }
+
         private static UriTemplateDefinition template(String template) {
             return new SimpleUriTemplateDefinition(
                     new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
@@ -2064,12 +2228,19 @@ class DatamodelApiImplTest {
         }
 
         private void setupDocumentQuery(String categoryValue) {
-            Mockito.when(queryEngine.findById(Mockito.any(), Mockito.any(), Mockito.any())).then(args -> {
+            Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
                 var request = args.getArgument(1, EntityRequest.class);
                 return Optional.of(new EntityData(
                         EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
                         List.of(new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), categoryValue))
                 ));
+            });
+        }
+
+        private void setupDocumentLinksQuery() {
+            Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
+                var request = args.getArgument(1, EntityRequest.class);
+                return Optional.of(createDocumentData(request.getEntityId()));
             });
         }
 
@@ -2093,7 +2264,8 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             CATEGORY_LINK.getIdentity(),
                             URI.create("https://links.example/profile/category"),
-                            "https://categories.example/document?name=category&value=contracts&id=" + entityId.getValue()
+                            "https://categories.example/document?name=category&value=contracts&id="
+                                    + entityId.getValue()
                     ),
                     new EntityLinkData(
                             PREVIEW_LINK.getIdentity(),
@@ -2119,6 +2291,12 @@ class DatamodelApiImplTest {
                             null,
                             "https://automation.example/my-automation/documents/" + entityId.getValue()
                                     + "?app=my-application-id"
+                    ),
+                    new EntityLinkData(
+                            PDF_RENDITION_LINK.getIdentity(),
+                            null,
+                            "https://automation.example/my-automation/rendition?document=" + encodedUriProviderLink(
+                                    entityId, "/attachment")
                     )
             );
         }
@@ -2140,14 +2318,15 @@ class DatamodelApiImplTest {
                             PREVIEW_LINK.getIdentity(),
                             ATTACHMENT_SCAN_LINK.getIdentity(),
                             AUTHOR_LINK.getIdentity(),
-                            AUTOMATION_LINK.getIdentity()
+                            AUTOMATION_LINK.getIdentity(),
+                            PDF_RENDITION_LINK.getIdentity()
                     );
         }
 
         @Test
         void create_expandsEntityLinks() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.create(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.create(any(), any(), any(), any()))
                     .thenReturn(EntityData.builder()
                             .name(DOCUMENT.getName())
                             .id(entityId)
@@ -2165,13 +2344,215 @@ class DatamodelApiImplTest {
                             PREVIEW_LINK.getIdentity(),
                             ATTACHMENT_SCAN_LINK.getIdentity(),
                             AUTHOR_LINK.getIdentity(),
-                            AUTOMATION_LINK.getIdentity()
+                            AUTOMATION_LINK.getIdentity(),
+                            PDF_RENDITION_LINK.getIdentity()
                     );
+        }
+
+        @Test
+        void findLink_throwsEntityIdNotFound() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            assertThrows(EntityIdNotFoundException.class,
+                    () -> datamodelApi.findLink(DOCUMENT_APPLICATION,
+                            LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                            AuthorizationContext.allowAll()));
+        }
+
+        @Test
+        void findLink_throwsLinkNotFound() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            assertThrows(LinkNotFoundException.class,
+                    () -> datamodelApi.findLink(DOCUMENT_APPLICATION,
+                            LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
+                            AuthorizationContext.allowAll()));
+        }
+
+        @Test
+        void findLink_returnsText() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksQuery();
+
+            var result = datamodelApi.findLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    AuthorizationContext.allowAll());
+
+            assertThat(result).isNotEmpty().get()
+                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+        }
+
+        @Test
+        void findLink_returnsContent() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksQuery();
+
+            var result = datamodelApi.findLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    AuthorizationContext.allowAll());
+
+            assertThat(result).isNotEmpty()
+                    .get()
+                    .isInstanceOf(ContentValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
+                    .satisfies(contentValue -> {
+                        var content = contentValue.getContent();
+                        assertThat(content.getDescription()).isEqualTo(
+                                "ContentAttribute pdf: 'ContentReference(value=pdf-content-id)'");
+                        assertThat(content.getMimeType()).isEqualTo("application/pdf");
+                        assertThat(content.getFilename()).isEqualTo("invoice.pdf");
+                        assertThat(content.getLength()).isEqualTo(1);
+                        assertThat(content.getVersion()).isNotNull();
+                    });
+        }
+
+        @Test
+        void update_throwsLinkNotFound() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            assertThrows(LinkNotFoundException.class, () ->
+                    datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                            LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
+                            new StringDataEntry("Full text extraction"), AuthorizationContext.allowAll()));
+        }
+
+        @Test
+        void updateLink_storesTextData() {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+            var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    new StringDataEntry(EXTRACTION), AuthorizationContext.allowAll());
+            assertThat(result).isNotNull()
+                    .isInstanceOf(TextValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(TextValue.class))
+                    .satisfies(textValue -> {
+                        assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
+                            }
+                    );
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo(EXTRACTION));
+        }
+
+        @Test
+        void updateLink_storesContentData() throws UnwritableContentException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
+            var fileId = "my-file.bin";
+            var fileName = "invoice.pdf";
+            var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
+
+            var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
+                    AuthorizationContext.allowAll());
+            assertThat(result).isNotNull()
+                    .isInstanceOf(ContentValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
+                    .satisfies(contentValue -> {
+                        var content = contentValue.getContent();
+                        assertThat(content.getDescription()).isEqualTo(
+                                "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
+                        assertThat(content.getMimeType()).isEqualTo(contentType);
+                        assertThat(content.getFilename()).isEqualTo(fileName);
+                        assertThat(content.getLength()).isEqualTo(150);
+                        assertThat(content.getVersion()).isNotNull();
+                    });
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links"))).isNotEmpty()
+                    .get()
+                    .isInstanceOf(CompositeAttributeData.class)
+                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
+                    .satisfies(attributeData -> {
+                        assertThat(attributeData).isNotNull();
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                                .get()
+                                .isInstanceOf(CompositeAttributeData.class)
+                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
+                                        Assertions::assertThat))
+                                .satisfies(pdfAttribute ->
+                                        assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                                        fileId),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                                        fileName),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                                        contentType),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 150L)
+                                        )
+                                );
+                    });
+        }
+
+        @Test
+        void deleteLink_throwsLinkNotFound() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing"));
+            var allowAll = AuthorizationContext.allowAll();
+            assertThrows(LinkNotFoundException.class, () -> datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll));
+        }
+
+        @Test
+        void deleteLink_deletesText() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity());
+            var allowAll = AuthorizationContext.allowAll();
+            var entityData = createDocumentData(entityId);
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll);
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isNull());
+        }
+
+        @Test
+        void deleteLink_deletesContent_nullsAllContentFields() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity());
+            var allowAll = AuthorizationContext.allowAll();
+            var entityData = createDocumentData(entityId);
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll);
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("pdf")),
+                    CompositeAttributeData.class))
+                    .hasValueSatisfying(pdfAttribute ->
+                            assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrderElementsOf(
+                                    PDF_ATTRIBUTE.getAttributes().stream()
+                                            .map(nested -> new SimpleAttributeData<>(nested.getName(), null))
+                                            .toList()));
         }
     }
 
     @Nested
     class DeleteEntity {
+
         @Test
         void deleteSuccess() {
             EntityId id = EntityId.of(UUID.randomUUID());
@@ -2179,10 +2560,11 @@ class DatamodelApiImplTest {
             EntityData data = EntityData.builder().name(invoice).id(id).attributes(List.of()).build();
 
             ArgumentCaptor<EntityRequest> deleteArg = ArgumentCaptor.forClass(EntityRequest.class);
-            Mockito.when(queryEngine.delete(Mockito.any(), deleteArg.capture(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.delete(any(), deleteArg.capture(), any(), any()))
                     .thenReturn(Optional.of(data));
 
-            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id), AuthorizationContext.allowAll());
+            datamodelApi.deleteEntity(APPLICATION, EntityRequest.forEntity(invoice, id),
+                    AuthorizationContext.allowAll());
             assertEquals(invoice, deleteArg.getValue().getEntityName());
             assertEquals(id, deleteArg.getValue().getEntityId());
         }
@@ -2192,7 +2574,7 @@ class DatamodelApiImplTest {
             EntityId id = EntityId.of(UUID.randomUUID());
             EntityName invoice = EntityName.of("invoice");
 
-            Mockito.when(queryEngine.delete(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+            Mockito.when(queryEngine.delete(any(), any(), any(), any()))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->
@@ -2201,5 +2583,9 @@ class DatamodelApiImplTest {
             ).isInstanceOf(EntityIdNotFoundException.class);
 
         }
+    }
+
+    private static <T> InstanceOfAssertFactory<T, ObjectAssert<T>> instanceOfAssertFactory(Class<T> instanceClass) {
+        return new InstanceOfAssertFactory<>(instanceClass, Assertions::assertThat);
     }
 }

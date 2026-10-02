@@ -3,7 +3,12 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
@@ -11,12 +16,21 @@ import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyP
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
+import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
+import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
@@ -45,14 +59,16 @@ import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
-import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
@@ -60,9 +76,11 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -71,6 +89,7 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
+import java.io.IOException;
 import java.net.URI;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -82,7 +101,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -214,7 +232,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private void validateSortData(Entity entity, SortData sortData) {
         for (FieldSort field : sortData.getSortedFields()) {
             var name = field.getName();
-            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterException.InvalidSortParameterNameException(entity.getName(), name));
+            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterNameException(entity.getName(), name));
         }
     }
 
@@ -462,6 +480,114 @@ public class DatamodelApiImpl implements DatamodelApi {
         );
     }
 
+    @Override
+    public Optional<StoredLinkValue> findLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+            @NonNull AuthorizationContext authorizationContext) {
+        var storage = application.getRequiredEntityByName(linkRequest.getEntityName())
+                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest))
+                .getStorage();
+
+        return queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()))
+                .getNestedAttributeByPath(storage)
+                .map(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
+                        linkRequest.getEntityName(), storage));
+    }
+
+    private StoredLinkValue mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
+            @NonNull EntityName entityName, @NonNull AttributePath attributePath) {
+        var attribute = application
+                .getPropertyPathResolver()
+                .resolveAttribute(entityName, attributePath)
+                .getAttribute();
+        return switch (attribute) {
+            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
+                    new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified());
+            case ContentAttribute contentAttribute -> {
+                var contentStore = contentStoreResolver.resolve(application);
+                yield new ContentValue(
+                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData)));
+            }
+            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
+             + " to a stored link value");
+        };
+    }
+
+    @Override
+    public StoredLinkValue updateLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+            @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
+        var storage = application
+                .getRequiredEntityByName(linkRequest.getEntityName())
+                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest))
+                .getStorage();
+
+        var entityData = new EntityData(
+                EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
+                List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
+        UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
+
+        var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+        var attributeData = updateResult
+                .getUpdated()
+                .getNestedAttributeByPath(storage)
+                .orElseThrow();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
+    }
+
+    // Reversed walkthrough of the attributePath to create the AttributeData tree.
+    // Create the leaf first, then the surrounding composites.
+    private AttributeData buildAttributeDataTree(@NonNull AttributePath attributePath, @NonNull DataEntry dataEntry,
+            @NonNull Application application, @NonNull EntityName entityName) {
+        var iterator = attributePath.getAsList().reversed().iterator();
+        var result = buildAttributeData(iterator.next(), dataEntry, application, entityName);
+        while (iterator.hasNext()) {
+            var currentAttributePath = iterator.next();
+            result = CompositeAttributeData.builder().name(currentAttributePath.getLast()).attribute(result).build();
+        }
+        return result;
+    }
+
+    private AttributeData buildAttributeData(@NonNull AttributePath attributePath, @NonNull DataEntry dataEntry,
+            @NonNull Application application, @NonNull EntityName entityName) {
+        var attributeName = attributePath.getLast();
+        var attribute = application
+                .getPropertyPathResolver()
+                .resolveAttribute(entityName, attributePath)
+                .getAttribute();
+        return switch (attribute) {
+            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
+                    new SimpleAttributeData<>(attributeName, ((ScalarDataEntry) dataEntry).getValue());
+            case ContentAttribute contentAttribute -> {
+                var builder = CompositeAttributeData.builder().name(attributeName);
+                if (dataEntry.equals(NullDataEntry.INSTANCE)) {
+                    for (var nestedAttr : contentAttribute.getAttributes()) {
+                        builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), null));
+                    }
+                } else {
+                    try {
+                        var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
+                        for (var nestedAttr : contentAttribute.getAttributes()) {
+                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
+                                    nestedAttr.getName().getValue())).getValue()));
+                        }
+                    } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                yield builder.build();
+            }
+            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
+                    + " to an AttributeData class");
+        };
+    }
+
+    @Override
+    public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
+        updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
+    }
+
     @RequiredArgsConstructor
     private static class ResponseOutputDataMapper {
         private final List<Attribute> attributes;
@@ -514,7 +640,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                 // Whether the owner has data stored
                 var ownerHasData = entityLink.getOwner().map(owner -> {
                     try {
-                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue() != null;
+                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                SimpleAttributeData.class).orElseThrow().getValue() != null;
                     } catch (InvalidPropertyPathException e) {
                         throw new IllegalStateException(e);
                     }
@@ -533,7 +660,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                     case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
                     case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
                         try {
-                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue(), null);
+                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                    SimpleAttributeData.class).orElseThrow().getValue(), null);
                         } catch (InvalidPropertyPathException e) {
                             throw new IllegalStateException(e);
                         }
