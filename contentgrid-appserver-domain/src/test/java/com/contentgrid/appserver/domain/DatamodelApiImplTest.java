@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -2411,6 +2412,7 @@ class DatamodelApiImplTest {
                             new StringDataEntry("Full text extraction"), AuthorizationContext.allowAll()));
         }
 
+        // TODO ACC-3004 check Version of input matches
         @Test
         void updateLink_storesTextData() {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
@@ -2492,6 +2494,16 @@ class DatamodelApiImplTest {
                                         )
                                 );
                     });
+        }
+
+        @Test
+        void updateLink_rejectUnsatisfiedVersionConstaint_TextData() {
+            assertTrue(false);
+        }
+
+        @Test
+        void updateLink_rejectUnsatisfiedVersionConstaint_ContentData() {
+            assertTrue(false);
         }
 
         @Test
