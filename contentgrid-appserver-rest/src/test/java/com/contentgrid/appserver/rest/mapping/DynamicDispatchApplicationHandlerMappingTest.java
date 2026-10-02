@@ -14,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
@@ -34,10 +36,9 @@ import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestAutoConfigura
 import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestFormatterAutoConfiguration;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType.StoredLinkType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import java.net.URI;
-import java.util.List;
-import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -83,11 +84,21 @@ class DynamicDispatchApplicationHandlerMappingTest {
                     .mimetypeColumn(ColumnName.of("content_mimetype"))
                     .filenameColumn(ColumnName.of("content_filename"))
                     .build())
+            .attribute(SimpleAttribute.builder()
+                    .name(AttributeName.of("text"))
+                    .type(Type.TEXT)
+                    .column(ColumnName.of("text"))
+                    .build())
             .linkName(LinkName.of("test-entity"))
             .link(StoredEntityLink.builder()
                     .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com/rel")))
-                    .pathSegments(List.of(PathSegmentName.of("_links"), PathSegmentName.of("my-link")))
+                    .pathSegment(PathSegmentName.of("_links/my-link"))
                     .storage(PropertyPath.toAttribute(AttributeName.of("content")))
+                    .build())
+            .link(StoredEntityLink.builder()
+                    .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com/text-rel")))
+                    .pathSegment(PathSegmentName.of("_links/text-link"))
+                    .storage(PropertyPath.toAttribute(AttributeName.of("text")))
                     .build())
             .build();
     private static final Entity OTHER_ENTITY = Entity.builder()
@@ -254,19 +265,44 @@ class DynamicDispatchApplicationHandlerMappingTest {
         }
     }
 
-    @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "linkPath")
+    @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath")
     @RestController
     static class LinkController {
 
-        @GetMapping("/{entityName}/{linkPath}")
+        @GetMapping("/{entityName}/{*linkPath}")
         ResponseEntity<String> getLink(
                 @PathVariable String entityName,
-                @PathVariable List<String> linkPath
+                @PathVariable String linkPath
         ) {
-            var link = APPLICATION.getEntityByPathSegment(PathSegmentName.of(entityName)).orElseThrow()
-                    .getStoredEntityLinkByPathSegments(linkPath.stream().map(PathSegmentName::of).toList())
-                    .orElseThrow();
+            var link = getStoredEntityLink(entityName, linkPath);
             return ResponseEntity.ok("Get link %s".formatted(link.getIdentity()));
+        }
+
+        private StoredEntityLink getStoredEntityLink(String entityName, String linkPath) {
+            return APPLICATION.getEntityByPathSegment(PathSegmentName.of(entityName)).orElseThrow()
+                    // SpecializedOnLinkType extracts *linkPath with leading '/', consistent with Spring pathparam extraction. Handle leading slash in controller
+                    .getStoredEntityLinkByPathSegments(PathSegmentName.of(linkPath.substring(1)))
+                    .orElseThrow();
+        }
+
+        @SpecializedOnLinkType(type = StoredLinkType.TEXT, entityPathVariable = "entityName", linkPathVariable = "*linkPath")
+        @PutMapping(value = "/{entityName}/{*linkPath}", consumes = "text/plain")
+        ResponseEntity<String> putTextLink(
+                @PathVariable String entityName,
+                @PathVariable String linkPath
+        ) {
+            var link = getStoredEntityLink(entityName, linkPath);
+            return ResponseEntity.ok("PUT text link %s".formatted(link.getIdentity()));
+        }
+
+        @SpecializedOnLinkType(type = StoredLinkType.CONTENT, entityPathVariable = "entityName", linkPathVariable = "*linkPath")
+        @PutMapping(value = "/{entityName}/{*linkPath}", consumes = "*/*")
+        ResponseEntity<String> putContentLink(
+                @PathVariable String entityName,
+                @PathVariable String linkPath
+        ) {
+            var link = getStoredEntityLink(entityName, linkPath);
+            return ResponseEntity.ok("PUT content link %s".formatted(link.getIdentity()));
         }
 
     }
@@ -298,6 +334,10 @@ class DynamicDispatchApplicationHandlerMappingTest {
         mockMvc.perform(get("/test-entities/_links/my-link"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Get link UnnamedLink(https://example.com/rel)"));
+
+        mockMvc.perform(get("/test-entities/_links/text-link"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Get link UnnamedLink(https://example.com/text-rel)"));
 
         mockMvc.perform(get("/non-existing/item"))
                 .andExpect(status().isNotFound());
@@ -379,7 +419,17 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 .file("file", new byte[5])
         ).andExpect(status().isUnsupportedMediaType());
 
+        mockMvc.perform(put("/test-entities/_links/my-link")
+                        .contentType("application/json")
+                        .content("{}")
+                ).andExpect(status().isOk())
+                .andExpect(content().string("PUT content link UnnamedLink(https://example.com/rel)"));
 
+        mockMvc.perform(put("/test-entities/_links/text-link")
+                .contentType("application/json")
+                .content("{}")
+        ).andExpect(status().isUnsupportedMediaType())
+                .andExpect(header().string(HttpHeaders.ACCEPT, "text/plain"));
     }
 
 }
