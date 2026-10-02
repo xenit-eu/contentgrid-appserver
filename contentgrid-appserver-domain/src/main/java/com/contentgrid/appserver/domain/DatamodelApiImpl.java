@@ -62,6 +62,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
@@ -536,6 +537,12 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 // Like updatePartial for entities, missing fields are ommited so they are not updated
                 FilterDataEntryMapper.omitMissing(),
                 new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock)));
+
+        var entityIdentity = EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
+            throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
+        }
 
         var entityData = new EntityData(
                 EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
