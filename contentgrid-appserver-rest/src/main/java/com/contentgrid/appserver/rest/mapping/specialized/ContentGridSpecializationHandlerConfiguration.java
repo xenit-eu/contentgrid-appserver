@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.mapping.specialized;
 
 import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -30,6 +31,14 @@ public class ContentGridSpecializationHandlerConfiguration {
         return new AnnotationBasedSpecializationHandlerAdapter<>(
                 SpecializedOnPropertyType.class,
                 new SpecializedOnPropertyTypeAnnotationSpecialisationHandler()
+        );
+    }
+
+    @Bean
+    SpecializationHandler<Method> specializedOnLinkTypeHandler() {
+        return new AnnotationBasedSpecializationHandlerAdapter<>(
+                SpecializedOnLinkType.class,
+                new SpecializedOnLinkTypeAnnotationSpecializationHandler()
         );
     }
 
