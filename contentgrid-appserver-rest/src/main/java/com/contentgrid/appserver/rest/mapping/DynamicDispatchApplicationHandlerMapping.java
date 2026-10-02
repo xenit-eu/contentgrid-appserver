@@ -3,6 +3,7 @@ package com.contentgrid.appserver.rest.mapping;
 import com.contentgrid.appserver.application.model.values.ApplicationName;
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
+import com.contentgrid.appserver.rest.mapping.specialized.SpecializationHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.PathMatcher;
@@ -40,6 +42,8 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
 
     private final ApplicationResolver applicationResolver;
     private final ApplicationNameExtractor applicationNameExtractor;
+    @NonNull
+    private final SpecializationHandler<Method> specializationHandler;
 
     /* This has to be concurrency-safe, because it is written to (and read from) from multiple concurrent HTTP threads.
         TODO: When multiple applications are served by one application, have a way to clean up mappings for applications that have been removed
@@ -68,7 +72,7 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
 
         return delegateHandlerMappings.computeIfAbsent(applicationName, name -> {
             var application = applicationResolver.resolve(name);
-            var mapping = new StaticApplicationRequestMappingHandlerMapping(application);
+            var mapping = new StaticApplicationRequestMappingHandlerMapping(application, specializationHandler);
             mapping.setApplicationContext(obtainApplicationContext());
             mapping.setServletContext(getServletContext());
 
@@ -150,14 +154,11 @@ public class DynamicDispatchApplicationHandlerMapping extends RequestMappingHand
 
     @Override
     protected void registerHandlerMethod(Object handler, Method method, RequestMappingInfo mapping) {
-        StaticApplicationRequestMappingHandlerMapping.lookupPropertyType(method)
+        specializationHandler.getSpecializerFor(method)
                 .ifPresentOrElse(
-                        propertyType -> StaticApplicationRequestMappingHandlerMapping.validateSpecializedMapping(
-                                mapping, propertyType),
-                        () -> StaticApplicationRequestMappingHandlerMapping.lookUpEntityTemplate(method)
-                                .ifPresentOrElse(entity -> StaticApplicationRequestMappingHandlerMapping.validateSpecializedMapping(mapping, entity),
-                                        () -> super.registerHandlerMethod(handler, method, mapping)
-                                ));
+                        specializer -> specializer.validate(mapping),
+                        () -> super.registerHandlerMethod(handler, method, mapping)
+                );
     }
 
     @Override
