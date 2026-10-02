@@ -1,6 +1,7 @@
 plugins {
     id "org.sonarqube" version "7.5.0.8588"
     id "be.vbgn.ci-detect" version "0.5.0"
+    id "com.diffplug.spotless" apply false
 }
 
 sonar {
@@ -22,6 +23,19 @@ sonar {
 allprojects {
     pluginManager.withPlugin("java-library") {
         apply plugin: 'jacoco'
+        apply plugin: 'com.diffplug.spotless'
+
+        // The conventions plugin contributes removeUnusedImports() and expandWildcardImports().
+        // expandWildcardImports() needs to resolve every symbol from the compile classpath, which
+        // fails on Lombok-generated members (builders, getters, ...) and on test-fixture imports,
+        // see https://github.com/diffplug/spotless/issues/2845. That makes it unusable here, so we
+        // take ownership of the java steps and keep only the unused-import removal.
+        spotless {
+            java {
+                clearSteps()
+                removeUnusedImports()
+            }
+        }
 
         java {
             toolchain {

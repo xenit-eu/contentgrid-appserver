@@ -1,10 +1,8 @@
 package com.contentgrid.appserver.rest.problem;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.core.annotation.Order;
 import org.springframework.hateoas.UriTemplate;
 import org.springframework.hateoas.config.EnableHypermediaSupport;
