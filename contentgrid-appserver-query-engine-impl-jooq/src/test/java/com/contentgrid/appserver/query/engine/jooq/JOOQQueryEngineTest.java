@@ -85,7 +85,7 @@ import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFound
 import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.thunx.predicates.model.Comparison;

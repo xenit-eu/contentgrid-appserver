@@ -67,6 +67,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
@@ -523,8 +524,14 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
 
+        var entityIdentity = EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
+            throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
+        }
+
         var entityData = new EntityData(
-                EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
+                entityIdentity,
                 List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
