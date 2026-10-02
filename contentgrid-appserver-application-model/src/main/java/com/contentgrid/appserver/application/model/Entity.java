@@ -39,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -389,6 +390,16 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
      */
     public Optional<ContentAttribute> getContentByPathSegment(PathSegmentName pathSegment) {
         return Optional.ofNullable(contentAttributes.get(pathSegment));
+    }
+
+    public Optional<StoredEntityLink> getStoredEntityLinkByPathSegments(List<PathSegmentName> pathSegments) {
+        for (var link : links) {
+            if (link instanceof StoredEntityLink storedEntityLink && Objects.equals(storedEntityLink.getPathSegments(),
+                    pathSegments)) {
+                return Optional.of(storedEntityLink);
+            }
+        }
+        return Optional.empty();
     }
 
     /**
