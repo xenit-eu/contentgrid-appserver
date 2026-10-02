@@ -44,7 +44,7 @@ import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwri
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
-import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.jooq.StructuredRelationsJOOQQueryEngineTest.RelationArgumentFactory.UnbuildableException;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.appserver.query.engine.jooq.test.NoneEvents;
