@@ -1,15 +1,9 @@
 package com.contentgrid.appserver.rest.mapping;
 
-import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
-import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
-import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
-import com.contentgrid.appserver.application.model.relations.OneToOneRelation;
 import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Marks a controller class or method as specialized on a specific property type
@@ -35,7 +29,7 @@ import lombok.RequiredArgsConstructor;
  * </ul>
  * The declared mapping {@code @RequestMapping("/{entityName}/{id}/{propertyName}")} combined with
  * {@code @SpecializedOnPropertyType(type=PropertyType.TO_ONE_RELATION, entityPathVariable="entityName", propertyPathVariable="propertyName")}
- * will be expanded to: {@code @RequestMapping({"/{entityName:invoice}/{id}/{propertyName:supplier}", "/{entityName}:supplier/{id}/{propertyName:contact}"})}
+ * will be expanded to: {@code @RequestMapping({"/{entityName:invoice}/{id}/{propertyName:supplier}", "/{entityName:supplier}/{id}/{propertyName:contact}"})}
  * <p>
  * The same declared mapping, combined with
  * {@code @SpecializedOnPropertyType(type=PropertyType.CONTENT_ATTRIBUTE, entityPathVariable="entityName", propertyPathVariable="propertyName")}
@@ -45,7 +39,6 @@ import lombok.RequiredArgsConstructor;
  * A request mapping containing {@link #entityPathVariable()} and {@link #propertyPathVariable()} is necessary for this annotation to work.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Inherited
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface SpecializedOnPropertyType {
 
@@ -64,25 +57,20 @@ public @interface SpecializedOnPropertyType {
      */
     String propertyPathVariable();
 
-    @RequiredArgsConstructor
     enum PropertyType {
         /**
          * Matches content attributes
          */
-        CONTENT_ATTRIBUTE(new ContentAttributeReplacementPathVariablesGenerator()),
+        CONTENT_ATTRIBUTE,
         /**
          * Matches one-to-one and many-to-one relations
          */
-        TO_ONE_RELATION(new RelationReplacementPathVariablesGenerator(OneToOneRelation.class, ManyToOneRelation.class)),
+        TO_ONE_RELATION,
         /**
          * Matches one-to-many and many-to-many relations
          */
-        TO_MANY_RELATION(
-                new RelationReplacementPathVariablesGenerator(OneToManyRelation.class, ManyToManyRelation.class)),
+        TO_MANY_RELATION,
         ;
-
-        final ReplacementPathVariablesGenerator replacementPathVariablesGenerator;
-
     }
 
 }
