@@ -34,6 +34,15 @@ class StaticApplicationRequestMappingHandlerMapping extends RequestMappingHandle
     }
 
     @Override
+    protected void handleMatch(RequestMappingInfo info, String lookupPath, HttpServletRequest request) {
+        super.handleMatch(info, lookupPath, request);
+        var handlerMethod = (HandlerMethod) request.getAttribute(BEST_MATCHING_HANDLER_ATTRIBUTE);
+
+        specializationHandler.getSpecializerFor(handlerMethod.getMethod())
+                .ifPresent(specializer -> specializer.handleMatch(application, request));
+    }
+
+    @Override
     protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception {
         return super.getHandlerInternal(request);
     }

@@ -1,8 +1,10 @@
 package com.contentgrid.appserver.rest.mapping.specialized;
 
 import com.contentgrid.appserver.application.model.Application;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
 import java.util.stream.Stream;
+import lombok.NonNull;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 
@@ -41,6 +43,13 @@ public interface SpecializationHandler<T> {
          * @return A stream of replacement mapping infos after they have been specialized
          */
         Stream<RequestMappingInfo> specialize(Application application, RequestMappingInfo requestMappingInfo);
+
+        /**
+         * Handles a match on a specialized mapping for a particular application
+         * @param application The application which the specialization was based on
+         * @param request The request that was matched
+         */
+        void handleMatch(Application application, HttpServletRequest request);
     }
 
 }
