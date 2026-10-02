@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.openapi.model;
 
 import com.contentgrid.appserver.application.model.openapi.model.OpenApiPaths.OpenApiPathItem;
 import com.contentgrid.appserver.application.model.openapi.model.jsonschema.JsonSchema;
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Collections;

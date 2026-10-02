@@ -4,7 +4,6 @@ import com.contentgrid.appserver.application.model.values.AttributeName;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 
 /**
  * Attribute path that crosses only a single attribute name

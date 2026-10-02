@@ -1,8 +1,6 @@
 package com.contentgrid.appserver.rest;
 
-import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.domain.LinkUriProvider;
 import com.contentgrid.appserver.domain.LinkUriProviderFactory;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -38,7 +36,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import java.util.function.Function;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;

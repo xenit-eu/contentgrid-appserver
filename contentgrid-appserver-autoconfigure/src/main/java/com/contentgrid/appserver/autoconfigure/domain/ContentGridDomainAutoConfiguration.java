@@ -26,7 +26,6 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import java.net.URI;
 import java.time.Clock;
 import java.util.Optional;
-import java.util.function.Function;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
