@@ -2,6 +2,7 @@ package com.contentgrid.appserver.rest.mapping.specialized;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.rest.mapping.specialized.SpecializationHandler.Specializer;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -51,12 +52,23 @@ class PathParameterSpecializer implements Specializer {
                 .build());
     }
 
+    @Override
+    public void handleMatch(Application application, HttpServletRequest request) {
+
+    }
+
     private String restrictPathParams(Map<String, String> paramPatterns, String pattern) {
         for (var entry : paramPatterns.entrySet()) {
-            pattern = pattern.replace("{%s}".formatted(entry.getKey()),
-                    "{%s:%s}".formatted(entry.getKey(), Pattern.quote(entry.getValue())));
+            pattern = restrictPathParam(pattern, entry.getKey(), entry.getValue());
         }
         return pattern;
+    }
+
+    protected String restrictPathParam(String pathPattern, String paramName, String paramValue) {
+        return pathPattern.replace(
+                "{%s}".formatted(paramName),
+                "{%s:%s}".formatted(paramName, Pattern.quote(paramValue))
+        );
     }
 
 

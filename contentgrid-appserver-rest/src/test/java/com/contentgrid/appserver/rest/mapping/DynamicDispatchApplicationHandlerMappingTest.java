@@ -14,6 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
 import com.contentgrid.appserver.application.model.relations.Relation.RelationEndPoint;
 import com.contentgrid.appserver.application.model.relations.SourceOneToOneRelation;
@@ -32,6 +35,9 @@ import com.contentgrid.appserver.autoconfigure.rest.ContentGridRestFormatterAuto
 import com.contentgrid.appserver.registry.ApplicationNameExtractor;
 import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
+import java.net.URI;
+import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -78,6 +84,11 @@ class DynamicDispatchApplicationHandlerMappingTest {
                     .filenameColumn(ColumnName.of("content_filename"))
                     .build())
             .linkName(LinkName.of("test-entity"))
+            .link(StoredEntityLink.builder()
+                    .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com/rel")))
+                    .pathSegments(List.of(PathSegmentName.of("_links"), PathSegmentName.of("my-link")))
+                    .storage(PropertyPath.toAttribute(AttributeName.of("content")))
+                    .build())
             .build();
     private static final Entity OTHER_ENTITY = Entity.builder()
             .name(EntityName.of("other"))
@@ -133,6 +144,11 @@ class DynamicDispatchApplicationHandlerMappingTest {
         @Bean
         TestController testController() {
             return new TestController();
+        }
+
+        @Bean
+        LinkController linkController() {
+            return new LinkController();
         }
 
         @Bean
@@ -238,6 +254,23 @@ class DynamicDispatchApplicationHandlerMappingTest {
         }
     }
 
+    @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "linkPath")
+    @RestController
+    static class LinkController {
+
+        @GetMapping("/{entityName}/{linkPath}")
+        ResponseEntity<String> getLink(
+                @PathVariable String entityName,
+                @PathVariable List<String> linkPath
+        ) {
+            var link = APPLICATION.getEntityByPathSegment(PathSegmentName.of(entityName)).orElseThrow()
+                    .getStoredEntityLinkByPathSegments(linkPath.stream().map(PathSegmentName::of).toList())
+                    .orElseThrow();
+            return ResponseEntity.ok("Get link %s".formatted(link.getIdentity()));
+        }
+
+    }
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -261,6 +294,10 @@ class DynamicDispatchApplicationHandlerMappingTest {
         mockMvc.perform(get("/test-entities/to-many-other"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Relation to_many_other"));
+
+        mockMvc.perform(get("/test-entities/_links/my-link"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Get link UnnamedLink(https://example.com/rel)"));
 
         mockMvc.perform(get("/non-existing/item"))
                 .andExpect(status().isNotFound());
