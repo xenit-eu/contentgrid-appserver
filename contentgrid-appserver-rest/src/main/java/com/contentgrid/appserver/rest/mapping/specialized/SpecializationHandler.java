@@ -4,7 +4,6 @@ import com.contentgrid.appserver.application.model.Application;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Optional;
 import java.util.stream.Stream;
-import lombok.NonNull;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 
