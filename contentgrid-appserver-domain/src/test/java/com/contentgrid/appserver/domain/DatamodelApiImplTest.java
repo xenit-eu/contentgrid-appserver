@@ -2509,6 +2509,7 @@ class DatamodelApiImplTest {
             ).isInstanceOf(LinkNotFoundException.class);
         }
 
+        // TODO ACC-3004 check Version of input matches
         @Test
         void updateLink_storesTextData_withoutVersionConstraint() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
