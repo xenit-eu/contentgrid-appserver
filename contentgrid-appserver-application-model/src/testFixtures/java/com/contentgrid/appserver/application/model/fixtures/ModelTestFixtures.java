@@ -17,7 +17,7 @@ import com.contentgrid.appserver.application.model.attributes.flags.ETagFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
-import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
@@ -104,14 +104,14 @@ public class ModelTestFixtures {
             .itemType(Type.TEXT)
             .build();
 
-    public static final EntityLink PERSON_VAT_LINK = EntityLink.builder()
+    public static final PlainEntityLink PERSON_VAT_LINK = PlainEntityLink.builder()
             .identity(new NamedLink(URI.create("https://vat.example/rel/lookup"), "vat"))
             .profile(URI.create("https://vat.example/profile"))
             .owner(new SimpleAttributePath(PERSON_VAT.getName()))
             .fallbackTemplate(linkTemplate("https://vat.example/lookup?vat=%{owner.value}"))
             .build();
 
-    public static final EntityLink PERSON_PREVIEW_LINK = EntityLink.builder()
+    public static final PlainEntityLink PERSON_PREVIEW_LINK = PlainEntityLink.builder()
             .identity(new UnnamedLink(URI.create("https://people.example/rel/preview")))
             .fallbackTemplate(linkTemplate("https://people.example/preview?src=%{entity.link}"))
             .build();

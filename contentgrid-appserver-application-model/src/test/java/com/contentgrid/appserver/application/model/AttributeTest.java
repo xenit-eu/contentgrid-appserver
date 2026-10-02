@@ -140,6 +140,20 @@ class AttributeTest {
     }
 
     @Test
+    void hiddenContentAttribute() {
+        var attribute = ContentAttribute.builder()
+                .name(AttributeName.of("attribute"))
+                .idColumn(ColumnName.of("column__id"))
+                .filenameColumn(ColumnName.of("column__filename"))
+                .mimetypeColumn(ColumnName.of("column__mimetype"))
+                .lengthColumn(ColumnName.of("column__length"))
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
+
+        assertTrue(attribute.isIgnored());
+    }
+
+    @Test
     void readOnlyUserAttribute() {
         var attribute = UserAttribute.builder()
                 .name(AttributeName.of("identity"))
