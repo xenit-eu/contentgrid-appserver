@@ -31,7 +31,7 @@ import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
 import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
-import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactory;

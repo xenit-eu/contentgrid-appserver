@@ -47,7 +47,7 @@ import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundExcepti
 import com.contentgrid.appserver.query.engine.api.exception.IllegalInputDataException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
-import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
