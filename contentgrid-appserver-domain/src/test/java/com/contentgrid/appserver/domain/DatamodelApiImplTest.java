@@ -2537,8 +2537,12 @@ class DatamodelApiImplTest {
             var contentType = "application/pdf";
             Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
 
-            var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+            var result = datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(
+                            DOCUMENT.getName(),
+                            entityId,
+                            PDF_RENDITION_LINK.getIdentity()),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
             assertThat(result).isNotNull()
@@ -2582,7 +2586,72 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_rejectUnsatisfiedVersionConstraint() {
+        void updateLink_storesContentData_withVersionConstraint() throws UnwritableContentException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
+            var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
+                    .thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
+            var fileId = "my-file.bin";
+            var fileName = "invoice.pdf";
+            var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
+
+            var result = datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(
+                            DOCUMENT.getName(),
+                            entityId,
+                            PDF_RENDITION_LINK.getIdentity(),
+                            Version.exactly("MUST_MATCH")
+                            ),
+                    new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
+                    AuthorizationContext.allowAll());
+            assertThat(result).isNotNull()
+                    .isInstanceOf(ContentValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
+                    .satisfies(contentValue -> {
+                        var content = contentValue.getContent();
+                        assertThat(content.getDescription()).isEqualTo(
+                                "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
+                        assertThat(content.getMimeType()).isEqualTo(contentType);
+                        assertThat(content.getFilename()).isEqualTo(fileName);
+                        assertThat(content.getLength()).isEqualTo(150);
+                        assertThat(content.getVersion()).isNotNull();
+                    });
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links"))).isNotEmpty()
+                    .get()
+                    .isInstanceOf(CompositeAttributeData.class)
+                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
+                    .satisfies(attributeData -> {
+                        assertThat(attributeData).isNotNull();
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                                .get()
+                                .isInstanceOf(CompositeAttributeData.class)
+                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
+                                        Assertions::assertThat))
+                                .satisfies(pdfAttribute ->
+                                        assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                                        fileId),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                                        fileName),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                                        contentType),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 150L)
+                                        )
+                                );
+                    });
+        }
+
+        @Test
+        void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
             var entityId = EntityId.of(UUID.randomUUID());
                         var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
@@ -2601,6 +2670,35 @@ class DatamodelApiImplTest {
                         );
                     }
                 );
+            assertEquals(
+                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version unspecified)",
+                    ex.getMessage());
+        }
+
+        @Test
+        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
+                    .thenReturn(Optional.of(entityData));
+            var fileId = "my-file.bin";
+            var fileName = "invoice.pdf";
+            var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
+            var ex = assertThrows(
+                    UnsatisfiedVersionException.class, () -> {
+                        datamodelApi.updateLink(
+                                DOCUMENT_APPLICATION,
+                                LinkRequest.forLink(
+                                        DOCUMENT.getName(),
+                                        entityId,
+                                        PDF_RENDITION_LINK.getIdentity(),
+                                        Version.exactly("MUST_MATCH")),
+                                new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
+                                AuthorizationContext.allowAll()
+                        );
+                    }
+            );
             assertEquals(
                     "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version unspecified)",
                     ex.getMessage());
