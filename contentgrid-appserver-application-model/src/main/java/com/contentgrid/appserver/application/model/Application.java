@@ -1,7 +1,10 @@
 package com.contentgrid.appserver.application.model;
 
+import com.contentgrid.appserver.application.model.attributes.CompositeAttributeImpl;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.AttributeResolutionResult;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver.RelationResolutionResult;
 import com.contentgrid.appserver.application.model.settings.ApplicationSettings;
@@ -398,20 +401,28 @@ public class Application {
                     if (link.getOwner().isPresent()) {
                         supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_NAME);
                         switch (getPropertyPathResolver().resolve(entity.getName(), link.getOwner().get())) {
-                            case AttributeResolutionResult attrResult when attrResult.getAttribute() instanceof SimpleAttribute:
-                                // Simple attributes have an owner value
-                                supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_VALUE);
-                                break;
-                            case AttributeResolutionResult attributeResolutionResult when attributeResolutionResult.getAttribute() instanceof ContentAttribute:
-                                // Content attributes have a link
-                                supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
-                                break;
-                            case RelationResolutionResult relationResolutionResult:
-                                // Relations have a link
-                                supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
-                                break;
-                            default:
-                                throw new InvalidEntityLinkException("Entity link owner property path '%s' on entity '%s' does not reference a supported type".formatted(link.getOwner(), entity.getName()));
+                            case AttributeResolutionResult attributeResolutionResult -> {
+                                switch (attributeResolutionResult.getAttribute()) {
+                                    // Simple attributes have an owner value
+                                    case SimpleAttribute simpleAttribute ->
+                                            supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_VALUE);
+                                    // Content attributes have a link
+                                    case ContentAttribute contentAttribute ->
+                                            supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
+                                    case MultivalueAttribute multivalueAttribute -> {
+                                        // Multi-value attributes only have a name
+                                    }
+                                    case UserAttribute userAttribute -> {
+                                        // User attributes only have a name
+                                    }
+                                    case CompositeAttributeImpl compositeAttribute -> {
+                                        // Composite attributes only have a name
+                                    }
+                                }
+                            }
+                            // Relations have a link
+                            case RelationResolutionResult relationResolutionResult ->
+                                    supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
                         }
                     }
 

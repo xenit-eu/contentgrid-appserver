@@ -22,9 +22,14 @@ import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.DuplicateElementException;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
+import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkException;
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
+import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
 import com.contentgrid.appserver.application.model.relations.ManyToOneRelation;
 import com.contentgrid.appserver.application.model.relations.OneToManyRelation;
@@ -50,6 +55,8 @@ import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
+import java.net.URI;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -644,6 +651,87 @@ class ApplicationTest {
                 .build();
 
         assertThrows(InvalidSearchFilterException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    private static Entity entityWithOwnedLink(String owner, String template) {
+        return Entity.builder()
+                .name(EntityName.of("test"))
+                .table(TableName.of("test"))
+                .pathSegment(PathSegmentName.of("test"))
+                .linkName(LinkName.of("test"))
+                .attribute(SimpleAttribute.builder()
+                        .name(AttributeName.of("vat"))
+                        .column(ColumnName.of("vat"))
+                        .type(Type.TEXT)
+                        .build())
+                .attribute(MultivalueAttribute.builder()
+                        .name(AttributeName.of("tags"))
+                        .column(ColumnName.of("tags"))
+                        .itemType(Type.TEXT)
+                        .build())
+                .attribute(UserAttribute.builder()
+                        .name(AttributeName.of("owner"))
+                        .idColumn(ColumnName.of("owner__id"))
+                        .namespaceColumn(ColumnName.of("owner__ns"))
+                        .usernameColumn(ColumnName.of("owner__name"))
+                        .flag(ReadOnlyFlag.INSTANCE)
+                        .build())
+                .attribute(CompositeAttributeImpl.builder()
+                        .name(AttributeName.of("auditing"))
+                        .attribute(SimpleAttribute.builder()
+                                .name(AttributeName.of("created_date"))
+                                .column(ColumnName.of("auditing__created_date"))
+                                .type(Type.DATETIME)
+                                .flag(CreatedDateFlag.INSTANCE)
+                                .build())
+                        .build())
+                .link(EntityLink.builder()
+                        .identity(new UnnamedLink(URI.create("https://example.com/rels/lookup")))
+                        .owner(PropertyPath.toAttribute(AttributeName.of(owner)))
+                        .fallbackTemplate(new SimpleUriTemplateDefinition(
+                                new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
+                                        .parseUnchecked(template)))
+                        .build())
+                .build();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"vat", "tags", "owner", "auditing"})
+    void application_ownedLinkWithOwnerName(String owner) {
+        var entity = entityWithOwnedLink(owner, "https://example.com/lookup/%{owner.name}");
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertThat(application.getRequiredEntityByName(EntityName.of("test")).getLinks()).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"tags", "owner", "auditing"})
+    void application_ownedLinkWithOwnerValueOnNonSimpleAttribute(String owner) {
+        var entity = entityWithOwnedLink(owner, "https://example.com/lookup/%{owner.value}");
+
+        assertThrows(InvalidEntityLinkException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"vat", "tags", "owner", "auditing"})
+    void application_ownedLinkWithOwnerLinkOnNonContentAttribute(String owner) {
+        var entity = entityWithOwnedLink(owner, "https://example.com/lookup?src=%{owner.link}");
+
+        assertThrows(InvalidEntityLinkException.class, () -> {
             Application.builder()
                     .name(ApplicationName.of("test-app"))
                     .entity(entity)
