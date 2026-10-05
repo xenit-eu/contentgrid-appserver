@@ -2681,10 +2681,8 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
-            var fileId = "my-file.bin";
             var fileName = "invoice.pdf";
             var contentType = "application/pdf";
-            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
             var ex = assertThrows(
                     UnsatisfiedVersionException.class, () -> {
                         datamodelApi.updateLink(
@@ -2700,7 +2698,7 @@ class DatamodelApiImplTest {
                     }
             );
             assertEquals(
-                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version unspecified)",
+                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version exactly '2rxsu95ym7wvmd6p1adhyytq')",
                     ex.getMessage());
         }
 
