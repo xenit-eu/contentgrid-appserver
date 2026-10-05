@@ -31,6 +31,10 @@ public class EntityIdentity implements Serializable {
         return new EntityIdentity(entityName, entityId, Version.unspecified());
     }
 
+    public static EntityIdentity forEntity(EntityName entityName, EntityId entityId, Version version) {
+        return new EntityIdentity(entityName, entityId, version);
+    }
+
     public String toString() {
         if(version instanceof UnspecifiedVersion) {
             return "Entity '%s' %s".formatted(entityName, entityId);

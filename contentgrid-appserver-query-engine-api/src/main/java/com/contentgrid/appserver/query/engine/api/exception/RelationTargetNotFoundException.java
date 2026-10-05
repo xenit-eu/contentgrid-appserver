@@ -11,7 +11,8 @@ import lombok.NonNull;
  * This only occurs during linking a new item to a relation
  */
 @Getter
-public class RelationTargetNotFoundException extends EntityIdNotFoundException {
+public class RelationTargetNotFoundException extends
+        com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException {
     private final RelationIdentity relation;
 
     public RelationTargetNotFoundException(@NonNull EntityIdentity entity, @NonNull RelationIdentity relation) {

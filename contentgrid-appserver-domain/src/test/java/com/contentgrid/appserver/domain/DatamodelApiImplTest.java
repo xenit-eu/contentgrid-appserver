@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -107,10 +108,8 @@ import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
-import com.contentgrid.appserver.domain.values.version.ExactlyConstraint;
-import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.domain.values.version.Version;
-import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -126,7 +125,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
@@ -2214,6 +2213,26 @@ class DatamodelApiImplTest {
                     ));
         }
 
+        private static EntityData createDocumentData(EntityId id, Version version) {
+            return new EntityData(
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id, version),
+                    List.of(CompositeAttributeData.builder()
+                            .name(LINKS_ATTRIBUTE.getName())
+                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
+                            .attribute(CompositeAttributeData.builder()
+                                    .name(PDF_ATTRIBUTE.getName())
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                            "pdf-content-id"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                            "invoice.pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                            "application/pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
+                                    .build())
+                            .build()
+                    ));
+        }
+
         private static UriTemplateDefinition template(String template) {
             return new SimpleUriTemplateDefinition(
                     new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
@@ -2409,7 +2428,25 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void update_throwsLinkNotFound() {
+        void updateLink_throwsEntityIdNotFoundException() {
+            assertThrows(
+                    EntityIdNotFoundException.class,
+                    () -> {
+                        datamodelApi.updateLink(
+                                DOCUMENT_APPLICATION,
+                                LinkRequest.forLink(
+                                        DOCUMENT.getName(),
+                                        EntityId.of(UUID.randomUUID()),
+                                        FTS_LINK.getIdentity()),
+                                new StringDataEntry(EXTRACTION),
+                                AuthorizationContext.allowAll()
+                        );
+                    }
+            );
+        }
+
+        @Test
+        void updateLink_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
             assertThrows(LinkNotFoundException.class, () ->
                     datamodelApi.updateLink(DOCUMENT_APPLICATION,
@@ -2417,12 +2454,14 @@ class DatamodelApiImplTest {
                             new StringDataEntry("Full text extraction"), AuthorizationContext.allowAll()));
         }
 
-        // TODO ACC-3004 check Version of input matches
         @Test
-        void updateLink_storesTextData() {
+        void updateLink_storesTextData_withoutVersionConstraint() {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
             var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
@@ -2446,10 +2485,51 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_storesContentData() throws UnwritableContentException {
+        void updateLink_storesTextData_withVersionConstraint() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
+            var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
+            var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+            var result = datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(
+                            DOCUMENT.getName(),
+                            entityId,
+                            FTS_LINK.getIdentity(),
+                            Version.exactly("MUST_MATCH")),
+                    new StringDataEntry(EXTRACTION),
+                    AuthorizationContext.allowAll());
+            assertThat(result)
+                    .isNotNull()
+                    .isInstanceOf(TextValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(TextValue.class))
+                    .satisfies(textValue -> {
+                                assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
+                            }
+                    );
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo(EXTRACTION));
+        }
+
+        @Test
+        void updateLink_storesContentData_withoutVersionConstraint() throws UnwritableContentException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
             var fileId = "my-file.bin";
@@ -2502,13 +2582,29 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_rejectUnsatisfiedVersionConstaint_TextData() {
-            assertTrue(false);
-        }
-
-        @Test
-        void updateLink_rejectUnsatisfiedVersionConstaint_ContentData() {
-            assertTrue(false);
+        void updateLink_rejectUnsatisfiedVersionConstraint() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
+            var ex = assertThrows(
+                    UnsatisfiedVersionException.class, () -> {
+                        datamodelApi.updateLink(
+                                DOCUMENT_APPLICATION,
+                                LinkRequest.forLink(
+                                        DOCUMENT.getName(),
+                                        entityId,
+                                        FTS_LINK.getIdentity(),
+                                        Version.exactly("MUST_MATCH")),
+                                new StringDataEntry(EXTRACTION),
+                                AuthorizationContext.allowAll()
+                        );
+                    }
+                );
+            assertEquals(
+                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version unspecified)",
+                    ex.getMessage());
         }
 
         @Test
@@ -2522,10 +2618,13 @@ class DatamodelApiImplTest {
         @Test
         void deleteLink_deletesText() {
             var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity());
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 
@@ -2543,10 +2642,13 @@ class DatamodelApiImplTest {
         @Test
         void deleteLink_deletesContent_nullsAllContentFields() {
             var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity());
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 

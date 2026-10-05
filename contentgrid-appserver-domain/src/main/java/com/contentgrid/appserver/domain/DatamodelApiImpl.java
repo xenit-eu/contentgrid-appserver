@@ -30,7 +30,6 @@ import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
 import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
-import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
@@ -84,7 +83,7 @@ import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
@@ -524,7 +523,10 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
 
-        var entityIdentity = EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+        var targetEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+        var targetEntity = this.findById(application, targetEntityRequest, authorizationContext)
+                .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
+        var entityIdentity = targetEntity.getIdentity();
 
         if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
             throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
