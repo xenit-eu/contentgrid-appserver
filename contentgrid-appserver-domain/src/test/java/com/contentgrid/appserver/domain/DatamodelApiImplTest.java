@@ -25,17 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -2491,26 +2488,44 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
             var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
+            var updateResultEntityData = new EntityData(
+                    EntityIdentity.forEntity(DOCUMENT.getName(), entityId, Version.exactly("UPDATED_VERSION")),
+                    List.of(CompositeAttributeData.builder()
+                            .name(LINKS_ATTRIBUTE.getName())
+                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"))
+                            .attribute(CompositeAttributeData.builder()
+                                    .name(PDF_ATTRIBUTE.getName())
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                            "pdf-content-id"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                            "invoice.pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                            "application/pdf"))
+                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
+                                    .build())
+                            .build()
+                    ));
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
-                    .thenReturn(new UpdateResult(entityData, entityData));
+                    .thenReturn(new UpdateResult(entityData, updateResultEntityData));
             var result = datamodelApi.updateLink(
                     DOCUMENT_APPLICATION,
                     LinkRequest.forLink(
                             DOCUMENT.getName(),
                             entityId,
                             FTS_LINK.getIdentity(),
-                            Version.exactly("MUST_MATCH")),
-                    new StringDataEntry(EXTRACTION),
+                            mustMatchVersionConstraint),
+                    new StringDataEntry("UPDATED_TEXT"),
                     AuthorizationContext.allowAll());
             assertThat(result)
                     .isNotNull()
                     .isInstanceOf(TextValue.class)
                     .asInstanceOf(instanceOfAssertFactory(TextValue.class))
                     .satisfies(textValue -> {
-                                assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
+                                assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
+                                assertFalse(textValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)); // Version must have been updated
                             }
                     );
 
@@ -2520,7 +2535,7 @@ class DatamodelApiImplTest {
                     PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
                     SimpleAttributeData.class))
                     .hasValueSatisfying(
-                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo(EXTRACTION));
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo("UPDATED_TEXT"));
         }
 
         @Test
@@ -2589,7 +2604,7 @@ class DatamodelApiImplTest {
         void updateLink_storesContentData_withVersionConstraint() throws UnwritableContentException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
-            var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
+            var mustMatchVersionConstraint = Version.exactly("2rxsu95ym7wvmd6p1adhyytq"); // File ETAG
             var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
             Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
@@ -2606,11 +2621,12 @@ class DatamodelApiImplTest {
                             DOCUMENT.getName(),
                             entityId,
                             PDF_RENDITION_LINK.getIdentity(),
-                            Version.exactly("MUST_MATCH")
+                            mustMatchVersionConstraint
                             ),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
-            assertThat(result).isNotNull()
+            assertThat(result)
+                    .isNotNull()
                     .isInstanceOf(ContentValue.class)
                     .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
                     .satisfies(contentValue -> {
@@ -2621,6 +2637,7 @@ class DatamodelApiImplTest {
                         assertThat(content.getFilename()).isEqualTo(fileName);
                         assertThat(content.getLength()).isEqualTo(150);
                         assertThat(content.getVersion()).isNotNull();
+                        assertFalse(content.getVersion().isSatisfiedBy(mustMatchVersionConstraint)); // Version must have been updated
                     });
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
