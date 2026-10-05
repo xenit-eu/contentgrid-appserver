@@ -31,8 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
@@ -2456,9 +2459,8 @@ class DatamodelApiImplTest {
         void updateLink_storesTextData_withoutVersionConstraint() {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
-            var entityData = createDocumentData(entityId);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                        var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
@@ -2485,11 +2487,10 @@ class DatamodelApiImplTest {
         @Test
         void updateLink_storesTextData_withVersionConstraint() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
             var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
@@ -2524,9 +2525,8 @@ class DatamodelApiImplTest {
         void updateLink_storesContentData_withoutVersionConstraint() throws UnwritableContentException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
-            var entityData = createDocumentData(entityId);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                        var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
@@ -2582,9 +2582,8 @@ class DatamodelApiImplTest {
         @Test
         void updateLink_rejectUnsatisfiedVersionConstraint() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
-            var entityData = createDocumentData(entityId);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                        var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             var ex = assertThrows(
                     UnsatisfiedVersionException.class, () -> {
@@ -2616,12 +2615,11 @@ class DatamodelApiImplTest {
         @Test
         void deleteLink_deletesText() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
-            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity());
+                        var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity());
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
@@ -2640,12 +2638,11 @@ class DatamodelApiImplTest {
         @Test
         void deleteLink_deletesContent_nullsAllContentFields() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
-            var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity());
+                        var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity());
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
