@@ -2768,13 +2768,15 @@ class DatamodelApiImplTest {
 
         @Test
         @Disabled
-        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() {
+        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
+            var fileId = "my-file.bin";
             var fileName = "invoice.pdf";
             var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
