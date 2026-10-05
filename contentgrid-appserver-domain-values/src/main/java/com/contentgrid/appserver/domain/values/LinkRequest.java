@@ -40,7 +40,7 @@ public class LinkRequest {
     }
 
     public EntityRequest toEntityRequest() {
-        return EntityRequest.forEntity(getEntityName(), getEntityId());
+        return EntityRequest.forEntity(getEntityName(), getEntityId(), getVersionConstraint());
     }
 
     public String toString() {

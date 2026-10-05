@@ -263,8 +263,8 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull AuthorizationContext authorizationContext
     ) {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
-        return queryEngine.findById(application, entityRequest, authorizationContext.predicate())
-                .map(outputMapper::mapAttributes);
+        var queryResult = queryEngine.findById(application, entityRequest, authorizationContext.predicate());
+        return queryResult.map(outputMapper::mapAttributes);
     }
 
     @Override
@@ -488,26 +488,32 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
 
-        return queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
-                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()))
-                .getNestedAttributeByPath(storage)
-                .map(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
-                        linkRequest.getEntityName(), storage));
+        var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
+        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
     }
 
-    private StoredLinkValue mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
+    private Optional<StoredLinkValue> mapAttributeDataToStoredValue(@NonNull EntityData entityData, @NonNull Application application,
             @NonNull EntityName entityName, @NonNull AttributePath attributePath) {
+        var attributeData = entityData.getNestedAttributeByPath(attributePath).orElseThrow();
         var attribute = application
                 .getPropertyPathResolver()
                 .resolveAttribute(entityName, attributePath)
                 .getAttribute();
         return switch (attribute) {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified());
+                    Optional.of(
+                            new TextValue(
+                                    (String) ((SimpleAttributeData<?>) attributeData).getValue(),
+                                    entityData.getIdentity().getVersion()));
             case ContentAttribute contentAttribute -> {
                 var contentStore = contentStoreResolver.resolve(application);
-                yield new ContentValue(
-                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData)));
+                yield Optional.of(
+                        new ContentValue(
+                            new AttributeDataContent(
+                                    contentStore,
+                                    contentAttribute,
+                                    ((CompositeAttributeData) attributeData))));
             }
             default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
              + " to a stored link value");
@@ -524,25 +530,22 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .getStorage();
 
         var targetEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
-        var targetEntity = this.findById(application, targetEntityRequest, authorizationContext)
+        var targetEntity = this.findLink(application, linkRequest, authorizationContext)
                 .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
-        var entityIdentity = targetEntity.getIdentity();
 
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
-            throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetEntity.getVersion())) {
+            throw new UnsatisfiedVersionException(targetEntity.getVersion(), linkRequest.getVersionConstraint());
         }
 
         var entityData = new EntityData(
-                entityIdentity,
+                EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
                 List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
         var attributeData = updateResult
-                .getUpdated()
-                .getNestedAttributeByPath(storage)
-                .orElseThrow();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
+                .getUpdated();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage).orElseThrow();
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
