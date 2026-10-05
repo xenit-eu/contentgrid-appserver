@@ -27,6 +27,10 @@ public class EntityRequest {
         return new EntityRequest(entityName, entityId, Version.unspecified());
     }
 
+    public static EntityRequest forEntity(EntityName entityName, EntityId entityId, VersionConstraint versionConstraint) {
+        return new EntityRequest(entityName, entityId, versionConstraint);
+    }
+
     public String toString() {
         return "Entity '%s' %s (matching version %s)".formatted(entityName, entityId, versionConstraint);
     }
