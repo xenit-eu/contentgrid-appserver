@@ -79,7 +79,7 @@ import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
@@ -538,7 +538,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 FilterDataEntryMapper.omitMissing(),
                 new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock)));
 
-        var entityIdentity = EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+        var entityIdentity = existingEntityInstance.getIdentity();
 
         if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
             throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
