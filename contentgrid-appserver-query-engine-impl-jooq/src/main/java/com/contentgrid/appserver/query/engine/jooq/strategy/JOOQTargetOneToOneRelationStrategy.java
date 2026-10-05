@@ -10,7 +10,7 @@ import com.contentgrid.appserver.query.engine.api.exception.BlindRelationOverwri
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
-import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.jooq.DslContextUtils;
 import com.contentgrid.appserver.query.engine.jooq.ExceptionUtils;
 import com.contentgrid.appserver.query.engine.jooq.JOOQUtils;

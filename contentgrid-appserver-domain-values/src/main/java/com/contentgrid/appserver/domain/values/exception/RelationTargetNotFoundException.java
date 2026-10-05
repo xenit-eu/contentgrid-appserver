@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.query.engine.api.exception;
+package com.contentgrid.appserver.domain.values.exception;
 
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
@@ -11,8 +11,7 @@ import lombok.NonNull;
  * This only occurs during linking a new item to a relation
  */
 @Getter
-public class RelationTargetNotFoundException extends
-        com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException {
+public class RelationTargetNotFoundException extends EntityIdNotFoundException {
     private final RelationIdentity relation;
 
     public RelationTargetNotFoundException(@NonNull EntityIdentity entity, @NonNull RelationIdentity relation) {
