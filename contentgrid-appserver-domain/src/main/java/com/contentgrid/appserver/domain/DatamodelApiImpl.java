@@ -501,11 +501,15 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .resolveAttribute(entityName, attributePath)
                 .getAttribute();
         return switch (attribute) {
-            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    Optional.of(
+            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
+                if (((SimpleAttributeData<?>) attributeData).getValue() != null) {
+                    yield Optional.of(
                             new TextValue(
                                     (String) ((SimpleAttributeData<?>) attributeData).getValue(),
                                     entityData.getIdentity().getVersion()));
+                }
+                yield Optional.empty();
+            }
             case ContentAttribute contentAttribute -> {
                 var contentStore = contentStoreResolver.resolve(application);
                 yield Optional.of(
@@ -647,6 +651,9 @@ public class DatamodelApiImpl implements DatamodelApi {
         private Optional<EntityLinkData> createLink(EntityData entityData, EntityLink entityLink) {
             // TODO: Handle links with storage (ACC-3004), and return link to the stored data instead of fallback template
             // Whether the link references the %{owner.value} variable
+//            if (entityLink instanceof StoredEntityLink storedEntityLink) {
+//                return mapAttributeDataToStoredValue(entityData, )getNestedAttributeByPath(storedEntityLink.getStorage());
+//            }
             var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
             if(hasOwnerValueVariable) {
                 // Whether the owner has data stored
