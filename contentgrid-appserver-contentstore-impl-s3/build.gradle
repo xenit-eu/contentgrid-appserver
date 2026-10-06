@@ -12,6 +12,8 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
     testImplementation testFixtures(project(':contentgrid-appserver-autoconfigure'))
     testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'io.netty:netty-transport'
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"
 
