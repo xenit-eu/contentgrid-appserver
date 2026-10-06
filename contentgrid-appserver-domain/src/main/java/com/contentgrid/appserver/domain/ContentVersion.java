@@ -14,6 +14,8 @@ import lombok.SneakyThrows;
 
 public final class ContentVersion {
 
+    private static final int HASH_LENGTH_BYTES = 16;
+
     private ContentVersion() {
     }
 
@@ -31,11 +33,11 @@ public final class ContentVersion {
             return Optional.empty();
         }
 
-        // Hash the content ID so it is not recognizable in the exposed version.
-        // MIME type is included because it changes the interpretation of the content.
-        // Filename is deliberately not included because changing it does not change
-        // the semantic content representation.
-
+        // hash contentId, so it is not recognizable anymore in the exposed version
+        // Also hash in mimetype, because a change in mimetype changes the interpretation of the content,
+        // which is a semantically-significant part of representation metadata (which we want to cover with the version)
+        // A change in filename is not semantically-significant, as it does not affect the interpretation of the content.
+        // Length is irrelevant, since the only way to change length is to upload new content, which changes the content id
         var mimeType = getAttribute(contentAttribute.getMimetype(), attributeData);
 
         return Optional.of(Version.exactly(hash(
@@ -61,12 +63,14 @@ public final class ContentVersion {
 
         for (var input : inputs) {
             md.update(input.getBytes(StandardCharsets.UTF_8));
-            md.update((byte) 0);
+            md.update((byte) 0); // NUL-byte as separator for fields
         }
 
         var digest = md.digest();
 
-        return new BigInteger(1, digest, 0, 16)
+        // An always-positive bigint, limited to 16 bytes (truncated sha-256 hash), to reduce the size of the version
+        // This reduces the size of the version from 50 characters to a more sensible 25 characters
+        return new BigInteger(1, digest, 0, HASH_LENGTH_BYTES)
                 .toString(Character.MAX_RADIX);
     }
 }

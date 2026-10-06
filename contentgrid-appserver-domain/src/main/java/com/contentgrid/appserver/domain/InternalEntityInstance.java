@@ -43,6 +43,6 @@ class InternalEntityInstance implements EntityInstance {
     @Override
     public Optional<Version> getContentVersion(ContentAttribute contentAttribute) {
         return getByAttributeName(contentAttribute.getName(), CompositeAttributeData.class)
-                .flatMap(attributeData -> ContentVersion.calculate(contentAttribute, attributeData));
+                .flatMap(contentData -> ContentVersion.calculate(contentAttribute, contentData));
     }
 }

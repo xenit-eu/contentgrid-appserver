@@ -11,6 +11,9 @@ import static org.mockito.Mockito.verify;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.MapRequestInputData;
+import com.contentgrid.appserver.domain.values.EntityIdentity;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import org.springframework.http.ETag;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import tools.jackson.databind.ObjectMapper;
@@ -59,6 +62,10 @@ class RabbitMqEventHandlersTest {
         tableCreator.createTables(APPLICATION);
     }
 
+    private static String etag(EntityIdentity identity) {
+        return new ETag(((ExactlyVersion) identity.getVersion()).getVersion(), false).formattedTag().replace("\"", "\\\"");
+    }
+
     @AfterEach
     void teardown() {
         tableCreator.dropTables(APPLICATION);
@@ -97,7 +104,7 @@ class RabbitMqEventHandlersTest {
         assertThat(headers).containsEntry("webhookConfigUrl", CONFIG_URL);
 
         var mapper = new ObjectMapper();
-        var expected = mapper.readTree(CREATED.replaceAll("<id>", created.getEntityId().getValue().toString()));
+        var expected = mapper.readTree(CREATED.replaceAll("<id>", created.getEntityId().getValue().toString()).replace("<etag>", etag(created)));
         var actual = mapper.readTree(message.getBody());
         assertThat(actual).isEqualTo(expected);
     }
@@ -125,7 +132,7 @@ class RabbitMqEventHandlersTest {
             assertThat(headers).containsEntry("entity", PRODUCT.getName().getValue());
 
             var mapper = new ObjectMapper();
-            var expected = mapper.readTree(DELETED.replaceAll("<id>", created.getEntityId().getValue().toString()));
+            var expected = mapper.readTree(DELETED.replaceAll("<id>", created.getEntityId().getValue().toString()).replace("<etag>", etag(created)));
             var actual = mapper.readTree(message.getBody());
             assertThat(actual).isEqualTo(expected);
         });
@@ -143,7 +150,7 @@ class RabbitMqEventHandlersTest {
         var created = datamodelApi.create(APPLICATION, PRODUCT.getName(), data, AuthorizationContext.allowAll()).getIdentity();
 
         var updateData = new MapRequestInputData(Map.of("price", 300.00));
-        datamodelApi.updatePartial(APPLICATION, created.toRequest(), updateData, AuthorizationContext.allowAll());
+        var updated = datamodelApi.updatePartial(APPLICATION, created.toRequest(), updateData, AuthorizationContext.allowAll()).getIdentity();
 
         ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
         verify(rabbitTemplate, atLeast(2)).send(any(), messageCaptor.capture());
@@ -155,7 +162,9 @@ class RabbitMqEventHandlersTest {
             assertThat(headers).containsEntry("entity", PRODUCT.getName().getValue());
 
             var mapper = new ObjectMapper();
-            var expected = mapper.readTree(UPDATED.replaceAll("<id>", created.getEntityId().getValue().toString()));
+            var expected = mapper.readTree(UPDATED.replaceAll("<id>", created.getEntityId().getValue().toString())
+                    .replace("<etag>", etag(created))
+                    .replace("<new-etag>", etag(updated)));
             var actual = mapper.readTree(message.getBody());
             assertThat(actual).isEqualTo(expected);
         });
@@ -175,7 +184,8 @@ class RabbitMqEventHandlersTest {
                     "picture": null,
                     "_links": {
                       "self": {
-                        "href": "http://localhost/products/<id>"
+                        "href": "http://localhost/products/<id>",
+                        "etag": "<etag>"
                       },
                       "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
@@ -220,7 +230,8 @@ class RabbitMqEventHandlersTest {
                     "picture": null,
                     "_links": {
                       "self": {
-                        "href": "http://localhost/products/<id>"
+                        "href": "http://localhost/products/<id>",
+                        "etag": "<etag>"
                       },
                       "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
@@ -266,7 +277,8 @@ class RabbitMqEventHandlersTest {
                     "picture": null,
                     "_links": {
                       "self": {
-                        "href": "http://localhost/products/<id>"
+                        "href": "http://localhost/products/<id>",
+                        "etag": "<etag>"
                       },
                       "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",
@@ -305,7 +317,8 @@ class RabbitMqEventHandlersTest {
                     "picture": null,
                     "_links": {
                       "self": {
-                        "href": "http://localhost/products/<id>"
+                        "href": "http://localhost/products/<id>",
+                        "etag": "<new-etag>"
                       },
                       "cg:relation": [{
                         "href": "http://localhost/products/<id>/invoices",

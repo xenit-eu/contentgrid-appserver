@@ -58,11 +58,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
 
         var entityEtag = versionConstraintArgumentResolver.convert(entityData.getIdentity().getVersion());
 
-        if (context.includeEtags() && entityEtag != null) {
-            model.add(new EtagLink(selfLink, entityEtag.toString()));
-        } else {
-            model.add(selfLink);
-        }
+        model.add(entityEtag != null ? new EtagLink(selfLink, entityEtag.toString()) : selfLink);
 
         for (var relation : context.application().getRelationsForSourceEntity(entity)) {
             if (relation.getSourceEndPoint().getLinkName() != null && relation.getSourceEndPoint().getPathSegment() != null) {
@@ -72,18 +68,15 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             }
         }
         for (var content : entity.getContentAttributes()) {
-            var contentLink = context.linkFactoryProvider().toContent(
+            var baseContentLink = context.linkFactoryProvider().toContent(
                     entityData.getIdentity(),
                     content.getName()
             ).withRel(ContentGridLinkRelations.CONTENT);
 
-            var contentEtag = entityData.getContentVersion(content)
+            var contentLink = entityData.getContentVersion(content)
                     .map(versionConstraintArgumentResolver::convert)
-                    .orElse(null);
-
-            if (context.includeEtags() && contentEtag != null) {
-                contentLink = new EtagLink(contentLink, contentEtag.toString());
-            }
+                    .<Link>map(etag -> new EtagLink(baseContentLink, etag.toString()))
+                    .orElse(baseContentLink);
 
             var contentTemplates = context.templateGenerator().generateContentTemplates(entity, content);
             model.add(contentLink).addTemplates(contentTemplates);
@@ -158,26 +151,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
                 userLocales,
                 linkFactoryProvider,
                 params,
-                pagination,
-                true
-        ));
-    }
-
-    public RepresentationModelAssembler<EntityInstance, EntityDataRepresentationModel> withContext(
-            Application application,
-            EntityName entityName,
-            UserLocales userLocales,
-            LinkFactoryProvider linkFactoryProvider,
-            boolean includeEtags
-    ) {
-        return withContext(new EntityContext(
-                application,
-                entityName,
-                userLocales,
-                linkFactoryProvider,
-                MultiValueMap.fromSingleValue(Map.of()),
-                null,
-                includeEtags
+                pagination
         ));
     }
 
@@ -228,8 +202,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             UserLocales userLocales,
             LinkFactoryProvider linkFactoryProvider,
             MultiValueMap<String, String> params,
-            @With EncodedCursorPagination pagination,
-            boolean includeEtags
+            @With EncodedCursorPagination pagination
     ) {
         HalFormsTemplateGenerator templateGenerator() {
             return new HalFormsTemplateGenerator(application, userLocales, linkFactoryProvider);

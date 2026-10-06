@@ -153,7 +153,6 @@ class ContentApiImplTest {
                 Arguments.of(VersionConstraint.ANY, true),
                 Arguments.of(VersionConstraint.ANY, false),
                 Arguments.of(Version.unspecified(), true),
-                // This is an implementation detail: version hash is calculated from content id + mimetype
                 Arguments.of(ContentVersion.calculate(PRODUCT_PICTURE, createContentData("content-id")).orElseThrow(), true),
                 Arguments.of(Version.nonExisting(), false)
         );
