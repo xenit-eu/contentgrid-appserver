@@ -1,6 +1,6 @@
 pluginManagement {
     plugins {
-        id "io.freefair.lombok" version "9.5.0"
+        id "io.freefair.lombok" version "9.7.0"
         id 'org.springframework.boot' version '4.1.1'
         id 'com.diffplug.spotless' version '8.10.3'
     }
