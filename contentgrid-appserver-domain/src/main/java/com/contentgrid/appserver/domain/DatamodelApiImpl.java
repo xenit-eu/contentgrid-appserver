@@ -489,26 +489,39 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
 
-        return queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
-                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()))
-                .getNestedAttributeByPath(storage)
-                .flatMap(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
-                        linkRequest.getEntityName(), storage));
+        var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
+        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
     }
 
-    private Optional<StoredLinkValue> mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
-            @NonNull EntityName entityName, @NonNull AttributePath attributePath) {
+    private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
+            @NonNull EntityData entityData,
+            @NonNull Application application,
+            @NonNull EntityName entityName,
+            @NonNull AttributePath attributePath) {
+        var attributeData = entityData.getNestedAttributeByPath(attributePath).orElseThrow();
         var attribute = application
                 .getPropertyPathResolver()
                 .resolveAttribute(entityName, attributePath)
                 .getAttribute();
         return switch (attribute) {
-            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    Optional.of(new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified()));
+            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
+                if (((SimpleAttributeData<?>) attributeData).getValue() != null) {
+                    yield Optional.of(
+                            new TextValue((
+                                    String) ((SimpleAttributeData<?>) attributeData).getValue(),
+                                    entityData.getIdentity().getVersion()));
+                }
+                yield Optional.empty();
+            }
             case ContentAttribute contentAttribute -> {
                 var contentStore = contentStoreResolver.resolve(application);
-                yield Optional.of(new ContentValue(
-                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData))));
+                yield Optional.of(
+                        new ContentValue(
+                            new AttributeDataContent(
+                                    contentStore,
+                                    contentAttribute,
+                                    ((CompositeAttributeData) attributeData))));
             }
             default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
              + " to a stored link value");
@@ -550,11 +563,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
-        var attributeData = updateResult
-                .getUpdated()
-                .getNestedAttributeByPath(storage)
-                .orElseThrow();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
+        var updatedEntityData = updateResult
+                .getUpdated();
+        return mapAttributeDataToStoredValue(updatedEntityData, application, linkRequest.getEntityName(), storage);
     }
 
     @RequiredArgsConstructor
@@ -604,6 +615,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         private Optional<EntityLinkData> createLink(EntityData entityData, EntityLink entityLink) {
             // TODO: Handle links with storage (ACC-3004), and return link to the stored data instead of fallback template
             // Whether the link references the %{owner.value} variable
+//            if (entityLink instanceof StoredEntityLink storedEntityLink) {
+//                return mapAttributeDataToStoredValue(entityData, )getNestedAttributeByPath(storedEntityLink.getStorage());
+//            }
             var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
             if(hasOwnerValueVariable) {
                 // Whether the owner has data stored
