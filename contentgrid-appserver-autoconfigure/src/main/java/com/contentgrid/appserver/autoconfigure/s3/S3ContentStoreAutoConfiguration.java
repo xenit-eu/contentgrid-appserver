@@ -3,6 +3,7 @@ package com.contentgrid.appserver.autoconfigure.s3;
 import com.contentgrid.appserver.autoconfigure.s3.S3ContentStoreAutoConfiguration.S3Properties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
+import com.contentgrid.appserver.contentstore.impl.s3.S3ReadRetryPolicy;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import java.time.Duration;
 import lombok.NonNull;
@@ -34,8 +35,44 @@ public class S3ContentStoreAutoConfiguration {
         String region,
         @DefaultValue("true") boolean pathStyleAccess,
         @DefaultValue("0") int connectionPoolSize,
-        @DefaultValue("1") int connectionPoolKeepAliveSeconds
-    ) {}
+        @DefaultValue("1") int connectionPoolKeepAliveSeconds,
+        @DefaultValue("2s") @NonNull Duration connectionTimeout,
+        @DefaultValue("5s") @NonNull Duration tlsNegotiationTimeout,
+        @DefaultValue("10s") @NonNull Duration connectionAcquisitionTimeout,
+        @DefaultValue("30s") @NonNull Duration readTimeout,
+        @DefaultValue("30s") @NonNull Duration writeTimeout,
+        @DefaultValue @NonNull S3ReadRetryProperties readRetry
+    ) {
+        public S3Properties {
+            validateTimeout(connectionTimeout, "connectionTimeout", false);
+            validateTimeout(tlsNegotiationTimeout, "tlsNegotiationTimeout", false);
+            validateTimeout(connectionAcquisitionTimeout, "connectionAcquisitionTimeout", false);
+            validateTimeout(readTimeout, "readTimeout", true);
+            validateTimeout(writeTimeout, "writeTimeout", true);
+            readRetry.toPolicy();
+        }
+
+        private static void validateTimeout(Duration timeout, String name, boolean zeroAllowed) {
+            if (timeout.isNegative() || (!zeroAllowed && timeout.isZero())) {
+                throw new IllegalArgumentException(name + " must be " + (zeroAllowed ? "nonnegative" : "strictly positive"));
+            }
+        }
+    }
+
+    public record S3ReadRetryProperties(
+        @DefaultValue("1") int maxRetries,
+        @DefaultValue("10s") @NonNull Duration acquisitionTimeout,
+        @DefaultValue("0ms") @NonNull Duration minDelay,
+        @DefaultValue("250ms") @NonNull Duration maxDelay
+    ) {
+        public S3ReadRetryProperties {
+            new S3ReadRetryPolicy(maxRetries, acquisitionTimeout, minDelay, maxDelay);
+        }
+
+        S3ReadRetryPolicy toPolicy() {
+            return new S3ReadRetryPolicy(maxRetries, acquisitionTimeout, minDelay, maxDelay);
+        }
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -45,7 +82,13 @@ public class S3ContentStoreAutoConfiguration {
         // caps the number of concurrent connections, and idle connections are kept around for the
         // keep-alive period.
         var reuseConnections = properties.connectionPoolSize() > 0;
-        var httpClientBuilder = NettyNioAsyncHttpClient.builder();
+        var httpClientBuilder = NettyNioAsyncHttpClient.builder()
+                .connectionTimeout(properties.connectionTimeout())
+                // Netty otherwise inherits an explicitly set connection timeout for TLS negotiation.
+                .tlsNegotiationTimeout(properties.tlsNegotiationTimeout())
+                .connectionAcquisitionTimeout(properties.connectionAcquisitionTimeout())
+                .readTimeout(properties.readTimeout())
+                .writeTimeout(properties.writeTimeout());
         if (reuseConnections) {
             httpClientBuilder
                     .maxConcurrency(properties.connectionPoolSize())
@@ -66,7 +109,7 @@ public class S3ContentStoreAutoConfiguration {
     @Bean
     @ConditionalOnBean(S3AsyncClient.class)
     ContentStoreResolver s3ContentStoreResolver(S3AsyncClient s3AsyncClient, S3Properties properties) {
-        var contentStore = new S3ContentStore(s3AsyncClient, properties.bucket());
+        var contentStore = new S3ContentStore(s3AsyncClient, properties.bucket(), properties.readRetry().toPolicy());
         return application -> contentStore;
     }
 
