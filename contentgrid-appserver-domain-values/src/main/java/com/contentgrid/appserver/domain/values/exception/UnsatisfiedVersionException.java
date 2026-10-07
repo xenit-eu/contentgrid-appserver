@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 
 @Getter
-public class UnsatisfiedVersionException extends ApplicationModelException {
+public class UnsatisfiedVersionException extends RuntimeException { //TODO ACC-3004 change to checked exception
     @NonNull
     private final Version actualVersion;
     @NonNull
