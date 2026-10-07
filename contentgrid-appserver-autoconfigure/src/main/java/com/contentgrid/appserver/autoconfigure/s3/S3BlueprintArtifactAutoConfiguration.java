@@ -20,9 +20,7 @@ public class S3BlueprintArtifactAutoConfiguration {
 
     @Bean
     BlueprintArtifactReferenceResolver s3BlueprintArtifactReferenceResolver(BlueprintArtifactProperties properties) {
-        var s3 = properties.s3();
-        var client = S3ClientFactory.createS3AsyncClient(s3.endpoint(), s3.accessKey(), s3.secretKey(),
-                s3.region(), s3.pathStyleAccess(), NettyNioAsyncHttpClient.builder(), true);
+        var client = new S3AsyncClientFactory(properties.s3()).createClient();
         return new S3BlueprintArtifactReferenceResolver(client);
     }
 }

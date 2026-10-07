@@ -109,7 +109,7 @@ class BlueprintArtifactAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     var properties = context.getBean(BlueprintArtifactProperties.class);
-                    assertThat(properties.s3().endpoint()).isEqualTo("http://localhost:9000");
+                    assertThat(properties.s3().endpoint()).hasToString("http://localhost:9000");
                     assertThat(properties.s3().accessKey()).isEqualTo("myAccessKey");
                     assertThat(properties.s3().secretKey()).isEqualTo("mySecretKey");
                     assertThat(properties.s3().region()).isEqualTo("eu-west-1");

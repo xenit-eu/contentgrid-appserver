@@ -1,11 +1,13 @@
 package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
 import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifactAutoConfiguration.BlueprintArtifactProperties;
+import com.contentgrid.appserver.autoconfigure.s3.S3ConfigurationProperties;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.FilesystemBlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
+import java.net.URI;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +35,23 @@ public class BlueprintArtifactAutoConfiguration {
             S3Properties s3
     ) {
         public record S3Properties(
-                @NonNull String endpoint,
+                @NonNull URI endpoint,
                 String accessKey,
                 String secretKey,
                 String region,
                 @DefaultValue("true") boolean pathStyleAccess
-        ) {}
+        ) implements S3ConfigurationProperties {
+
+            @Override
+            public int connectionPoolSize() {
+                return 0;
+            }
+
+            @Override
+            public int connectionPoolKeepAliveSeconds() {
+                return 1;
+            }
+        }
     }
 
     @Bean

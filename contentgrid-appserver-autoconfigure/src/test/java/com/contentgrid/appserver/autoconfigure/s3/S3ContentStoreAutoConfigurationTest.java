@@ -66,7 +66,7 @@ class S3ContentStoreAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasBean("s3ContentStoreResolver");
                     var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
-                    assertThat(properties.url()).isEqualTo("http://localhost");
+                    assertThat(properties.endpoint()).hasToString("http://localhost");
                     assertThat(properties.accessKey()).isEqualTo("accessKey");
                     assertThat(properties.secretKey()).isEqualTo("secretKey");
                     assertThat(properties.bucket()).isEqualTo("fake");
@@ -120,7 +120,8 @@ class S3ContentStoreAutoConfigurationTest {
                         "contentgrid.appserver.content.s3.bucket=fake"
                 )
                 .run(context -> {
-                    assertThat(context).hasFailed();
+                    // Falls back to the default credentials of the S3 SDK
+                    assertThat(context).hasNotFailed();
                 });
     }
 
@@ -144,6 +145,7 @@ class S3ContentStoreAutoConfigurationTest {
                 .withUserConfiguration(S3ClientConfiguration.class)
                 .withPropertyValues(
                         "contentgrid.appserver.content-store.type=s3",
+                        "contentgrid.appserver.content.s3.url=http://localhost:123",
                         "contentgrid.appserver.content.s3.bucket=fake"
                 )
                 .run(context -> {
