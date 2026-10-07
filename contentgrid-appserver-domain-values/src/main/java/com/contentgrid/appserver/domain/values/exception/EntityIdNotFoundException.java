@@ -12,7 +12,7 @@ import lombok.NonNull;
  * Exception thrown when no entity matching the given id was found in the database.
  */
 @Getter
-public class EntityIdNotFoundException extends ApplicationModelException {
+public class EntityIdNotFoundException extends RuntimeException { //TODO ACC-3004 change to checked exception
     @NonNull
     private final EntityName entityName;
     @NonNull

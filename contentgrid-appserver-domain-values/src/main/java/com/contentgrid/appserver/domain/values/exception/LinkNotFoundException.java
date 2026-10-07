@@ -9,7 +9,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
  * Exception thrown when a referenced Link is not found.
  */
 @Getter
-public class LinkNotFoundException extends ApplicationModelException {
+public class LinkNotFoundException extends RuntimeException { //TODO ACC-3004 change to checked exception
 
     @NonNull
     private final LinkRequest linkRequest;
