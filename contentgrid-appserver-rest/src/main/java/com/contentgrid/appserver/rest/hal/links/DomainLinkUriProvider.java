@@ -1,5 +1,6 @@
 package com.contentgrid.appserver.rest.hal.links;
 
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.domain.LinkUriProvider;
@@ -29,5 +30,10 @@ public class DomainLinkUriProvider implements LinkUriProvider {
         return linkFactoryProvider.toRelation(RelationIdentity.forRelation(entityIdentity, relationName))
                 .orElseThrow()
                 .toUri().toASCIIString();
+    }
+
+    @Override
+    public String createStoredDataLinkLink(EntityIdentity entityIdentity, LinkIdentity linkIdentity) {
+        return linkFactoryProvider.toLink(entityIdentity, linkIdentity).orElseThrow().toUri().toASCIIString();
     }
 }

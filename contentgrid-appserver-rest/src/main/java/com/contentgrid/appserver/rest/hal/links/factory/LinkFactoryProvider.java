@@ -3,15 +3,21 @@ package com.contentgrid.appserver.rest.hal.links.factory;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.rest.entity.DatamodelExtensionLinkRestController;
 import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.appserver.rest.profile.ProfileRestController;
 import com.contentgrid.appserver.rest.metadata.RootRestController;
@@ -33,6 +39,7 @@ import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriTemplate;
+import tools.jackson.databind.PropertyName;
 
 /**
  * Generates {@link LinkFactory}s for entity-based paths
@@ -271,5 +278,41 @@ public class LinkFactoryProvider {
                 .withName(entity.getLinkName().getValue())
                 .withTitle(entity.getTranslations(userLocales).getSingularName());
     }
+
+    /**
+     * Generate a link for a entitylink, only if stored link actually has data
+     *
+     * @param entityIdentity the identity for the declared upon entity
+     * @param linkIdentity the identity for the entitylink to link to.
+     */
+    public Optional<LinkFactory> toLink(
+            @NonNull EntityIdentity entityIdentity,
+            @NonNull LinkIdentity linkIdentity) {
+        var entity = application.getRequiredEntityByName(entityIdentity.getEntityName());
+        var entityLink = entity.getLinks()
+                .stream().filter(linkIt -> linkIt.getIdentity().equals(linkIdentity))
+                .findFirst().orElseThrow();
+        return switch(entityLink) {
+            case StoredEntityLink storedEntityLink -> {
+                var pathSegments = storedEntityLink.getPathSegments();
+                yield Optional.of(
+                                linkTo(methodOn(DatamodelExtensionLinkRestController.class)
+                                        .getOwnedLink(
+                                                application,
+                                                entity.getPathSegment(),
+                                                entityIdentity.getEntityId(),
+                                                pathSegments.get(0),
+                                                pathSegments.get(2), // TODO ACC-3004 consider cleaning up when implementing rest controller
+                                                null,
+                                                null,
+                                                null,
+                                                this
+                                        ))
+                        );
+            }
+            default -> Optional.empty(); // No Link is rendered, the fallback template can still kick in.
+        };
+    }
+
 
 }
