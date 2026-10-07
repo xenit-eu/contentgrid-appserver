@@ -12,7 +12,6 @@ import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -21,14 +20,42 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-@RequiredArgsConstructor
 public class S3ContentStore implements ContentStore {
 
     @NonNull
-    private final S3AsyncClient client;
+    private final S3AsyncClient readClient;
+
+    @NonNull
+    private final S3AsyncClient writeClient;
 
     @NonNull
     private final String bucketName;
+
+    /**
+     * Creates a content store using a single externally supplied S3 client for every operation.
+     * <p>
+     * The given client determines the behavior of both uploads and downloads, including whether
+     * downloads are served as ordinary single requests or converted to multipart downloads: pass a
+     * client built with multipart operation disabled for single-request downloads.
+     */
+    public S3ContentStore(@NonNull S3AsyncClient client, @NonNull String bucketName) {
+        this(client, client, bucketName);
+    }
+
+    /**
+     * Creates a content store that downloads through {@code readClient} and uploads and deletes
+     * through {@code writeClient}.
+     * <p>
+     * The read client should have multipart operation disabled so downloads are ordinary single
+     * S3 GET requests, while the write client keeps multipart operation enabled so large uploads
+     * transparently become multipart uploads.
+     */
+    public S3ContentStore(@NonNull S3AsyncClient readClient, @NonNull S3AsyncClient writeClient,
+            @NonNull String bucketName) {
+        this.readClient = readClient;
+        this.writeClient = writeClient;
+        this.bucketName = bucketName;
+    }
 
     private static final String CONTENT_TYPE = "application/octet-stream";
 
@@ -44,7 +71,7 @@ public class S3ContentStore implements ContentStore {
                 requestBuilder.range("bytes=%d-%d".formatted(contentRange.getStartByte(),
                         contentRange.getEndByteInclusive()));
             }
-            var object = client.getObject(requestBuilder.build(), AsyncResponseTransformer.toBlockingInputStream())
+            var object = readClient.getObject(requestBuilder.build(), AsyncResponseTransformer.toBlockingInputStream())
                     .join();
 
             if (contentRange != null && contentSize(object.response()) != contentRange.getContentSize()) {
@@ -74,7 +101,7 @@ public class S3ContentStore implements ContentStore {
     public ContentAccessor writeContent(@NonNull InputStream inputStream) throws UnwritableContentException {
         var contentReference = ContentReference.of(UUID.randomUUID().toString());
         try {
-            client.putObject(PutObjectRequest.builder()
+            writeClient.putObject(PutObjectRequest.builder()
                                     .bucket(bucketName)
                                     .key(contentReference.getValue())
                                     .contentType(CONTENT_TYPE)
@@ -92,7 +119,7 @@ public class S3ContentStore implements ContentStore {
     @Override
     public void remove(@NonNull ContentReference contentReference) throws UnwritableContentException {
         try {
-            client.deleteObject(DeleteObjectRequest.builder()
+            writeClient.deleteObject(DeleteObjectRequest.builder()
                             .bucket(bucketName)
                             .key(contentReference.getValue())
                             .build())

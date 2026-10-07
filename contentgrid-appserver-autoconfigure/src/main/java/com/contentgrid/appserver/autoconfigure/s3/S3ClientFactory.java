@@ -1,16 +1,19 @@
 package com.contentgrid.appserver.autoconfigure.s3;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.function.Consumer;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
 import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.profiles.ProfileFile;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
 
 /**
@@ -25,6 +28,11 @@ import software.amazon.awssdk.services.s3.multipart.MultipartConfiguration;
  *     <li>The default profile file is replaced with an empty one, so the SDK never picks up AWS
  *     configuration or credentials from the user account running the application. During local development
  *     those may grant access to a real environment, which must never be reachable by accident.</li>
+ *     <li>Read clients have multipart operation disabled, so downloads are ordinary single S3 GET
+ *     requests. Write clients keep multipart operation enabled, so uploads over the part size
+ *     transparently become multipart uploads with parallel part uploads. Both kinds share one caller
+ *     supplied HTTP transport: a client built with {@link S3AsyncClientBuilder#httpClient} does not take
+ *     ownership of that transport, the caller stays responsible for closing it.</li>
  * </ul>
  */
 public final class S3ClientFactory {
@@ -50,6 +58,72 @@ public final class S3ClientFactory {
     public static S3AsyncClient createS3AsyncClient(String endpoint, String accessKey, String secretKey,
             String region, boolean pathStyleAccess, NettyNioAsyncHttpClient.Builder httpClientBuilder,
             boolean reuseConnections) {
+        return baseBuilder(endpoint, accessKey, secretKey, region, pathStyleAccess, reuseConnections)
+                .multipartEnabled(true)
+                .multipartConfiguration(MultipartConfiguration.builder()
+                        .minimumPartSizeInBytes(PART_SIZE)
+                        .build())
+                .httpClientBuilder(httpClientBuilder)
+                .build();
+    }
+
+    /**
+     * Creates the S3 client used for downloads. Multipart operation is disabled, so downloads are
+     * ordinary single S3 GET requests and stream without whole-object buffering. Native SDK retries apply
+     * before the response stream is handed over.
+     *
+     * @param httpClient shared HTTP transport used for requests; stays owned by the caller and is not
+     * closed together with the returned client
+     * @param reuseConnections whether http connections may be re-used across requests (see
+     * {@link #createS3AsyncClient} for details)
+     */
+    public static S3AsyncClient createS3ReadAsyncClient(String endpoint, String accessKey, String secretKey,
+            String region, boolean pathStyleAccess, SdkAsyncHttpClient httpClient, boolean reuseConnections) {
+        return baseBuilder(endpoint, accessKey, secretKey, region, pathStyleAccess, reuseConnections)
+                .multipartEnabled(false)
+                .httpClient(httpClient)
+                .build();
+    }
+
+    /**
+     * Creates the S3 client used for uploads and deletes. Uploads over the part size transparently become
+     * multipart uploads, with parallel part uploads.
+     *
+     * @param httpClient shared HTTP transport used for requests; stays owned by the caller and is not
+     * closed together with the returned client
+     * @param reuseConnections whether http connections may be re-used across requests (see
+     * {@link #createS3AsyncClient} for details)
+     */
+    public static S3AsyncClient createS3WriteAsyncClient(String endpoint, String accessKey, String secretKey,
+            String region, boolean pathStyleAccess, SdkAsyncHttpClient httpClient, boolean reuseConnections) {
+        return baseBuilder(endpoint, accessKey, secretKey, region, pathStyleAccess, reuseConnections)
+                .multipartEnabled(true)
+                .multipartConfiguration(MultipartConfiguration.builder()
+                        .minimumPartSizeInBytes(PART_SIZE)
+                        .build())
+                .httpClient(httpClient)
+                .build();
+    }
+
+    /**
+     * Creates the shared HTTP transport for the managed read and write S3 clients. A
+     * {@code connectionPoolSize} of 0 (the default) means connections must not be re-used at all
+     * (ACC-2696): no-reuse is then enforced with a {@code Connection: close} header on every request
+     * instead of pool settings. With a pool, its size caps the number of concurrent connections, and idle
+     * connections are kept around for the keep-alive period.
+     */
+    public static SdkAsyncHttpClient createSharedHttpClient(int connectionPoolSize,
+            int connectionPoolKeepAliveSeconds) {
+        var builder = NettyNioAsyncHttpClient.builder();
+        if (connectionPoolSize > 0) {
+            builder.maxConcurrency(connectionPoolSize)
+                    .connectionMaxIdleTime(Duration.ofSeconds(connectionPoolKeepAliveSeconds));
+        }
+        return builder.build();
+    }
+
+    private static S3AsyncClientBuilder baseBuilder(String endpoint, String accessKey, String secretKey,
+            String region, boolean pathStyleAccess, boolean reuseConnections) {
         return S3AsyncClient.builder()
                 .endpointOverride(endpointUri(endpoint))
                 .forcePathStyle(pathStyleAccess)
@@ -57,13 +131,7 @@ public final class S3ClientFactory {
                 .credentialsProvider(credentialsProvider(accessKey, secretKey))
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
-                .multipartEnabled(true)
-                .multipartConfiguration(MultipartConfiguration.builder()
-                        .minimumPartSizeInBytes(PART_SIZE)
-                        .build())
-                .httpClientBuilder(httpClientBuilder)
-                .overrideConfiguration(overrideConfiguration(reuseConnections))
-                .build();
+                .overrideConfiguration(overrideConfiguration(reuseConnections));
     }
 
     private static URI endpointUri(String endpoint) {
