@@ -45,6 +45,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
@@ -154,6 +155,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -207,6 +209,11 @@ class DatamodelApiImplTest {
         @Override
         public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
             return createEntityLink(entityIdentity) + "/" + relationName.getValue();
+        }
+
+        @Override
+        public String createStoredDataLinkLink(EntityIdentity entityIdentity, LinkIdentity linkIdentity) {
+            return createEntityLink(entityIdentity) + "/attachment/_links/pdf";
         }
     };
 
@@ -2138,14 +2145,20 @@ class DatamodelApiImplTest {
 
         // Stored Links
         private static final String EXTRACTION = "Invoice 2024-07, supplier Acme, total 15.95 EUR";
+        private static final NamedLink PDF_RENDITION_NAMEDLINK = new NamedLink(URI.create("https://links.example/rels/renditions/pdf"), "content");
         private static final StoredEntityLink PDF_RENDITION_LINK = StoredEntityLink.builder()
-                .identity(new NamedLink(URI.create("https://links.example/rels/renditions/pdf"), "content"))
+                .identity(PDF_RENDITION_NAMEDLINK)
                 .owner(ATTACHMENT_PATH)
                 .pathSegments(List.of(DOCUMENT_ATTACHMENT.getPathSegment(), PathSegmentName.of("_links"),
                         PathSegmentName.of("pdf")))
                 .storage(PDF_LINK_PATH)
                 .fallbackTemplate(automationTemplate("my-automation", "api", "/rendition?document=%{owner.link}"))
                 .build();
+        private static final EntityLinkData PDF_ENTITY_LINK = new EntityLinkData(
+                PDF_RENDITION_NAMEDLINK,
+                null,
+                "https://automation.example/my-automation/rendition?document=http://localhost/document/efaee931-bd01-4a25-a3c3-7eb96327e553/attachment"
+        );
         private static final StoredEntityLink FTS_LINK = StoredEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fts"))
                 .owner(ATTACHMENT_PATH)
@@ -2187,6 +2200,24 @@ class DatamodelApiImplTest {
                 .targetReference(ColumnName.of("author_id"))
                 .build();
 
+        private static final CompositeAttributeData PDF_COMPOSITE_ATTRIBUTE_DATA = CompositeAttributeData.builder()
+                .name(AttributeName.of("pdf"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                        "pdf-content-id"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                        "invoice.pdf"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                        "application/pdf"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
+                .build();
+
+        private static CompositeAttributeData buildLinksAttribute(AttributeData... links) {
+            return CompositeAttributeData.builder()
+                    .name(LINKS_ATTRIBUTE.getName())
+                    .attributes(Arrays.asList(links))
+                    .build();
+        }
+
         private static final Application DOCUMENT_APPLICATION = Application.builder()
                 .name(ApplicationName.of("document-application"))
                 .entity(DOCUMENT)
@@ -2194,43 +2225,15 @@ class DatamodelApiImplTest {
                 .build();
 
         private static EntityData createDocumentData(EntityId id) {
-            return new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), id),
-                    List.of(CompositeAttributeData.builder()
-                            .name(LINKS_ATTRIBUTE.getName())
-                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
-                            .attribute(CompositeAttributeData.builder()
-                                    .name(PDF_ATTRIBUTE.getName())
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
-                                            "pdf-content-id"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
-                                            "invoice.pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
-                                            "application/pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
-                                    .build())
-                            .build()
-                    ));
+            return createDocumentData(id, Version.unspecified());
         }
 
         private static EntityData createDocumentData(EntityId id, Version version) {
             return new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), id, version),
-                    List.of(CompositeAttributeData.builder()
-                            .name(LINKS_ATTRIBUTE.getName())
-                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
-                            .attribute(CompositeAttributeData.builder()
-                                    .name(PDF_ATTRIBUTE.getName())
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
-                                            "pdf-content-id"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
-                                            "invoice.pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
-                                            "application/pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
-                                    .build())
-                            .build()
-                    ));
+                    List.of(buildLinksAttribute(
+                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION),
+                            PDF_COMPOSITE_ATTRIBUTE_DATA)));
         }
 
         private static UriTemplateDefinition template(String template) {
@@ -2255,8 +2258,13 @@ class DatamodelApiImplTest {
                 var request = args.getArgument(1, EntityRequest.class);
                 return Optional.of(new EntityData(
                         EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
-                        List.of(new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), categoryValue))
-                ));
+                        List.of(
+                                new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), categoryValue),
+                                CompositeAttributeData.builder()
+                                        .name(AttributeName.of("_links"))
+                                        .attribute(PDF_COMPOSITE_ATTRIBUTE_DATA)
+                                        .build())
+                                ));
             });
         }
 
@@ -2318,8 +2326,7 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             PDF_RENDITION_LINK.getIdentity(),
                             null,
-                            "https://automation.example/my-automation/rendition?document=" + encodedUriProviderLink(
-                                    entityId, "/attachment")
+                            "http://localhost/document/"+ entityId.getValue() + "/attachment/_links/pdf"
                     )
             );
         }
@@ -2490,21 +2497,10 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
             var updateResultEntityData = new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), entityId, Version.exactly("UPDATED_VERSION")),
-                    List.of(CompositeAttributeData.builder()
-                            .name(LINKS_ATTRIBUTE.getName())
-                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"))
-                            .attribute(CompositeAttributeData.builder()
-                                    .name(PDF_ATTRIBUTE.getName())
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
-                                            "pdf-content-id"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
-                                            "invoice.pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
-                                            "application/pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
-                                    .build())
-                            .build()
-                    ));
+                    List.of(buildLinksAttribute(
+                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"),
+                            PDF_COMPOSITE_ATTRIBUTE_DATA
+                            )));
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
                     .thenReturn(Optional.of(entityData));

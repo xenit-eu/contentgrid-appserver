@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.domain;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.autoconfigure.events.ContentGridEventsAutoConfiguration;
@@ -142,6 +143,11 @@ public class ContentGridDomainAutoConfiguration {
 
         @Override
         public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
+            return null;
+        }
+
+        @Override
+        public String createStoredDataLinkLink(EntityIdentity entityIdentity, LinkIdentity linkIdentity) {
             return null;
         }
     }
