@@ -44,6 +44,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
+import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
@@ -155,6 +156,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -209,6 +211,11 @@ class DatamodelApiImplTest {
         @Override
         public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
             return createEntityLink(entityIdentity) + "/" + relationName.getValue();
+        }
+
+        @Override
+        public String createStoredDataLinkLink(EntityIdentity entityIdentity, LinkIdentity linkIdentity) {
+            return createEntityLink(entityIdentity) + "/attachment/_links/pdf";
         }
     };
 
@@ -2148,6 +2155,11 @@ class DatamodelApiImplTest {
                 .storage(PDF_LINK_PATH)
                 .fallbackTemplate(automationTemplate("my-automation", "api", "/rendition?document=%{owner.link}"))
                 .build();
+        private static final EntityLinkData PDF_ENTITY_LINK = new EntityLinkData(
+                PDF_RENDITION_NAMEDLINK,
+                null,
+                "https://automation.example/my-automation/rendition?document=http://localhost/document/efaee931-bd01-4a25-a3c3-7eb96327e553/attachment"
+        );
         private static final StoredEntityLink FTS_LINK = StoredEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fts"))
                 .owner(ATTACHMENT_PATH)
@@ -2347,8 +2359,7 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             PDF_RENDITION_LINK.getIdentity(),
                             null,
-                            "https://automation.example/my-automation/rendition?document=" + encodedUriProviderLink(
-                                    entityId, "/attachment")
+                            "http://localhost/document/"+ entityId.getValue() + "/attachment/_links/pdf" // TODO check for correctness
                     )
             );
         }

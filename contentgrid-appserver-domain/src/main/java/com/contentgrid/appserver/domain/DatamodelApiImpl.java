@@ -12,9 +12,11 @@ import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyPathException;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
@@ -172,6 +174,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         return new ResponseOutputDataMapper(
+                application,
+                entityName,
                 entity.getAttributes(),
                 entity.getLinks(),
                 linkUriProviderFactory.createLinkUriProvider(application),
@@ -498,33 +502,37 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             @NonNull Application application,
             @NonNull EntityName entityName,
             @NonNull AttributePath attributePath) {
-        var attributeData = entityData.getNestedAttributeByPath(attributePath).orElseThrow();
-        var attribute = application
-                .getPropertyPathResolver()
-                .resolveAttribute(entityName, attributePath)
-                .getAttribute();
-        return switch (attribute) {
-            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
-                if (((SimpleAttributeData<?>) attributeData).getValue() != null) {
-                    yield Optional.of(
-                            new TextValue((
-                                    String) ((SimpleAttributeData<?>) attributeData).getValue(),
-                                    entityData.getIdentity().getVersion()));
+        var attributeData = entityData.getNestedAttributeByPath(attributePath);
+        if (attributeData.isPresent()) {
+            var attribute = application
+                    .getPropertyPathResolver()
+                    .resolveAttribute(entityName, attributePath)
+                    .getAttribute();
+            return switch (attribute) {
+                case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
+                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() != null) {
+                        yield Optional.of(
+                                new TextValue(
+                                        (String) ((SimpleAttributeData<?>) attributeData.get()).getValue(),
+                                        entityData.getIdentity().getVersion()));
+                    }
+                    yield Optional.empty();
                 }
-                yield Optional.empty();
-            }
-            case ContentAttribute contentAttribute -> {
-                var contentStore = contentStoreResolver.resolve(application);
-                yield Optional.of(
-                        new ContentValue(
-                            new AttributeDataContent(
-                                    contentStore,
-                                    contentAttribute,
-                                    ((CompositeAttributeData) attributeData))));
-            }
-            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
-             + " to a stored link value");
-        };
+                case ContentAttribute contentAttribute -> {
+                    var contentStore = contentStoreResolver.resolve(application);
+                    yield Optional.of(
+                            new ContentValue(
+                                    new AttributeDataContent(
+                                            contentStore,
+                                            contentAttribute,
+                                            ((CompositeAttributeData) attributeData.get()))));
+                }
+                default -> throw new ApplicationModelException(
+                        "Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
+                                + " to a stored link value");
+            };
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -568,7 +576,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     }
 
     @RequiredArgsConstructor
-    private static class ResponseOutputDataMapper {
+    private class ResponseOutputDataMapper {
+        private final Application application;
+        private final EntityName entityName;
         private final List<Attribute> attributes;
         private final Collection<EntityLink> links;
         private final LinkUriProvider linkUriProvider;
@@ -599,7 +609,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             var linkData = new ArrayList<EntityLinkData>(links.size());
 
             for (var entityLink : links) {
-                createLink(entityData, entityLink)
+                createLink(application, entityName, entityData, entityLink)
                         .ifPresent(linkData::add);
             }
 
@@ -611,12 +621,24 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             );
         }
 
-        private Optional<EntityLinkData> createLink(EntityData entityData, EntityLink entityLink) {
-            // TODO: Handle links with storage (ACC-3004), and return link to the stored data instead of fallback template
+        private Optional<EntityLinkData> createLink(
+                Application application,
+                EntityName entityName,
+                EntityData entityData,
+                EntityLink entityLink) {
+            if (entityLink instanceof StoredEntityLink storedEntityLink) {
+                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
+                if (maybeStoredLinkValue.isPresent()) {
+                    return Optional.of(
+                            new EntityLinkData(
+                                    entityLink.getIdentity(),
+                                    entityLink.getProfile().orElse(null),
+                                    linkUriProvider.createStoredDataLinkLink(entityData.getIdentity(), entityLink.getIdentity())
+                            )
+                    );
+                }
+            }
             // Whether the link references the %{owner.value} variable
-//            if (entityLink instanceof StoredEntityLink storedEntityLink) {
-//                return mapAttributeDataToStoredValue(entityData, )getNestedAttributeByPath(storedEntityLink.getStorage());
-//            }
             var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
             if(hasOwnerValueVariable) {
                 // Whether the owner has data stored
