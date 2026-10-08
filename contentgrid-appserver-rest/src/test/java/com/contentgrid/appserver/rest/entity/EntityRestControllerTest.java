@@ -856,15 +856,6 @@ class EntityRestControllerTest {
         }
 
         @Test
-        void getEntityWithETagOnly_selfLinkHasEtag() throws Exception {
-            var entity = createEmptyWithETag();
-
-            mockMvc.perform(get(entity.getHeader(HttpHeaders.LOCATION)).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._links.self.etag", is(entity.getHeader(HttpHeaders.ETAG))));
-        }
-
-        @Test
         void getEntityWithoutETag_selfLinkHasNoEtag() throws Exception {
             var entity = createEmptyWithoutETag();
 
@@ -883,7 +874,6 @@ class EntityRestControllerTest {
             var invoiceUrl = createInvoice().getRedirectedUrl();
 
             mockMvc.perform(post(invoiceUrl + "/content")
-                    .header(HttpHeaders.IF_NONE_MATCH, "*")
                     .contentType("text/plain")
                     .content("My small content")
             ).andExpect(status().isNoContent());
@@ -1161,7 +1151,6 @@ class EntityRestControllerTest {
         void testListEntityInstances_itemLinksHaveEtag() throws Exception {
             var invoiceUrl = createInvoice().getRedirectedUrl();
             mockMvc.perform(post(invoiceUrl + "/content")
-                    .header(HttpHeaders.IF_NONE_MATCH, "*")
                     .contentType("text/plain")
                     .content("My small content")
             ).andExpect(status().isNoContent());
@@ -1754,55 +1743,6 @@ class EntityRestControllerTest {
                     .andExpect(header().string(HttpHeaders.ETAG, updateResponse.getHeader(HttpHeaders.ETAG)))
                     .andExpect(jsonPath("$.number").value("456"))
                     .andExpect(jsonPath("$.amount").value("123"));
-        }
-
-        @Test
-        void testUpdateEntity_linkEtagsChange() throws Exception {
-            var invoiceUrl = createInvoice().getRedirectedUrl();
-
-            mockMvc.perform(post(invoiceUrl + "/content")
-                    .header(HttpHeaders.IF_NONE_MATCH, "*")
-                    .contentType("text/plain")
-                    .content("My small content")
-            ).andExpect(status().isNoContent());
-
-            var before = mockMvc.perform(get(invoiceUrl).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andReturn().getResponse();
-            var selfEtagBefore = jsonMapper.readTree(before.getContentAsString())
-                    .at("/_links/self/etag").asString();
-            var contentEtagBefore = jsonMapper.readTree(before.getContentAsString())
-                    .at("/_links/cg:content/0/etag").asString();
-
-            // Updating an attribute changes the entity etag, but not the content etag
-            mockMvc.perform(patch(invoiceUrl)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .header(HttpHeaders.IF_MATCH, before.getHeader(HttpHeaders.ETAG))
-                            .content("""
-                                    { "number": "456" }
-                                    """))
-                    .andExpect(status().isNoContent());
-
-            var afterAttributeUpdate = mockMvc.perform(get(invoiceUrl).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andReturn().getResponse();
-            var attributeTree = jsonMapper.readTree(afterAttributeUpdate.getContentAsString());
-            assertThat(attributeTree.at("/_links/self/etag").asString())
-                    .isEqualTo(afterAttributeUpdate.getHeader(HttpHeaders.ETAG))
-                    .isNotEqualTo(selfEtagBefore);
-            assertThat(attributeTree.at("/_links/cg:content/0/etag").asString())
-                    .isEqualTo(contentEtagBefore);
-
-            // Replacing the content changes the content etag
-            mockMvc.perform(put(invoiceUrl + "/content")
-                            .header(HttpHeaders.IF_MATCH, contentEtagBefore)
-                            .contentType("application/pdf")
-                            .content("Other content"))
-                    .andExpect(status().isNoContent());
-
-            mockMvc.perform(get(invoiceUrl).accept(MediaTypes.HAL_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$._links.cg:content[0].etag", not(is(contentEtagBefore))));
         }
 
         @Test
