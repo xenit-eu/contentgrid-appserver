@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.autoconfigure.s3;
 
 import java.net.URI;
+import java.time.Duration;
 
 public interface S3ConfigurationProperties {
     URI endpoint();
@@ -9,5 +10,8 @@ public interface S3ConfigurationProperties {
     String region();
     boolean pathStyleAccess();
     int connectionPoolSize();
-    int connectionPoolKeepAliveSeconds();
+    Duration connectionPoolIdleTimeout();
+    Duration connectionTimeout();
+    Duration readTimeout();
+    Duration writeTimeout();
 }

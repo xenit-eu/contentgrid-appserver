@@ -3,6 +3,7 @@ package com.contentgrid.appserver.autoconfigure.s3.testing;
 import com.contentgrid.appserver.autoconfigure.s3.S3AsyncClientFactory;
 import com.contentgrid.appserver.autoconfigure.s3.S3ConfigurationProperties;
 import java.net.URI;
+import java.time.Duration;
 import lombok.experimental.UtilityClass;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
@@ -46,8 +47,23 @@ public class S3TestClients {
             }
 
             @Override
-            public int connectionPoolKeepAliveSeconds() {
-                return 0;
+            public Duration connectionPoolIdleTimeout() {
+                return null;
+            }
+
+            @Override
+            public Duration connectionTimeout() {
+                return null;
+            }
+
+            @Override
+            public Duration readTimeout() {
+                return null;
+            }
+
+            @Override
+            public Duration writeTimeout() {
+                return null;
             }
         });
     }

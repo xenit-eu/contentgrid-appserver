@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.PropertyMapper;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -46,14 +47,24 @@ public class S3AsyncClientFactory {
     private SdkAsyncHttpClient createHttpClient() {
         var builder = NettyNioAsyncHttpClient.builder();
 
-        if(configurationProperties.connectionPoolSize() > 0) {
-            builder.maxConcurrency(configurationProperties.connectionPoolSize())
-                    .connectionMaxIdleTime(Duration.ofSeconds(configurationProperties.connectionPoolKeepAliveSeconds()));
-        } else {
-            // connection-pool-size 0 means connections must not be re-used at all (ACC-2696):
-            // connections are expired as soon as possible, so they never return back into a pool
-            builder.connectionTimeToLive(Duration.ofMillis(1));
-        }
+        var mapper = PropertyMapper.get();
+
+        mapper.from(configurationProperties::connectionPoolSize)
+                .when(size -> size > 0)
+                .to(builder::maxConcurrency);
+        // connection-pool-size 0 means connections must not be re-used at all (ACC-2696):
+        // connections are expired as soon as possible, so they never return back into a pool
+        mapper.from(configurationProperties::connectionPoolSize)
+                .when(size -> size <= 0)
+                .toCall(() -> builder.connectionTimeToLive(Duration.ofMillis(1)));
+
+
+        mapper.from(configurationProperties::connectionPoolIdleTimeout).to(builder::connectionMaxIdleTime);
+
+        mapper.from(configurationProperties::connectionTimeout).to(builder::connectionTimeout);
+        mapper.from(configurationProperties::readTimeout).to(builder::readTimeout);
+        mapper.from(configurationProperties::writeTimeout).to(builder::writeTimeout);
+
 
         nettyBuilderCustomizer.accept(builder);
 

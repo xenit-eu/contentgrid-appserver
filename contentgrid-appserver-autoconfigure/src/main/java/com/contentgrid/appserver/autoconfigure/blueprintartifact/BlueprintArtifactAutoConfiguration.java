@@ -8,6 +8,7 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactR
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -48,8 +49,23 @@ public class BlueprintArtifactAutoConfiguration {
             }
 
             @Override
-            public int connectionPoolKeepAliveSeconds() {
-                return 1;
+            public Duration connectionPoolIdleTimeout() {
+                return null;
+            }
+
+            @Override
+            public Duration connectionTimeout() {
+                return null;
+            }
+
+            @Override
+            public Duration readTimeout() {
+                return null;
+            }
+
+            @Override
+            public Duration writeTimeout() {
+                return null;
             }
         }
     }

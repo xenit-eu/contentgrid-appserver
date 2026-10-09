@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.s3.testing.S3TestClients;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;
@@ -73,7 +74,7 @@ class S3ContentStoreAutoConfigurationTest {
                     assertThat(properties.region()).isEqualTo("none");
                     assertThat(properties.pathStyleAccess()).isFalse();
                     assertThat(properties.connectionPoolSize()).isEqualTo(5);
-                    assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(30);
+                    assertThat(properties.connectionPoolIdleTimeout()).isEqualTo(Duration.ofSeconds(30));
                 });
     }
 
@@ -93,7 +94,6 @@ class S3ContentStoreAutoConfigurationTest {
                     var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
                     assertThat(properties.pathStyleAccess()).isTrue();
                     assertThat(properties.connectionPoolSize()).isEqualTo(0);
-                    assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(1);
                 });
     }
 
