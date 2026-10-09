@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.contentgrid.appserver.autoconfigure.contentstore.FilesystemContentStoreAutoConfiguration;
 import com.contentgrid.appserver.autoconfigure.s3.testing.S3TestClients;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLoggingListener;
@@ -66,14 +67,14 @@ class S3ContentStoreAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasBean("s3ContentStoreResolver");
                     var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
-                    assertThat(properties.url()).isEqualTo("http://localhost");
+                    assertThat(properties.endpoint()).hasToString("http://localhost");
                     assertThat(properties.accessKey()).isEqualTo("accessKey");
                     assertThat(properties.secretKey()).isEqualTo("secretKey");
                     assertThat(properties.bucket()).isEqualTo("fake");
                     assertThat(properties.region()).isEqualTo("none");
                     assertThat(properties.pathStyleAccess()).isFalse();
                     assertThat(properties.connectionPoolSize()).isEqualTo(5);
-                    assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(30);
+                    assertThat(properties.connectionPoolIdleTimeout()).isEqualTo(Duration.ofSeconds(30));
                 });
     }
 
@@ -93,7 +94,6 @@ class S3ContentStoreAutoConfigurationTest {
                     var properties = context.getBean(S3ContentStoreAutoConfiguration.S3Properties.class);
                     assertThat(properties.pathStyleAccess()).isTrue();
                     assertThat(properties.connectionPoolSize()).isEqualTo(0);
-                    assertThat(properties.connectionPoolKeepAliveSeconds()).isEqualTo(1);
                 });
     }
 
@@ -120,7 +120,8 @@ class S3ContentStoreAutoConfigurationTest {
                         "contentgrid.appserver.content.s3.bucket=fake"
                 )
                 .run(context -> {
-                    assertThat(context).hasFailed();
+                    // Falls back to the default credentials of the S3 SDK
+                    assertThat(context).hasNotFailed();
                 });
     }
 
@@ -144,6 +145,7 @@ class S3ContentStoreAutoConfigurationTest {
                 .withUserConfiguration(S3ClientConfiguration.class)
                 .withPropertyValues(
                         "contentgrid.appserver.content-store.type=s3",
+                        "contentgrid.appserver.content.s3.url=http://localhost:123",
                         "contentgrid.appserver.content.s3.bucket=fake"
                 )
                 .run(context -> {
