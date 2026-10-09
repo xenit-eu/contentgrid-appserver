@@ -12,9 +12,12 @@ dependencies {
     testImplementation testFixtures(project(':contentgrid-appserver-contentstore-impl-utils'))
     testImplementation testFixtures(project(':contentgrid-appserver-autoconfigure'))
     testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
     testImplementation "org.springframework.boot:spring-boot-testcontainers"
     testImplementation "org.testcontainers:testcontainers-junit-jupiter"
 
     testImplementation "com.adobe.testing:s3mock-testcontainers"
+    testImplementation 'software.amazon.awssdk:retries'
+    testImplementation 'io.netty:netty-handler'
 }
-

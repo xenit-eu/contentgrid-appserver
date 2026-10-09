@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -29,6 +30,12 @@ public class S3AsyncClientFactory {
     @NonNull
     private final S3ConfigurationProperties configurationProperties;
 
+    @NonNull
+    private Consumer<NettyNioAsyncHttpClient.Builder> nettyBuilderCustomizer = b -> {};
+
+    @NonNull
+    private Consumer<S3AsyncClientBuilder> clientBuilderCustomizer = b -> {};
+
     /**
      * Size of a part for multipart uploads: a trade-off between buffer memory usage, multipart overhead,
      * and the S3 limit of 10000 parts per upload. With 50 MiB parts, objects can grow to slightly over
@@ -48,11 +55,23 @@ public class S3AsyncClientFactory {
             builder.connectionTimeToLive(Duration.ofMillis(1));
         }
 
+        nettyBuilderCustomizer.accept(builder);
+
         return builder.build();
     }
 
+    public S3AsyncClientFactory customizeNetty(@NonNull Consumer<NettyNioAsyncHttpClient.Builder> customizer) {
+        nettyBuilderCustomizer = nettyBuilderCustomizer.andThen(customizer);
+        return this;
+    }
+
+    public S3AsyncClientFactory customizeClientBuilder(@NonNull Consumer<S3AsyncClientBuilder> customizer) {
+        clientBuilderCustomizer = clientBuilderCustomizer.andThen(customizer);
+        return this;
+    }
+
     private S3AsyncClientBuilder createClientBuilder() {
-        return S3AsyncClient.builder()
+        var builder = S3AsyncClient.builder()
                 .endpointOverride(configurationProperties.endpoint())
                 .forcePathStyle(configurationProperties.pathStyleAccess())
                 .region(Region.of(Objects.requireNonNullElse(configurationProperties.region(), "none")))
@@ -67,6 +86,8 @@ public class S3AsyncClientFactory {
                     // especially during development, as those may grant access to a real environment.
                     config.defaultProfileFile(ProfileFile.aggregator().build());
                 });
+        clientBuilderCustomizer.accept(builder);
+        return builder;
     }
 
     private AwsCredentialsProvider createCredentialsProvider() {

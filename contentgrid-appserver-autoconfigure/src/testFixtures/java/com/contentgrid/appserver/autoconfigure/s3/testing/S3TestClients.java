@@ -13,7 +13,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 @UtilityClass
 public class S3TestClients {
 
-    public static S3AsyncClient s3AsyncClient(String endpoint) {
+    public static S3AsyncClientFactory createFactory(String endpoint) {
         return new S3AsyncClientFactory(new S3ConfigurationProperties() {
             @Override
             public URI endpoint() {
@@ -49,6 +49,10 @@ public class S3TestClients {
             public int connectionPoolKeepAliveSeconds() {
                 return 0;
             }
-        }).createClient();
+        });
+    }
+
+    public static S3AsyncClient s3AsyncClient(String endpoint) {
+        return createFactory(endpoint).createClient();
     }
 }
