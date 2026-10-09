@@ -78,6 +78,34 @@ The content store type is selected with `contentgrid.appserver.content-store.typ
 | `contentgrid.appserver.content.s3.path-style-access` | Use path-style access (`https://endpoint/bucket/key`) instead of virtual-host style (`https://bucket.endpoint/key`). | `true` | No |
 | `contentgrid.appserver.content.s3.connection-pool-size` | Maximum number of concurrent HTTP connections. `0` disables connection re-use entirely. | `0` | No |
 | `contentgrid.appserver.content.s3.connection-pool-keep-alive-seconds` | How long idle connections are kept alive (in seconds). | `1` | No |
+| `contentgrid.appserver.content.s3.connection-timeout` | Maximum time to establish a TCP connection. Must be strictly positive. | `2s` | No |
+| `contentgrid.appserver.content.s3.tls-negotiation-timeout` | Maximum time for the TLS handshake, independently of the TCP connection timeout. Must be strictly positive. | `5s` | No |
+| `contentgrid.appserver.content.s3.connection-acquisition-timeout` | Maximum time to acquire an HTTP connection from the pool. Must be strictly positive. | `10s` | No |
+| `contentgrid.appserver.content.s3.read-timeout` | Maximum waiting time for a socket read, not the total download duration. `0ms` disables this timeout; negative values are rejected. | `30s` | No |
+| `contentgrid.appserver.content.s3.write-timeout` | Maximum waiting time for a socket write, not the total upload duration. `0ms` disables this timeout; negative values are rejected. | `30s` | No |
+| `contentgrid.appserver.content.s3.read-retry.max-retries` | Additional appserver-level read acquisition retries after narrowly typed S3 connection-establishment failures. `0` disables these outer retries. | `1` | No |
+| `contentgrid.appserver.content.s3.read-retry.acquisition-timeout` | Total budget for S3 read acquisition attempts and backoff delays. Must be strictly positive. | `10s` | No |
+| `contentgrid.appserver.content.s3.read-retry.min-delay` | Minimum delay before a read acquisition retry. Must be nonnegative and no greater than `max-delay`. | `0ms` | No |
+| `contentgrid.appserver.content.s3.read-retry.max-delay` | Maximum randomized retry delay. With the default minimum, `0ms` means immediate retry. Set both bounds to the same positive value for a fixed delay. | `250ms` | No |
+
+By default, the retry delay is randomized between `0ms` and `250ms`.
+S3 read retries only apply while `getReader` is acquiring the response stream. After the stream is handed to the caller,
+large or slow downloads continue outside this acquisition timeout and are not retried by the appserver. Each outer retry
+starts a fresh SDK `getObject` operation; the AWS SDK's own retry policy is still active inside each operation, so the
+maximum number of underlying HTTP attempts is multiplied by the number of outer operations (`max-retries + 1`).
+
+The transport timeouts apply to the appserver-managed S3 content client, including uploads as well as downloads;
+changing them does not change the upload retry policy. Socket read/write timeouts still apply during ongoing transfers,
+independently of the acquisition deadline. An externally supplied `S3AsyncClient` keeps its own transport configuration.
+Increasing a connection timeout can consume the read acquisition budget before a retry is possible, so adjust the budget
+as well when more recovery time is needed. For example, to use a 10-second TCP connection timeout with immediate retry:
+
+```properties
+contentgrid.appserver.content.s3.connection-timeout=10s
+contentgrid.appserver.content.s3.read-retry.acquisition-timeout=25s
+contentgrid.appserver.content.s3.read-retry.min-delay=0ms
+contentgrid.appserver.content.s3.read-retry.max-delay=0ms
+```
 
 ### Content encryption
 
