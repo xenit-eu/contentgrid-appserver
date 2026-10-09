@@ -10,7 +10,10 @@ import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.UnreadableContentException;
 import com.contentgrid.appserver.contentstore.impl.s3.LocalTcpProxy.Mode;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.S3MockUtils;
+import io.netty.handler.timeout.ReadTimeoutException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.UUID;
@@ -205,5 +208,46 @@ class S3ReadRetryIntegrationTest {
         assertThat(elapsed)
                 .as("download should outlive the acquisition deadline")
                 .isGreaterThan(Duration.ofSeconds(2));
+    }
+
+    // --- post-handoff: failures while streaming the body surface to the reader and are never retried ---
+
+    @Test
+    void connectionDroppedDuringDownload() throws Exception {
+        tcpProxy.start();
+        try (var stream = contentStore.getReader(ContentReference.of("object"), null).getContentInputStream()) {
+            assertThat(stream.readNBytes(1024 * 1024)).hasSize(1024 * 1024);
+
+            tcpProxy.close();
+
+            assertThatThrownBy(() -> stream.transferTo(OutputStream.nullOutputStream()))
+                    .as("a truncated body must fail, not end in a clean EOF")
+                    .isInstanceOf(IOException.class);
+        }
+
+        assertThat(tcpProxy.requestHeads())
+                .as("a download that already started streaming must not be retried")
+                .hasSize(1);
+    }
+
+    @Test
+    void readTimeoutDuringDownload() throws Exception {
+        tcpProxy.start();
+        try (var stream = contentStore.getReader(ContentReference.of("object"), null).getContentInputStream()) {
+            assertThat(stream.readNBytes(1024 * 1024)).hasSize(1024 * 1024);
+
+            tcpProxy.setMode(Mode.BLACKHOLE);
+
+            assertThatThrownBy(() -> stream.transferTo(OutputStream.nullOutputStream()))
+                    .isInstanceOf(IOException.class)
+                    .hasRootCauseInstanceOf(ReadTimeoutException.class);
+        }
+
+        assertThat(tcpProxy.awaitPeerClose(10, TimeUnit.SECONDS))
+                .as("actual connection must be closed")
+                .isTrue();
+        assertThat(tcpProxy.requestHeads())
+                .as("a download that already started streaming must not be retried")
+                .hasSize(1);
     }
 }

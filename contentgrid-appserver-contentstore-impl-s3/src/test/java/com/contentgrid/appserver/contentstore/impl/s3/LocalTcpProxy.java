@@ -25,7 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class LocalTcpProxy implements Closeable {
 
     enum Mode {
-        /** Accept connections but never respond; the peer observes closure when we close. */
+        /**
+         * Accept connections but never respond; the peer observes closure when we close.
+         * Switching to this mode also stalls connections that are already forwarding: no further response
+         * bytes reach the peer, and request bytes are discarded instead of forwarded.
+         */
         BLACKHOLE,
         /** Pipe connections through to the target, optionally throttling the response direction. */
         FORWARD
@@ -232,19 +236,26 @@ final class LocalTcpProxy implements Closeable {
                 .split("\r\n\r\n", 2)[0]);
         var targetOut = target.getOutputStream();
         // when either direction ends, both sockets close; a client-side EOF proves the peer went away
-        pipe(peerIn, targetOut, () -> 0, () -> {
+        // once blackholed, the request direction keeps draining (so a client-side EOF is still observed),
+        // while the response direction stops forwarding and holds the connection open until it is closed
+        pipe(peerIn, targetOut, () -> 0, null, () -> {
             notePeerClose();
             closeQuietly(peer, target);
         }, chunk -> { });
-        pipe(target.getInputStream(), peer.getOutputStream(), () -> chunkDelayMillis,
+        pipe(target.getInputStream(), peer.getOutputStream(), () -> chunkDelayMillis, peer,
                 () -> closeQuietly(peer, target), chunk -> responseHeads.add(
                         new String(chunk, 0, Math.min(chunk.length, HEAD_CAPTURE_BYTES),
                                 StandardCharsets.US_ASCII).split("\r\n\r\n", 2)[0]));
         // pipes run on daemon threads; the sockets close when either direction ends
     }
 
+    /**
+     * Pumps {@code input} to {@code output} on a daemon thread. While the proxy is blackholed, read data is
+     * discarded; when {@code stallUntilClosed} is given, the pump instead stops reading and waits for that
+     * socket to close.
+     */
     private void pipe(InputStream input, OutputStream output, java.util.function.LongSupplier delayMillis,
-            Runnable onEnd, java.util.function.Consumer<byte[]> firstChunk) {
+            Socket stallUntilClosed, Runnable onEnd, java.util.function.Consumer<byte[]> firstChunk) {
         var pump = new Thread(() -> {
             try {
                 var buffer = new byte[CHUNK_BYTES];
@@ -252,6 +263,13 @@ final class LocalTcpProxy implements Closeable {
                 boolean first = true;
                 while ((read = input.read(buffer)) != -1) {
                     delayChunk(delayMillis.getAsLong());
+                    if (mode == Mode.BLACKHOLE) {
+                        if (stallUntilClosed != null) {
+                            awaitClosed(stallUntilClosed);
+                            return;
+                        }
+                        continue;
+                    }
                     output.write(buffer, 0, read);
                     output.flush();
                     if (first) {
@@ -267,6 +285,14 @@ final class LocalTcpProxy implements Closeable {
         }, "local-tcp-proxy-pump");
         pump.setDaemon(true);
         pump.start();
+    }
+
+    /** Holds a blackholed connection open until either pump or {@link #close()} closes the socket. */
+    @SuppressWarnings("java:S2925")
+    private static void awaitClosed(Socket socket) throws InterruptedException {
+        while (!socket.isClosed()) {
+            Thread.sleep(50);
+        }
     }
 
     /** Injects network latency: this delay is the test stimulus, not an asynchronous assertion wait. */
@@ -296,12 +322,14 @@ final class LocalTcpProxy implements Closeable {
         try {
             if (listener != null) {
                 listener.close();
+                listener = null;
             }
         } catch (IOException ignored) {
             // best effort
         }
         if (acceptThread != null) {
             acceptThread.interrupt();
+            acceptThread = null;
         }
         for (var socket : openSockets) {
             closeQuietly(socket);
