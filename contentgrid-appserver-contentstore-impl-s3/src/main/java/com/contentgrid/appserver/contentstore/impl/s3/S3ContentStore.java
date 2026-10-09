@@ -9,12 +9,18 @@ import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.contentstore.api.range.ResolvedContentRange;
 import com.contentgrid.appserver.contentstore.impl.utils.GuardedContentReader;
 import java.io.InputStream;
+import java.net.ConnectException;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -30,7 +36,14 @@ public class S3ContentStore implements ContentStore {
     @NonNull
     private final String bucketName;
 
+    @NonNull
+    private final OperationHedger hedger;
+
     private static final String CONTENT_TYPE = "application/octet-stream";
+
+    public S3ContentStore(@NonNull S3AsyncClient client, @NonNull String bucketName) {
+        this(client, bucketName, new NoOperationHedger(Duration.ofMinutes(10)));
+    }
 
     @Override
     public ContentReader getReader(@NonNull ContentReference contentReference, ResolvedContentRange contentRange)
@@ -44,8 +57,11 @@ public class S3ContentStore implements ContentStore {
                 requestBuilder.range("bytes=%d-%d".formatted(contentRange.getStartByte(),
                         contentRange.getEndByteInclusive()));
             }
-            var object = client.getObject(requestBuilder.build(), AsyncResponseTransformer.toBlockingInputStream())
-                    .join();
+            var object = hedger.hedge(
+                    () -> client.getObject(requestBuilder.build(), AsyncResponseTransformer.toBlockingInputStream()),
+                    ResponseInputStream::abort,
+                    t -> t instanceof SdkClientException && t.getCause() instanceof ConnectException
+            );
 
             if (contentRange != null && contentSize(object.response()) != contentRange.getContentSize()) {
                 object.abort();
@@ -55,9 +71,9 @@ public class S3ContentStore implements ContentStore {
             var reader = new S3ContentReader(contentReference, object);
 
             return new GuardedContentReader(reader);
-        } catch (CompletionException e) {
+        } catch (ExecutionException e) {
             throw new UnreadableContentException(contentReference, e.getCause());
-        } catch (RuntimeException e) {
+        } catch (RuntimeException|InterruptedException|TimeoutException e) {
             throw new UnreadableContentException(contentReference, e);
         }
     }
