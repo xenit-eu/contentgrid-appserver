@@ -77,10 +77,10 @@ The content store type is selected with `contentgrid.appserver.content-store.typ
 | `contentgrid.appserver.content.s3.region`                       | Region identifier (e.g. `eu-west-1`).                                                                                | `none`  | No       |
 | `contentgrid.appserver.content.s3.path-style-access`            | Use path-style access (`https://endpoint/bucket/key`) instead of virtual-host style (`https://bucket.endpoint/key`). | `true`  | No       |
 | `contentgrid.appserver.content.s3.connection-pool-size`         | Maximum number of concurrent HTTP connections. `0` disables connection re-use entirely.                              | `0`     | No       |
-| `contentgrid.appserver.content.s3.connection-pool-idle-timeout` | How long idle connections are kept alive (in seconds).                                                               | `60`    | No       |
-| `contentgrid.appserver.content.s3.connection-timeout`           | How long to wait when establishing a connection before giving up and timing out                                      | `2`     | No       |
-| `contentgrid.appserver.content.s3.read-timeout`                 | How long to wait when reading from a connection before giving up and timing out                                      | `30`    | No       |
-| `contentgrid.appserver.content.s3.write-timeout`                | How long to wait when writing to a connection before giving up and timing out                                        | `30`    | No       |
+| `contentgrid.appserver.content.s3.connection-pool-idle-timeout` | How long idle connections are kept alive. Accepts Spring `Duration` format.                                          | `60s`   | No       |
+| `contentgrid.appserver.content.s3.connection-timeout`           | How long to wait when establishing a connection before giving up and timing out. Accepts Spring `Duration` format.   | `2s`    | No       |
+| `contentgrid.appserver.content.s3.read-timeout`                 | How long to wait when reading from a connection before giving up and timing out. Accepts Spring `Duration` format.   | `30s`   | No       |
+| `contentgrid.appserver.content.s3.write-timeout`                | How long to wait when writing to a connection before giving up and timing out. Accepts Spring `Duration` format.     | `30s`   | No       |
 
 ### Content encryption
 
