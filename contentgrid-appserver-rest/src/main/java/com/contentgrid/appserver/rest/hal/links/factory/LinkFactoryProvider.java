@@ -3,13 +3,10 @@ package com.contentgrid.appserver.rest.hal.links.factory;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity;
-import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -17,7 +14,6 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
-import com.contentgrid.appserver.rest.entity.DatamodelExtensionLinkRestController;
 import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.appserver.rest.profile.ProfileRestController;
 import com.contentgrid.appserver.rest.metadata.RootRestController;
@@ -39,7 +35,6 @@ import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriTemplate;
-import tools.jackson.databind.PropertyName;
 
 /**
  * Generates {@link LinkFactory}s for entity-based paths
@@ -296,7 +291,7 @@ public class LinkFactoryProvider {
             case StoredEntityLink storedEntityLink -> {
                 var pathSegments = storedEntityLink.getPathSegments();
                 yield Optional.of(
-                                linkTo(methodOn(DatamodelExtensionLinkRestController.class)
+                                linkTo(methodOn(EntityRestController.class)
                                         .getOwnedLink(
                                                 application,
                                                 entity.getPathSegment(),
