@@ -4,6 +4,8 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
+import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -12,6 +14,7 @@ import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityRequest;
+import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.EncodedCursorPaginationHandlerMethodArgumentResolver;
@@ -24,6 +27,7 @@ import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
+import java.net.URI;
 import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
@@ -31,6 +35,7 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -231,6 +236,154 @@ public class EntityRestController {
         var request = EntityRequest.forEntity(entity.getName(), id).withVersionConstraint(requestedVersion);
         datamodelApi.deleteEntity(application, request, authorizationContext);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{entityName}/{id}/_links/{relKey}")
+    public ResponseEntity<Object> getUnnamedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName relKey,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @PutMapping("/{entityName}/{id}/_links/{relKey}")
+    public ResponseEntity<Object> updateUnnamedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName relKey,
+            VersionConstraint versionConstraint,
+            @RequestBody RequestInputData data,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @DeleteMapping("/{entityName}/{id}/_links/{relKey}")
+    public ResponseEntity<Object> deleteUnnamedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName relKey,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @GetMapping("/{entityName}/{id}/_links/{relKey}/{linkName}")
+    public ResponseEntity<Object> getNamedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName relKey,
+            @PathVariable PathSegmentName linkName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @PostMapping("/{entityName}/{id}/_links/{relKey}/{linkName}")
+    public ResponseEntity<Object> updateNamedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName relKey,
+            @PathVariable PathSegmentName linkName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @DeleteMapping("/{entityName}/{id}/_links/{relKey}/{linkName}")
+    public ResponseEntity<Object> deleteNamedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName relKey,
+            @PathVariable PathSegmentName linkName,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @GetMapping("/{entityName}/{id}/{propertyName}/_links/{relKey}")
+    public ResponseEntity<Object> getOwnedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            @PathVariable PathSegmentName relKey,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @PostMapping("/{entityName}/{id}/{propertyName}/_links/{relKey}")
+    public ResponseEntity<Object> updateOwnedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            @PathVariable PathSegmentName relKey,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
+    }
+
+    @DeleteMapping("/{entityName}/{id}/{propertyName}/_links/{relKey}")
+    public ResponseEntity<Object> deleteOwnedLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId id,
+            @PathVariable PathSegmentName propertyName,
+            @PathVariable PathSegmentName relKey,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_IMPLEMENTED)
+                .build();
     }
 
 }
