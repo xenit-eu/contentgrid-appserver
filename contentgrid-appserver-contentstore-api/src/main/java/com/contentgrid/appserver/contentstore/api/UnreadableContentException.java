@@ -11,7 +11,7 @@ public class UnreadableContentException extends ContentIOException {
         super(reference, "Can not be read");
     }
 
-    public UnreadableContentException(@NonNull ContentReference reference, @NonNull String message) {
+    public UnreadableContentException(@NonNull ContentReference reference, String message) {
         super(reference, "Can not be read: %s".formatted(message));
     }
 

@@ -81,6 +81,12 @@ The content store type is selected with `contentgrid.appserver.content-store.typ
 | `contentgrid.appserver.content.s3.connection-timeout`           | How long to wait when establishing a connection before giving up and timing out                                      | `2`     | No       |
 | `contentgrid.appserver.content.s3.read-timeout`                 | How long to wait when reading from a connection before giving up and timing out                                      | `30`    | No       |
 | `contentgrid.appserver.content.s3.write-timeout`                | How long to wait when writing to a connection before giving up and timing out                                        | `30`    | No       |
+| `contentgrid.appserver.content.s3.hedging.operation-timeout`    | How long to wait for S3 to start responding to a read, across all attempts, before giving up.                        | `3s`    | No       |
+| `contentgrid.appserver.content.s3.hedging.attempt-delay`        | How long to wait for an attempt to respond before sending an additional, hedged attempt.                             | `200ms` | No       |
+| `contentgrid.appserver.content.s3.hedging.max-attempts`         | Maximum number of attempts for a single read, including the first one. `1` disables hedging.                         | `2`     | No       |
+
+Reads use request hedging to reduce tail latency. When a response has not started within the attempt delay, an additional request is sent and the first to respond is used.
+The operation timeout only covers waiting for the start of a response, and is an upper bound on how long to wait.
 
 ### Content encryption
 

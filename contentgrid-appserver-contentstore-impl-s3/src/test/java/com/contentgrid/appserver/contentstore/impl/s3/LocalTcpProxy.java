@@ -8,10 +8,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.IntFunction;
+import java.util.function.IntToLongFunction;
 
 /**
  * Minimal loopback TCP fixture for the S3 read-retry integration tests: plain JDK sockets, no extra
@@ -49,6 +54,12 @@ final class LocalTcpProxy implements Closeable {
 
     private volatile long chunkDelayMillis;
 
+    /** Mode for a new request, by its 1-based request number; defaults to the proxy-wide mode. */
+    private volatile IntFunction<Mode> requestMode = request -> mode;
+
+    /** Delay before the first response chunk of a request, by its 1-based request number. */
+    private volatile IntToLongFunction firstResponseDelayMillis = request -> 0;
+
     private ServerSocket listener;
 
     private Thread acceptThread;
@@ -57,6 +68,8 @@ final class LocalTcpProxy implements Closeable {
 
     private final AtomicInteger acceptedConnections = new AtomicInteger();
 
+    private final AtomicInteger receivedRequests = new AtomicInteger();
+
     private final CountDownLatch firstAccepted = new CountDownLatch(1);
 
     private final CountDownLatch peerCloseObserved = new CountDownLatch(1);
@@ -64,6 +77,8 @@ final class LocalTcpProxy implements Closeable {
     private final AtomicInteger peerCloses = new AtomicInteger();
 
     private final Object peerCloseMonitor = new Object();
+
+    private final Set<Integer> peerClosedRequests = ConcurrentHashMap.newKeySet();
 
     private final List<String> requestHeads = new CopyOnWriteArrayList<>();
 
@@ -117,6 +132,23 @@ final class LocalTcpProxy implements Closeable {
         this.chunkDelayMillis = chunkDelayMillis;
     }
 
+    /**
+     * Selects the mode of each new request by its 1-based request number (in the order in which request heads
+     * arrive), e.g. to blackhole only the first request. Switching the proxy-wide mode with {@link #setMode(Mode)}
+     * still stalls forwarding connections.
+     */
+    void setRequestMode(IntFunction<Mode> requestMode) {
+        this.requestMode = requestMode;
+    }
+
+    /**
+     * Delays the first response chunk (which carries the response head) of each new forwarded request, by its
+     * 1-based request number, e.g. to make only the first request slow to respond.
+     */
+    void setFirstResponseDelayMillis(IntToLongFunction firstResponseDelayMillis) {
+        this.firstResponseDelayMillis = firstResponseDelayMillis;
+    }
+
     int acceptedCount() {
         return acceptedConnections.get();
     }
@@ -138,6 +170,21 @@ final class LocalTcpProxy implements Closeable {
         return peerCloseObserved.await(timeout, unit);
     }
 
+    /** Whether the connection of the request with this 1-based request number observed peer closure. */
+    boolean awaitPeerClose(int request, long timeout, TimeUnit unit) throws InterruptedException {
+        var deadline = System.nanoTime() + unit.toNanos(timeout);
+        synchronized (peerCloseMonitor) {
+            while (!peerClosedRequests.contains(request)) {
+                var remainingNanos = deadline - System.nanoTime();
+                if (remainingNanos <= 0) {
+                    return false;
+                }
+                TimeUnit.NANOSECONDS.timedWait(peerCloseMonitor, remainingNanos);
+            }
+        }
+        return true;
+    }
+
     int peerCloseCount() {
         return peerCloses.get();
     }
@@ -157,9 +204,10 @@ final class LocalTcpProxy implements Closeable {
         return true;
     }
 
-    private void notePeerClose() {
+    private void notePeerClose(int request) {
         synchronized (peerCloseMonitor) {
             peerCloses.incrementAndGet();
+            peerClosedRequests.add(request);
             peerCloseMonitor.notifyAll();
         }
         peerCloseObserved.countDown();
@@ -183,36 +231,42 @@ final class LocalTcpProxy implements Closeable {
 
     private void handle(Socket peer) {
         try {
-            if (mode == Mode.BLACKHOLE) {
-                hold(peer);
+            // Requests are numbered when their first bytes arrive: the client may also open connections that
+            // never carry a request (e.g. ones that expire before they are used)
+            var head = new byte[CHUNK_BYTES];
+            var first = peer.getInputStream().read(head);
+            if (first == -1) {
+                closeQuietly(peer);
+                return;
+            }
+            var request = receivedRequests.incrementAndGet();
+            requestHeads.add(new String(head, 0, Math.min(first, HEAD_CAPTURE_BYTES), StandardCharsets.US_ASCII)
+                    .split("\r\n\r\n", 2)[0]);
+            if (requestMode.apply(request) == Mode.BLACKHOLE) {
+                hold(peer, request);
             } else {
-                forward(peer);
+                forward(peer, request, head, first);
             }
         } catch (IOException | RuntimeException ignored) {
+            closeQuietly(peer);
             // test fixture: best effort per connection
         }
     }
 
-    /** Reads and discards until the peer closes; records the request head and the closure. */
-    private void hold(Socket peer) throws IOException {
+    /** Reads and discards the rest of the request until the peer closes; records the closure. */
+    private void hold(Socket peer, int request) throws IOException {
         try (peer) {
             var input = peer.getInputStream();
-            var head = new byte[CHUNK_BYTES];
-            var first = input.read(head);
-            if (first == -1) {
-                return;
-            }
-            requestHeads.add(new String(head, 0, Math.min(first, HEAD_CAPTURE_BYTES),
-                    StandardCharsets.US_ASCII).split("\r\n\r\n", 2)[0]);
             var buffer = new byte[CHUNK_BYTES];
             while (input.read(buffer) != -1) {
                 // discard: never respond, the request hangs
             }
-            notePeerClose();
+            notePeerClose(request);
         }
     }
 
-    private void forward(Socket peer) throws IOException {
+    /** Forwards the request, starting with the already consumed {@code head}, and pipes back the response. */
+    private void forward(Socket peer, int request, byte[] head, int headLength) throws IOException {
         // the accepted peer socket is fixture-owned from here on: close it on every path below
         Socket target;
         try {
@@ -222,27 +276,21 @@ final class LocalTcpProxy implements Closeable {
             throw e;
         }
         track(target);
-        var head = new byte[CHUNK_BYTES];
-        var first = peer.getInputStream().read(head);
-        if (first == -1) {
-            closeQuietly(peer, target);
-            return;
-        }
-        // re-inject the consumed bytes: capture the request head, then replay it exactly once through
-        // the pipe below (never write it directly as well: that would duplicate the request upstream)
+        // re-inject the consumed bytes: replay the request head exactly once through the pipe below
+        // (never write it directly as well: that would duplicate the request upstream)
         InputStream peerIn = new java.io.SequenceInputStream(
-                new java.io.ByteArrayInputStream(head, 0, first), peer.getInputStream());
-        requestHeads.add(new String(head, 0, Math.min(first, HEAD_CAPTURE_BYTES), StandardCharsets.US_ASCII)
-                .split("\r\n\r\n", 2)[0]);
+                new java.io.ByteArrayInputStream(head, 0, headLength), peer.getInputStream());
         var targetOut = target.getOutputStream();
         // when either direction ends, both sockets close; a client-side EOF proves the peer went away
         // once blackholed, the request direction keeps draining (so a client-side EOF is still observed),
         // while the response direction stops forwarding and holds the connection open until it is closed
         pipe(peerIn, targetOut, () -> 0, null, () -> {
-            notePeerClose();
+            notePeerClose(request);
             closeQuietly(peer, target);
         }, chunk -> { });
-        pipe(target.getInputStream(), peer.getOutputStream(), () -> chunkDelayMillis, peer,
+        var firstResponseDelay = new AtomicLong(firstResponseDelayMillis.applyAsLong(request));
+        pipe(target.getInputStream(), peer.getOutputStream(),
+                () -> firstResponseDelay.getAndSet(0) + chunkDelayMillis, peer,
                 () -> closeQuietly(peer, target), chunk -> responseHeads.add(
                         new String(chunk, 0, Math.min(chunk.length, HEAD_CAPTURE_BYTES),
                                 StandardCharsets.US_ASCII).split("\r\n\r\n", 2)[0]));

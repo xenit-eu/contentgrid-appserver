@@ -1,8 +1,13 @@
 package com.contentgrid.appserver.autoconfigure.s3;
 
+import com.contentgrid.appserver.autoconfigure.s3.S3ContentStoreAutoConfiguration.S3HedgingProperties;
 import com.contentgrid.appserver.autoconfigure.s3.S3ContentStoreAutoConfiguration.S3Properties;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
+import com.contentgrid.appserver.contentstore.impl.s3.NoOperationHedger;
+import com.contentgrid.appserver.contentstore.impl.s3.OperationHedger;
 import com.contentgrid.appserver.contentstore.impl.s3.S3ContentStore;
+import com.contentgrid.appserver.contentstore.impl.s3.SimpleOperationHedger;
+import com.contentgrid.appserver.contentstore.impl.s3.SimpleOperationHedger.HedgingSettings;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import java.net.URI;
 import java.time.Duration;
@@ -25,7 +30,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 @ConditionalOnClass({ContentStoreResolver.class, ContentStore.class, S3ContentStore.class, S3AsyncClient.class,
         NettyNioAsyncHttpClient.class})
 @ConditionalOnProperty(value = "contentgrid.appserver.content-store.type", havingValue = "s3")
-@EnableConfigurationProperties(S3Properties.class)
+@EnableConfigurationProperties({S3Properties.class, S3HedgingProperties.class})
 public class S3ContentStoreAutoConfiguration {
 
     @ConfigurationProperties(prefix = "contentgrid.appserver.content.s3")
@@ -63,6 +68,21 @@ public class S3ContentStoreAutoConfiguration {
         }
     }
 
+    @ConfigurationProperties(prefix = "contentgrid.appserver.content.s3.hedging")
+    public record S3HedgingProperties(
+            @DefaultValue("3s") Duration operationTimeout,
+            @DefaultValue("200ms") Duration attemptDelay,
+            @DefaultValue("2") int maxAttempts
+    ) implements HedgingSettings {
+        private OperationHedger createHedger() {
+            if(maxAttempts == 1) {
+                return new NoOperationHedger(operationTimeout);
+            } else {
+                return new SimpleOperationHedger(this);
+            }
+        }
+    }
+
     @Bean
     @ConditionalOnMissingBean
     S3AsyncClient s3AsyncClient(S3Properties properties) {
@@ -71,8 +91,8 @@ public class S3ContentStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(S3AsyncClient.class)
-    ContentStoreResolver s3ContentStoreResolver(S3AsyncClient s3AsyncClient, S3Properties properties) {
-        var contentStore = new S3ContentStore(s3AsyncClient, properties.bucket());
+    ContentStoreResolver s3ContentStoreResolver(S3AsyncClient s3AsyncClient, S3Properties properties, S3HedgingProperties hedgingProperties) {
+        var contentStore = new S3ContentStore(s3AsyncClient, properties.bucket(), hedgingProperties.createHedger());
         return application -> contentStore;
     }
 
