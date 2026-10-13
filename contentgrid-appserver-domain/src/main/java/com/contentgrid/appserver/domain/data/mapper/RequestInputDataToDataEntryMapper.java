@@ -46,10 +46,19 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RequestInputDataToDataEntryMapper implements AttributeMapper<RequestInputData, Optional<DataEntry>>, RelationMapper<RequestInputData, Optional<DataEntry>> {
 
+    /**
+     * Whether ignored attributes are mapped. Used for writing link storage attributes, which are ignored attributes.
+     */
+    private final boolean includeIgnored;
+
+    public RequestInputDataToDataEntryMapper() {
+        this(false);
+    }
+
     @Override
     public Optional<DataEntry> mapAttribute(Attribute attribute, RequestInputData inputData)
             throws InvalidPropertyDataException {
-        if(attribute.isReadOnly() || attribute.isIgnored()) {
+        if(attribute.isReadOnly() || (attribute.isIgnored() && !includeIgnored)) {
             // Completely skip readonly/ignored attributes
             return Optional.empty();
         }
