@@ -265,7 +265,15 @@ public class EntityRestController {
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) {
-
+//        var entity = getEntityOrThrow(application, entityName);
+//        var linkRequest = versionConstraint != null ?
+//            LinkRequest.forLink(entity.getName(), id, new UnnamedLink(URI.create(relKey.getValue())), versionConstraint) :
+//            LinkRequest.forLink(entity.getName(), id, new UnnamedLink(URI.create(relKey.getValue())));
+//        var updateResult = datamodelApi.updateLink(application, linkRequest, data, authorizationContext);
+//        return ResponseEntity
+//                .noContent()
+//                .eTag(versionValidator.calculateETag(updateResult.getVersion()))
+//                .build();
         return ResponseEntity
                 .status(HttpStatus.NOT_IMPLEMENTED)
                 .build();

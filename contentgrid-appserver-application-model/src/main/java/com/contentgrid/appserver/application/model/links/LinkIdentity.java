@@ -26,7 +26,7 @@ public sealed interface LinkIdentity {
         }
     }
 
-    record OwnedLink(@NonNull URI rel, @NonNull String property) implements LinkIdentity {
+    record BoundLink(@NonNull URI rel, @NonNull String property) implements LinkIdentity {
         @Override
         public String toString() { return "OwnedLink(" + property + ", " + rel + ")"; }
     }

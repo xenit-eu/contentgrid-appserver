@@ -18,20 +18,16 @@ import com.contentgrid.appserver.application.model.propertypath.SimpleAttributeP
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
-import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
+import com.contentgrid.appserver.domain.data.MapRequestInputData;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
 import com.contentgrid.appserver.domain.data.UsageTrackingRequestInputData;
@@ -81,6 +77,7 @@ import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.RelationData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
@@ -90,7 +87,6 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import java.io.IOException;
 import java.net.URI;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -122,17 +118,54 @@ public class DatamodelApiImpl implements DatamodelApi {
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
             @NonNull EntityName entityName,
-            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
-            @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
+            @NonNull AttributeAndRelationMapper<
+                        DataEntry,
+                        Optional<DataEntry>,
+                        DataEntry,
+                        Optional<DataEntry>
+                    > mapper,
+            @NonNull AttributeMapper<
+                        Optional<DataEntry>,
+                        Optional<DataEntry>
+                    > auditMapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
+        var combinedMapper = createCombinedInputMapper(application, mapper, auditMapper, false);
 
-        var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
+        return new RequestInputDataMapper(
+                entity.getAttributes(),
+                relations,
+                combinedMapper,
+                combinedMapper
+        );
+
+    }
+
+    private AttributeAndRelationMapper<
+                RequestInputData,
+                Optional<AttributeData>,
+                RequestInputData,
+                Optional<RelationData>
+            > createCombinedInputMapper(
+            @NonNull Application application,
+            @NonNull AttributeAndRelationMapper<
+                        DataEntry,
+                        Optional<DataEntry>,
+                        DataEntry,
+                        Optional<DataEntry>
+                    > mapper,
+            @NonNull AttributeMapper<
+                        Optional<DataEntry>,
+                        Optional<DataEntry>
+                    > auditMapper,
+            boolean includeIgnoredAttributes
+    ) {
+        var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper(includeIgnoredAttributes));
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
         var contentStore = contentStoreResolver.resolve(application);
 
-        var combinedMapper = inputMapper
+        return inputMapper
                 .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
                 .andThen(auditMapper)
                 // Validate constraints
@@ -160,14 +193,6 @@ public class DatamodelApiImpl implements DatamodelApi {
                         )
                 ))
                 .andThen(queryEngineMapper);
-
-        return new RequestInputDataMapper(
-                entity.getAttributes(),
-                relations,
-                combinedMapper,
-                combinedMapper
-        );
-
     }
 
     private ResponseOutputDataMapper createOutputDataMapper(
@@ -318,8 +343,10 @@ public class DatamodelApiImpl implements DatamodelApi {
 
 
     @Override
-    public InternalEntityInstance update(@NonNull Application application,
-            @NonNull EntityInstance existingEntity, @NonNull RequestInputData data,
+    public InternalEntityInstance update(
+            @NonNull Application application,
+            @NonNull EntityInstance existingEntity,
+            @NonNull RequestInputData data,
             @NonNull AuthorizationContext authorizationContext
     )
             throws QueryEngineException, InvalidPropertyDataException {
@@ -327,7 +354,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 existingEntity.getIdentity().getEntityName(),
                 // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
+                FilterDataEntryMapper
+                        .missingAsNull()
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
@@ -484,16 +512,43 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
+    public StoredLinkValue findRequiredLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
+            @NonNull AuthorizationContext authorizationContext)
+            throws EntityIdNotFoundException, LinkNotFoundException, UnsatisfiedVersionException {
+        var targetLink = findLink(application, linkRequest, authorizationContext)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest));
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetLink.getVersion())) {
+            throw new UnsatisfiedVersionException(targetLink.getVersion(), linkRequest.getVersionConstraint());
+        }
+        return targetLink;
+    }
+
+    @Override
     public Optional<StoredLinkValue> findLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
             @NonNull AuthorizationContext authorizationContext) {
         var storage = application.getRequiredEntityByName(linkRequest.getEntityName())
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
-
         var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
+        return findLink(application, linkRequest, storage, entityData)
+                .flatMap(storedLinkValue -> {
+                    if (!linkRequest.getVersionConstraint().isSatisfiedBy(storedLinkValue.getVersion())) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(storedLinkValue);
+                });
+    }
+
+    public Optional<StoredLinkValue> findLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
+            @NonNull AttributePath storage,
+            @NonNull EntityData targetEntity) {
+        return mapAttributeDataToStoredValue(targetEntity, application, linkRequest.getEntityName(), storage);
     }
 
     private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
@@ -535,39 +590,55 @@ public class DatamodelApiImpl implements DatamodelApi {
     }
 
     @Override
-    public StoredLinkValue updateLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
-            @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
-        var storage = application
-                .getRequiredEntityByName(linkRequest.getEntityName())
+    public StoredLinkValue updateLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
+            @NonNull RequestInputData inputData,
+            @NonNull AuthorizationContext authorizationContext) throws InvalidPropertyDataException {
+        return writeLink(application, linkRequest, inputData, authorizationContext)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest));
+    }
+
+    private Optional<StoredLinkValue> writeLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
+            @NonNull RequestInputData inputData,
+            @NonNull AuthorizationContext authorizationContext) throws InvalidPropertyDataException {
+        var storage = application.getRequiredEntityByName(linkRequest.getEntityName())
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
-
-        var targetEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
-        var targetEntity = this.findLink(application, linkRequest, authorizationContext)
+        var targetEntityRequest = linkRequest.toEntityRequest();
+        var entityData = queryEngine.findById(application, targetEntityRequest, authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
-
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetEntity.getVersion())) {
-            throw new UnsatisfiedVersionException(targetEntity.getVersion(), linkRequest.getVersionConstraint());
+        var targetLink = findLink(application, linkRequest, storage, entityData)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest));
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetLink.getVersion())) {
+            throw new UnsatisfiedVersionException(targetLink.getVersion(), linkRequest.getVersionConstraint());
         }
 
-        var entityData = new EntityData(
+        var linkData = new EntityData(
                 EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
-                List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
+                List.of(buildAttributeDataTree(storage, inputData, application, linkRequest.getEntityName())));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
-        var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+        var updateResult = queryEngine.update(application, linkData, authorizationContext.predicate(), noOpConsumer);
         var attributeData = updateResult
                 .getUpdated();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage).orElseThrow();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);// TODO ACC-3004 move to outputmapper?
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
     // Create the leaf first, then the surrounding composites.
-    private AttributeData buildAttributeDataTree(@NonNull AttributePath attributePath, @NonNull DataEntry dataEntry,
-            @NonNull Application application, @NonNull EntityName entityName) {
+    private AttributeData buildAttributeDataTree(
+            @NonNull AttributePath attributePath,
+            @NonNull RequestInputData requestInputData,
+            @NonNull Application application,
+            @NonNull EntityName entityName) throws InvalidPropertyDataException {
         var iterator = attributePath.getAsList().reversed().iterator();
-        var result = buildAttributeData(iterator.next(), dataEntry, application, entityName);
+        // Build attribute for leaf
+        var result = buildAttributeData(iterator.next(), requestInputData, application, entityName);
+        // Build attributes for branches
         while (iterator.hasNext()) {
             var currentAttributePath = iterator.next();
             result = CompositeAttributeData.builder().name(currentAttributePath.getLast()).attribute(result).build();
@@ -575,43 +646,36 @@ public class DatamodelApiImpl implements DatamodelApi {
         return result;
     }
 
-    private AttributeData buildAttributeData(@NonNull AttributePath attributePath, @NonNull DataEntry dataEntry,
-            @NonNull Application application, @NonNull EntityName entityName) {
-        var attributeName = attributePath.getLast();
+    private AttributeData buildAttributeData(
+            @NonNull AttributePath attributePath,
+            @NonNull RequestInputData requestInputData,
+            @NonNull Application application,
+            @NonNull EntityName entityName) throws InvalidPropertyDataException {
         var attribute = application
                 .getPropertyPathResolver()
                 .resolveAttribute(entityName, attributePath)
                 .getAttribute();
-        return switch (attribute) {
-            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new SimpleAttributeData<>(attributeName, ((ScalarDataEntry) dataEntry).getValue());
-            case ContentAttribute contentAttribute -> {
-                var builder = CompositeAttributeData.builder().name(attributeName);
-                if (dataEntry.equals(NullDataEntry.INSTANCE)) {
-                    for (var nestedAttr : contentAttribute.getAttributes()) {
-                        builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), null));
-                    }
-                } else {
-                    try {
-                        var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
-                        for (var nestedAttr : contentAttribute.getAttributes()) {
-                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
-                                    nestedAttr.getName().getValue())).getValue()));
-                        }
-                    } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                yield builder.build();
-            }
-            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
-                    + " to an AttributeData class");
-        };
+
+        var inputMapper = createCombinedInputMapper(
+                application,
+                // A missing value is regarded as null, which clears the link
+                FilterDataEntryMapper.missingAsNull(),
+                // Writing a link does not modify audit fields
+                (attr, data) -> data,
+                // Link storage attributes are ignored attributes
+                true
+        );
+
+        return inputMapper.mapAttribute(attribute, requestInputData)
+                .orElseThrow(() -> new ApplicationModelException(
+                        "Attribute at path " + attributePath + " could not be mapped to link storage"));
     }
 
     @Override
-    public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
-        updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
+    public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext)
+            throws InvalidPropertyDataException {
+        // An absent value is mapped to null, which clears the link
+        writeLink(application, linkRequest, MapRequestInputData.fromMap(Map.of()), authorizationContext);
     }
 
     @RequiredArgsConstructor
