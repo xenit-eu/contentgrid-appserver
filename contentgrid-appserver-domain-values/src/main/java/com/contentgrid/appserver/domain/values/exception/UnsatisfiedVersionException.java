@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.domain.values.exception;
 
-import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import lombok.Getter;
