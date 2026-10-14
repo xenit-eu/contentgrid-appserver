@@ -3,13 +3,10 @@ package com.contentgrid.appserver.rest.hal.links.factory;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import com.contentgrid.appserver.application.model.Application;
-import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.exceptions.AttributeNotFoundException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
-import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity;
-import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
@@ -39,7 +36,6 @@ import org.springframework.hateoas.server.MethodLinkBuilderFactory;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriTemplate;
-import tools.jackson.databind.PropertyName;
 
 /**
  * Generates {@link LinkFactory}s for entity-based paths
@@ -294,15 +290,14 @@ public class LinkFactoryProvider {
                 .findFirst().orElseThrow();
         return switch(entityLink) {
             case StoredEntityLink storedEntityLink -> {
-                var pathSegments = storedEntityLink.getPathSegments();
+                var pathSegments = storedEntityLink.getPathSegment();
                 yield Optional.of(
                                 linkTo(methodOn(DatamodelExtensionLinkRestController.class)
-                                        .getOwnedLink(
+                                        .getLink(
                                                 application,
                                                 entity.getPathSegment(),
                                                 entityIdentity.getEntityId(),
-                                                pathSegments.get(0),
-                                                pathSegments.get(2), // TODO ACC-3004 consider cleaning up when implementing rest controller
+                                                pathSegments,
                                                 null,
                                                 null,
                                                 null,

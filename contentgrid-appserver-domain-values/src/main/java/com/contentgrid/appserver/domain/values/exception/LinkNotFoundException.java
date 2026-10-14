@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.domain.values.exception;
 
-import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import lombok.Getter;
 import lombok.NonNull;
 import com.contentgrid.appserver.domain.values.LinkRequest;
