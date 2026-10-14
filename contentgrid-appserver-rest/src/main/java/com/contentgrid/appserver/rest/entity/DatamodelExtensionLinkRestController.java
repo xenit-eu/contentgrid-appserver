@@ -7,6 +7,7 @@ import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,48 +19,15 @@ import org.springframework.web.context.request.WebRequest;
 // TODO ACC-3004 REST. Currently stubbed for href creation
 @RestController
 @RequiredArgsConstructor
+@SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath")
 public class DatamodelExtensionLinkRestController {
 
-    @GetMapping("/{entityName}/{entityId}/_links/{relKey}")
-    public ResponseEntity<Object> getUnnamedLink(
+    @GetMapping("/{entityName}/{entityId}/{*linkPath}")
+    public ResponseEntity<Object> getLink(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId entityId,
-            @PathVariable PathSegmentName relKey,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
-    ) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_IMPLEMENTED)
-                .build();
-    }
-
-    @GetMapping("/{entityName}/{entityId}/_links/{relKey}/{linkName}")
-    public ResponseEntity<Object> getNamedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId entityId,
-            @PathVariable PathSegmentName relKey,
-            @PathVariable PathSegmentName linkName,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
-            ) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_IMPLEMENTED)
-                .build();
-    }
-
-    @GetMapping("/{entityName}/{entityId}/{propertyName}/_links/{relKey}")
-    public ResponseEntity<Object> getOwnedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId entityId,
-            @PathVariable PathSegmentName propertyName,
-            @PathVariable PathSegmentName relKey,
+            @PathVariable PathSegmentName linkPath,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
             AuthorizationContext authorizationContext,
