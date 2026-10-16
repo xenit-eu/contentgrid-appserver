@@ -275,7 +275,7 @@ public class LinkFactoryProvider {
     }
 
     /**
-     * Generate a link for a entitylink, only if stored link actually has data
+     * Generate a link for an entitylink, only if stored link actually has data
      *
      * @param entityIdentity the identity for the declared upon entity
      * @param linkIdentity the identity for the entitylink to link to.
@@ -292,7 +292,7 @@ public class LinkFactoryProvider {
                 var pathSegments = storedEntityLink.getPathSegments();
                 yield Optional.of(
                                 linkTo(methodOn(EntityRestController.class)
-                                        .getOwnedLink(
+                                        .getBoundLink(
                                                 application,
                                                 entity.getPathSegment(),
                                                 entityIdentity.getEntityId(),

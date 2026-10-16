@@ -12,6 +12,7 @@ import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
+import com.contentgrid.appserver.domain.data.EntityLinkData.PlainLinkData;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.rest.test.TestApplication;
@@ -72,12 +73,12 @@ class RestFormatterTest {
                         "labels", new ListDataEntry(List.of())
                 )),
                 List.of(
-                        new EntityLinkData(
+                        new PlainLinkData(
                                 new NamedLink(URI.create("https://links.example/rel/category"), "category"),
                                 URI.create("https://links.example/profile/category"),
                                 "https://categories.example/product?value=tools"
                         ),
-                        new EntityLinkData(
+                        new PlainLinkData(
                                 new UnnamedLink(URI.create("https://links.example/rel/preview")),
                                 null,
                                 "https://preview.example/render?src=widget-reprogrammer"

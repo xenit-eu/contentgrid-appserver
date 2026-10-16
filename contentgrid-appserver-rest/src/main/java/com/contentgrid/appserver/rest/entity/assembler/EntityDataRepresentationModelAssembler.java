@@ -67,7 +67,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
         }
 
         for (var entityDataLink : entityData.getLinks()) {
-            var link = Link.of(entityDataLink.getHref(), entityDataLink.getIdentity().rel().toASCIIString());
+            var link = Link.of(entityDataLink.getHref(), entityDataLink.getIdentity().rel().toASCIIString()); // TODO ACC-3004 probs need to clean up identity for the 3 types
             if(entityDataLink.getIdentity() instanceof NamedLink namedLink) {
                 link = link
                         // Always render named links as an array of links

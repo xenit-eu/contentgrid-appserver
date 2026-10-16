@@ -27,6 +27,10 @@ bootRun {
     classpath += configurations.testFixturesRuntimeClasspath
 }
 
+bootTestRun {
+    systemProperty('spring.profiles.active', 'bootRun')
+}
+
 tasks.register('opaSidecarBootRun', BootRun) {
     mainClass = bootRun.mainClass
     classpath = bootRun.classpath
