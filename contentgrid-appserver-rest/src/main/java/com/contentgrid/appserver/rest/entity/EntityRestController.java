@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
@@ -25,11 +26,18 @@ import com.contentgrid.appserver.rest.data.ConversionServiceRequestInputData;
 import com.contentgrid.appserver.rest.data.DataTypeExceptionSpecifyingRequestInputData;
 import com.contentgrid.appserver.rest.data.MultipartRequestInputData;
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToRelationDataEntryConverter;
+import com.contentgrid.appserver.rest.entity.assembler.EntityLinkDataRepresentationModel;
 import com.contentgrid.appserver.rest.entity.assembler.EntityLinkDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnEntity;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType.StoredLinkType;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.propertyeditors.StringArrayPropertyEditor;
 import org.springframework.core.convert.ConversionService;
@@ -39,6 +47,7 @@ import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.PathContainer.PathSegment;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -240,12 +249,13 @@ public class EntityRestController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{entityName}/{id}/_links/{relKey}")
-    public ResponseEntity<EntityDataRepresentationModel> getUnnamedLink(
+    @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath", type = StoredLinkType.TEXT)
+    @GetMapping("/{entityName}/{id}/{*linkPath}")
+    public ResponseEntity<EntityLinkDataRepresentationModel> getLink(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
-            @PathVariable PathSegmentName relKey,
+            @PathVariable String linkPath,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
             UserLocales userLocales,
@@ -253,98 +263,13 @@ public class EntityRestController {
             LinkFactoryProvider linkFactoryProvider
     ) {
         var entity = getEntityOrThrow(application, entityName);
-        var linkRequest = versionConstraint != null ?
-                LinkRequest.forLink(entity.getName(), id, new UnnamedLink(URI.create(relKey.getValue())), versionConstraint) :
-                LinkRequest.forLink(entity.getName(), id, new UnnamedLink(URI.create(relKey.getValue())));
+        var linkRequest = createLinkRequest(application, entityName, id, linkPath, versionConstraint);
         var result = datamodelApi.findRequiredLink(
                 application,
                 linkRequest,
                 authorizationContext
         );
-//        var model = assembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result);
-        return ResponseEntity
-//                .ok()
-//                .body(model)
-                //TODO ACC-3004 etag
-                .status(HttpStatus.NOT_IMPLEMENTED)
-                .build()
-                ;
-    }
-
-    @PutMapping("/{entityName}/{id}/_links/{relKey}")
-    public ResponseEntity<?> updateUnnamedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id,
-            @PathVariable PathSegmentName relKey,
-            VersionConstraint versionConstraint,
-            @RequestBody RequestInputData data,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
-    ) throws InvalidPropertyDataException {
-        datamodelApi.updateLink(
-                application,
-                createUnnamedLinkRequest(application, entityName, id, relKey, versionConstraint),
-                data,
-                authorizationContext);
-        return ResponseEntity
-                .noContent()// TODO ACC-3004 add etag
-                .build();
-    }
-
-    @DeleteMapping("/{entityName}/{id}/_links/{relKey}")
-    public ResponseEntity<?> deleteUnnamedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id,
-            @PathVariable PathSegmentName relKey,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext
-    ) throws InvalidPropertyDataException {
-        datamodelApi.deleteLink(
-                application,
-                createUnnamedLinkRequest(application, entityName, id, relKey, versionConstraint),
-                authorizationContext);
-        return ResponseEntity
-                .noContent()
-                .build();
-    }
-
-    private LinkRequest createUnnamedLinkRequest(
-            Application application,
-            PathSegmentName entityName,
-            EntityId id,
-            PathSegmentName relKey,
-            VersionConstraint versionConstraint) {
-        var entity = getEntityOrThrow(application, entityName);
-        return versionConstraint != null ?
-                LinkRequest.forLink(entity.getName(), id, new UnnamedLink(URI.create(relKey.getValue())), versionConstraint) :
-                LinkRequest.forLink(entity.getName(), id, new UnnamedLink(URI.create(relKey.getValue())));
-    }
-
-    @GetMapping("/{entityName}/{id}/_links/{relKey}/{linkName}")
-    public ResponseEntity<Object> getNamedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id,
-            @PathVariable PathSegmentName relKey,
-            @PathVariable PathSegmentName linkName,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            UserLocales userLocales,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
-    ) {
-        var linkRequest = createNamedLinkRequest(application, entityName, id, relKey, linkName, versionConstraint);
-        var entityLinkInstance = datamodelApi.findRequiredLink(
-                application,
-                linkRequest,
-                authorizationContext
-        );
-        var model = entityLinkAssembler
-                .withContext(application, linkRequest.getEntityName(), userLocales, linkFactoryProvider)
-                .toModel(entityLinkInstance);
+        var model = entityLinkAssembler.withContext(application, entity.getName(), userLocales, linkFactoryProvider).toModel(result);
         return ResponseEntity
                 .ok()
                 .body(model)
@@ -354,22 +279,21 @@ public class EntityRestController {
                 ;
     }
 
-    @PostMapping("/{entityName}/{id}/_links/{relKey}/{linkName}")
-    public ResponseEntity<Object> updateNamedLink(
+    @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath", type = StoredLinkType.TEXT)
+    @PutMapping("/{entityName}/{id}/{*linkPath}")
+    public ResponseEntity<?> updateLink(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
-            @PathVariable PathSegmentName relKey,
-            @PathVariable PathSegmentName linkName,
+            @PathVariable String linkPath,
             VersionConstraint versionConstraint,
             @RequestBody RequestInputData data,
-            WebRequest webRequest,
             AuthorizationContext authorizationContext,
             LinkFactoryProvider linkFactoryProvider
     ) throws InvalidPropertyDataException {
         datamodelApi.updateLink(
                 application,
-                createNamedLinkRequest(application, entityName, id, relKey, linkName, versionConstraint),
+                createLinkRequest(application, entityName, id, linkPath, versionConstraint),
                 data,
                 authorizationContext);
         return ResponseEntity
@@ -377,89 +301,35 @@ public class EntityRestController {
                 .build();
     }
 
-    @DeleteMapping("/{entityName}/{id}/_links/{relKey}/{linkName}")
-    public ResponseEntity<Object> deleteNamedLink(
+    @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath", type = StoredLinkType.TEXT)
+    @DeleteMapping("/{entityName}/{id}/{*linkPath}")
+    public ResponseEntity<?> deleteLink(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId id,
-            @PathVariable PathSegmentName relKey,
-            @PathVariable PathSegmentName linkName,
+            @PathVariable String linkPath,
             VersionConstraint versionConstraint,
             WebRequest webRequest,
             AuthorizationContext authorizationContext
     ) throws InvalidPropertyDataException {
         datamodelApi.deleteLink(
                 application,
-                createNamedLinkRequest(application, entityName, id, relKey, linkName, versionConstraint),
+                createLinkRequest(application, entityName, id, linkPath, versionConstraint),
                 authorizationContext);
         return ResponseEntity
                 .noContent()
                 .build();
     }
 
-    private LinkRequest createNamedLinkRequest(
-            Application application,
-            PathSegmentName entityName,
-            EntityId id,
-            PathSegmentName relKey,
-            PathSegmentName linkName,
-            VersionConstraint versionConstraint) {
+    private LinkRequest createLinkRequest(
+            Application application, PathSegmentName entityName, EntityId entityId, String linkPath, VersionConstraint versionConstraint
+    ) {
         var entity = getEntityOrThrow(application, entityName);
-        return versionConstraint != null ?
-                LinkRequest.forLink(entity.getName(), id, new NamedLink(URI.create(relKey.getValue()),
-                        linkName.getValue()), versionConstraint) :
-                LinkRequest.forLink(entity.getName(), id, new NamedLink(URI.create(relKey.getValue()),
-                        linkName.getValue()));
-    }
-
-    @GetMapping("/{entityName}/{id}/{propertyName}/_links/{relKey}")
-    public ResponseEntity<Object> getBoundLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id,
-            @PathVariable PathSegmentName propertyName,
-            @PathVariable PathSegmentName relKey,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
-    ) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_IMPLEMENTED)
-                .build();
-    }
-
-    @PostMapping("/{entityName}/{id}/{propertyName}/_links/{relKey}")
-    public ResponseEntity<Object> updateOwnedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id,
-            @PathVariable PathSegmentName propertyName,
-            @PathVariable PathSegmentName relKey,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
-    ) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_IMPLEMENTED)
-                .build();
-    }
-
-    @DeleteMapping("/{entityName}/{id}/{propertyName}/_links/{relKey}")
-    public ResponseEntity<Object> deleteOwnedLink(
-            Application application,
-            @PathVariable PathSegmentName entityName,
-            @PathVariable EntityId id,
-            @PathVariable PathSegmentName propertyName,
-            @PathVariable PathSegmentName relKey,
-            VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext
-    ) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_IMPLEMENTED)
-                .build();
+        var linkPathSegments = Arrays.stream(linkPath.substring(1).split("/")).map(PathSegmentName::of).toList();
+        var link = entity.getStoredEntityLinkByPathSegments(linkPathSegments).orElseThrow();
+        return versionConstraint != null
+                ? LinkRequest.forLink(entity.getName(), entityId, link.getIdentity(), versionConstraint)
+                : LinkRequest.forLink(entity.getName(), entityId, link.getIdentity());
     }
 
 }

@@ -6,10 +6,6 @@ import lombok.NonNull;
 public sealed interface LinkIdentity {
     URI rel();
 
-    default String getRelKey() {
-        return "";
-    }
-
     record UnnamedLink(@NonNull URI rel) implements LinkIdentity {
 
         @Override
