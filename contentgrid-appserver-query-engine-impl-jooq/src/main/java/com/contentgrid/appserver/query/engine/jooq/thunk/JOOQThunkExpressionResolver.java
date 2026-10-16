@@ -174,6 +174,13 @@ public class JOOQThunkExpressionResolver {
                                 .toArray();
 
                         yield ((Field<Object>) left).eq(DSL.any(DSL.array(elements)));
+                    } else if (right.getDataType().isArray() && left.getDataType().isString()) {
+                        // Use arraySearchNormalize, only supports strings
+                        // The value is normalized by the SQL function
+                        left = DSL.array(left);
+                        yield DSL.arrayOverlap(
+                                JOOQUtils.arraySearchNormalize(right),
+                                JOOQUtils.arraySearchNormalize(left));
                     } else {
                         // Non-array -> always false
                         logWarning(functionExpression.getOperator(), left, right);

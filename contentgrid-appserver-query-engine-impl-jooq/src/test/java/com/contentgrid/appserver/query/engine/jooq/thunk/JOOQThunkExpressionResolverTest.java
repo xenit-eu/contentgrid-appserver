@@ -977,7 +977,38 @@ class JOOQThunkExpressionResolverTest {
                                 new SetValue(Set.of(Scalar.of("vat_1")))
                         ),
                         Set.of(INVOICE1_ID)
+                ),
+                Arguments.argumentSet(
+                        "string in multivalue attribute (multiple matches)",
+                        PERSON,
+                        stringInPersonTags("vip"),
+                        Set.of(ALICE_ID, BOB_ID)
+                ),
+                Arguments.argumentSet(
+                        "string in multivalue attribute (single match)",
+                        PERSON,
+                        stringInPersonTags("urgent"),
+                        Set.of(ALICE_ID)
+                ),
+                Arguments.argumentSet(
+                        "string in multivalue attribute (no match)",
+                        PERSON,
+                        stringInPersonTags("unknown"),
+                        Set.of()
+                ),
+                Arguments.argumentSet(
+                        "string in multivalue attribute (nfkc normalized match)",
+                        PERSON,
+                        stringInPersonTags("\ufb01le"), // U+FB01 is the fi ligature
+                        Set.of(THIJS_ID)
                 )
+        );
+    }
+
+    static ThunkExpression<?> stringInPersonTags(String value) {
+        return Comparison.in(
+                Scalar.of(value),
+                SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("tags"))
         );
     }
 
