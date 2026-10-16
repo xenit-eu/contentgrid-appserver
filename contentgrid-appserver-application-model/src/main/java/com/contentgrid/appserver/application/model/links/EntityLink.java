@@ -21,6 +21,7 @@ public abstract sealed class EntityLink permits PlainEntityLink, StoredEntityLin
     URI profile;
     PropertyPath owner;
     UriTemplateDefinition fallbackTemplate;
+    // TODO ACC-3004 do we need a link type field?
 
     public Optional<URI> getProfile() {
         return Optional.ofNullable(profile);

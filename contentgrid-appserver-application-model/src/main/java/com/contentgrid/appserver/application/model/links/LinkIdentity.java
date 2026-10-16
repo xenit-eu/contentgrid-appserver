@@ -28,6 +28,6 @@ public sealed interface LinkIdentity {
 
     record BoundLink(@NonNull URI rel, @NonNull String property) implements LinkIdentity {
         @Override
-        public String toString() { return "OwnedLink(" + property + ", " + rel + ")"; }
+        public String toString() { return "BoundLink(" + property + ", " + rel + ")"; }
     }
 }

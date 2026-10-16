@@ -21,6 +21,7 @@ import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.appserver.rest.entity.XToManyRelationRestController;
 import com.contentgrid.appserver.rest.entity.XToOneRelationRestController;
 import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
+import com.contentgrid.appserver.rest.entity.assembler.EntityLinkDataRepresentationModelAssembler;
 import com.contentgrid.appserver.rest.filter.SingleRangeRequestServletFilter;
 import com.contentgrid.appserver.rest.hal.forms.HalFormsMediaTypeConfiguration;
 import com.contentgrid.appserver.rest.hal.links.ContentGridLinksConfiguration;
@@ -64,6 +65,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         ContentRestController.class,
         DefaultApplicationNameExtractor.class,
         EntityDataRepresentationModelAssembler.class,
+        EntityLinkDataRepresentationModelAssembler.class,
         EntityRestController.class,
         ProfileEntityRepresentationModelAssembler.class,
         ProfileRestController.class,

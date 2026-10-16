@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -2499,6 +2500,15 @@ class EntityRestControllerTest {
             // Verify entity deleted
             mockMvc.perform(get(url))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class GetDatamodelLink {
+
+        @Test
+        void getUnnamedDatamodelLink() throws Exception {
+            fail();
         }
     }
 
