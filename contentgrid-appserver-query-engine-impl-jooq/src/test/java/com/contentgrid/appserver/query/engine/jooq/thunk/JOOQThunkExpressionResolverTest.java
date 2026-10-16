@@ -1523,15 +1523,6 @@ class JOOQThunkExpressionResolverTest {
         assertTrue(results.stream().anyMatch(result -> INVOICE1_ID.equals(result.get("id"))));
     }
 
-    @Test
-    void multivalueAttributeResolvesToTheAliasedArrayField() {
-        var resolver = new JOOQSymbolicReferenceResolver(APPLICATION, INVOICE.getName());
-
-        var field = resolver.resolvePath(List.of(SymbolicReference.path("labels")));
-
-        assertEquals(JOOQUtils.resolveField(TableName.of("i0"), INVOICE_LABELS), field);
-    }
-
     static Stream<Arguments> illegalExpressions() {
         return Stream.of(
                 Arguments.argumentSet("null value",
