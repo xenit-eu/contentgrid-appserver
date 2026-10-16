@@ -21,6 +21,7 @@ import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import com.contentgrid.thunx.predicates.model.ThunkExpressionVisitor;
 import com.contentgrid.thunx.predicates.model.Variable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -86,17 +87,15 @@ public class JOOQThunkExpressionResolver {
         public Field<?> visit(FunctionExpression<?> functionExpression, JOOQContext context)
                 throws InvalidThunkExpressionException {
             return switch (functionExpression.getOperator()) {
-                // Equality over a multi-value attribute degrades to a non-matching condition: a policy
-                // on such an attribute needs membership, not equality. Expressing `x in <attribute>`
-                // and `<attribute> contains x` is ACC-3095.
                 case EQUALS -> {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (isArray(left) || isArray(right) || !sameType(left, right)) {
+                    if (!sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
                         yield DSL.falseCondition();
                     }
+                    assertNonArray(left, right);
                     if (left.getDataType().isString()) {
                         left = JOOQUtils.normalize(left);
                         right = JOOQUtils.normalize(right);
@@ -107,10 +106,11 @@ public class JOOQThunkExpressionResolver {
                     assertTwoTerms(functionExpression.getTerms());
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
-                    if (isArray(left) || isArray(right) || !sameType(left, right)) {
+                    if (!sameType(left, right)) {
                         logWarning(functionExpression.getOperator(), left, right);
                         yield DSL.falseCondition();
                     }
+                    assertNonArray(left, right);
                     if (left.getDataType().isString()) {
                         left = JOOQUtils.normalize(left);
                         right = JOOQUtils.normalize(right);
@@ -162,6 +162,7 @@ public class JOOQThunkExpressionResolver {
                     var left = functionExpression.getTerms().getFirst().accept(this, context);
                     var right = functionExpression.getTerms().getLast().accept(this, context);
                     if (right instanceof Array<?> array) {
+                        assertNonArray(left);
                         if (left.getDataType().isString()) {
                             left = JOOQUtils.normalize(left);
                             // right side is already normalized in the visit function if needed
@@ -173,6 +174,13 @@ public class JOOQThunkExpressionResolver {
                                 .toArray();
 
                         yield ((Field<Object>) left).eq(DSL.any(DSL.array(elements)));
+                    } else if (right.getDataType().isArray() && left.getDataType().isString()) {
+                        // Use arraySearchNormalize, only supports strings
+                        // The value is normalized by the SQL function
+                        left = DSL.array(left);
+                        yield DSL.arrayOverlap(
+                                JOOQUtils.arraySearchNormalize(right),
+                                JOOQUtils.arraySearchNormalize(left));
                     } else {
                         // Non-array -> always false
                         logWarning(functionExpression.getOperator(), left, right);
@@ -345,8 +353,10 @@ public class JOOQThunkExpressionResolver {
             }
         }
 
-        private static boolean isArray(Field<?> field) {
-            return field.getDataType().isArray();
+        private static void assertNonArray(Field<?>... fields) {
+            if (Arrays.stream(fields).anyMatch(field -> field.getDataType().isArray())) {
+                throw new InvalidThunkExpressionException("Operation does not support array types.");
+            }
         }
 
         private static boolean sameType(Field<?> left, Field<?> right) {
