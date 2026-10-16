@@ -522,7 +522,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var definition = requireStoredLinkDefinition(application, linkRequest);
         var entityData = requireEntityData(application, linkRequest, authorizationContext);
         var current = createOutputDataMapper(application, linkRequest.getEntityName())
-                .createStoredLink(entityData, definition);
+                .createStoredLink(entityData, definition); //TODO ACC-3004 link not found results in 500. fix
         checkVersion(linkRequest, current);
         return current
                 .map(linkData -> new InternalEntityLinkInstance(entityData.getIdentity(), linkData))

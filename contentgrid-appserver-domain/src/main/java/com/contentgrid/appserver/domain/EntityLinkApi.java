@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.application.model.Application;
+import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.EntityLinkData.StoredLinkData;
 import com.contentgrid.appserver.domain.data.EntityLinkInstance;
@@ -10,6 +11,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import java.net.URI;
 import java.util.Optional;
 import lombok.NonNull;
 

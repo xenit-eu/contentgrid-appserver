@@ -10,6 +10,7 @@ import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -292,12 +294,12 @@ public class LinkFactoryProvider {
                 var pathSegments = storedEntityLink.getPathSegments();
                 yield Optional.of(
                                 linkTo(methodOn(EntityRestController.class)
-                                        .getBoundLink(
+                                        .getLink(
                                                 application,
                                                 entity.getPathSegment(),
                                                 entityIdentity.getEntityId(),
-                                                pathSegments.get(0),
-                                                pathSegments.get(2), // TODO ACC-3004 consider cleaning up when implementing rest controller
+                                                pathSegments.stream().map(PathSegmentName::toString).collect(Collectors.joining("/")),
+                                                null, // TODO ACC-3004 consider cleaning up when implementing rest controller
                                                 null,
                                                 null,
                                                 null,
