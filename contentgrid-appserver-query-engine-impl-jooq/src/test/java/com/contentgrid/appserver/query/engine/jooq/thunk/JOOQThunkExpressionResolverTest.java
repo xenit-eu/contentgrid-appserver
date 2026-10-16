@@ -68,6 +68,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -1591,7 +1592,13 @@ class JOOQThunkExpressionResolverTest {
                                         SymbolicReference.of(ENTITY_VAR, SymbolicReference.path("customer"), SymbolicReference.path("friends"), SymbolicReference.pathVar("__var1__"), SymbolicReference.path("name")),
                                         Scalar.of("bob")
                                 )
-                        ))
+                        )),
+                Arguments.argumentSet("equality with array types",
+                        Comparison.areEqual(SymbolicReference.parse("entity.labels"),
+                                SymbolicReference.parse("entity.labels"))),
+                Arguments.argumentSet("not-equality with array types",
+                        Comparison.notEqual(SymbolicReference.parse("entity.labels"),
+                                SymbolicReference.parse("entity.labels")))
         );
     }
 
@@ -1602,32 +1609,55 @@ class JOOQThunkExpressionResolverTest {
         assertThrows(InvalidThunkExpressionException.class, () -> RESOLVER.resolveExpression(expression, context));
     }
 
-    private static final Map<String, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
-            "STRING", SymbolicReference.parse("entity.number"),
-            "STRING_SET", SymbolicReference.parse("entity.labels"),
-            "NUMBER", SymbolicReference.parse("entity.amount"),
-            "BOOLEAN", SymbolicReference.parse("entity.is_paid"),
-            "DATE", SymbolicReference.parse("entity.received"),
-            "DATETIME", SymbolicReference.parse("entity.pay_timestamp"),
-            "UUID", SymbolicReference.parse("entity.id")
+    private enum AttributeType {
+        STRING,
+        NUMBER,
+        BOOLEAN,
+        DATE,
+        DATETIME,
+        UUID,
+        STRING_ARRAY,
+        NUMBER_ARRAY,
+        BOOLEAN_ARRAY,
+        EMPTY_ARRAY,
+    }
+
+    private static final Set<AttributeType> SORTABLE_TYPES = Set.of(
+            AttributeType.NUMBER, AttributeType.DATE, AttributeType.DATETIME, AttributeType.UUID
     );
 
-    private static final Map<String, ThunkExpression<?>> IAM_VALUES = Map.of(
-            "STRING", Scalar.of("invoice_1"),
-            "NUMBER", Scalar.of(10),
-            "BOOLEAN", Scalar.of(true),
-            "STRING_ARRAY", new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2"))),
-            "NUMBER_ARRAY", new ListValue(List.of(Scalar.of(10), Scalar.of(20))),
-            "BOOLEAN_ARRAY", new ListValue(List.of(Scalar.of(true), Scalar.of(false))),
-            "EMPTY_ARRAY", new ListValue(List.of())
+    private static final Map<AttributeType, AttributeType> ARRAY_TYPES = Map.of(
+            AttributeType.STRING_ARRAY, AttributeType.STRING,
+            AttributeType.NUMBER_ARRAY, AttributeType.NUMBER,
+            AttributeType.BOOLEAN_ARRAY, AttributeType.BOOLEAN
+    );
+
+    private static final Map<AttributeType, ThunkExpression<?>> ENTITY_ATTRIBUTES = Map.of(
+            AttributeType.STRING, SymbolicReference.parse("entity.number"),
+            AttributeType.STRING_ARRAY, SymbolicReference.parse("entity.labels"),
+            AttributeType.NUMBER, SymbolicReference.parse("entity.amount"),
+            AttributeType.BOOLEAN, SymbolicReference.parse("entity.is_paid"),
+            AttributeType.DATE, SymbolicReference.parse("entity.received"),
+            AttributeType.DATETIME, SymbolicReference.parse("entity.pay_timestamp"),
+            AttributeType.UUID, SymbolicReference.parse("entity.id")
+    );
+
+    private static final Map<AttributeType, ThunkExpression<?>> IAM_VALUES = Map.of(
+            AttributeType.STRING, Scalar.of("invoice_1"),
+            AttributeType.NUMBER, Scalar.of(10),
+            AttributeType.BOOLEAN, Scalar.of(true),
+            AttributeType.STRING_ARRAY, new ListValue(List.of(Scalar.of("invoice_1"), Scalar.of("invoice_2"))),
+            AttributeType.NUMBER_ARRAY, new ListValue(List.of(Scalar.of(10), Scalar.of(20))),
+            AttributeType.BOOLEAN_ARRAY, new ListValue(List.of(Scalar.of(true), Scalar.of(false))),
+            AttributeType.EMPTY_ARRAY, new ListValue(List.of())
     );
 
     static Stream<Arguments> incompatibleEqualsExpressions() {
         var streamBuilder = Stream.<Arguments>builder();
         for (var attributeType : ENTITY_ATTRIBUTES.keySet()) {
             for (var valueType : IAM_VALUES.keySet()) {
-                if (!attributeType.equals(valueType)) {
-                    streamBuilder.add(Arguments.argumentSet("%s = %s".formatted(attributeType, valueType),
+                if (!ARRAY_TYPES.containsKey(attributeType) && !attributeType.equals(valueType)) {
+                    streamBuilder.add(Arguments.argumentSet("ENTITY:%s = IAM:%s".formatted(attributeType, valueType),
                             Comparison.areEqual(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
                 }
             }
@@ -1639,9 +1669,10 @@ class JOOQThunkExpressionResolverTest {
         var streamBuilder = Stream.<Arguments>builder();
         for (var attributeType : ENTITY_ATTRIBUTES.keySet()) {
             for (var valueType : IAM_VALUES.keySet()) {
-                if (!attributeType.equals(valueType) || Set.of("STRING", "BOOLEAN").contains(attributeType)) {
+                if (!ARRAY_TYPES.containsKey(attributeType) &&
+                        (!attributeType.equals(valueType) || !SORTABLE_TYPES.contains(attributeType))) {
                     // type mismatch or not sortable
-                    streamBuilder.add(Arguments.argumentSet("%s < %s".formatted(attributeType, valueType),
+                    streamBuilder.add(Arguments.argumentSet("ENTITY:%s < IAM:%s".formatted(attributeType, valueType),
                             Comparison.less(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
                 }
             }
@@ -1653,9 +1684,18 @@ class JOOQThunkExpressionResolverTest {
         var streamBuilder = Stream.<Arguments>builder();
         for (var attributeType : ENTITY_ATTRIBUTES.keySet()) {
             for (var valueType : IAM_VALUES.keySet()) {
-                if (!valueType.equals(attributeType + "_ARRAY")) {
-                    streamBuilder.add(Arguments.argumentSet("%s in %s".formatted(attributeType, valueType),
-                            Comparison.in(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
+                if (ARRAY_TYPES.containsKey(attributeType)) {
+                    // Array entity-attribute types can only be put as rhs
+                    if (!Objects.equals(valueType, ARRAY_TYPES.get(attributeType))) {
+                        streamBuilder.add(Arguments.argumentSet("IAM:%s in ENTITY:%s".formatted(valueType, attributeType),
+                                Comparison.in(IAM_VALUES.get(valueType), ENTITY_ATTRIBUTES.get(attributeType))));
+                    }
+                } else {
+                    // Non-array entity-attribute types can only be put as lhs
+                    if (!Objects.equals(attributeType, ARRAY_TYPES.get(valueType))) {
+                        streamBuilder.add(Arguments.argumentSet("ENTITY:%s in IAM:%s".formatted(attributeType, valueType),
+                                Comparison.in(ENTITY_ATTRIBUTES.get(attributeType), IAM_VALUES.get(valueType))));
+                    }
                 }
             }
         }
@@ -1668,17 +1708,7 @@ class JOOQThunkExpressionResolverTest {
                         incompatibleEqualsExpressions(),
                         incompatibleLessThanExpressions()
                 ),
-                Stream.concat(
-                        incompatibleInExpressions(),
-                        Stream.of(
-                                Arguments.argumentSet("STRING_SET = STRING_SET",
-                                        Comparison.areEqual(SymbolicReference.parse("entity.labels"),
-                                                SymbolicReference.parse("entity.labels"))),
-                                Arguments.argumentSet("STRING_SET != STRING_SET",
-                                        Comparison.notEqual(SymbolicReference.parse("entity.labels"),
-                                                SymbolicReference.parse("entity.labels")))
-                        )
-                )
+                incompatibleInExpressions()
         );
     }
 
