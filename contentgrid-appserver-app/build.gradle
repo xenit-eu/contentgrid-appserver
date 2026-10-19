@@ -34,6 +34,12 @@ tasks.register('opaSidecarBootRun', BootRun) {
 }
 
 bootBuildImage {
+    // Budget for Netty's S3 buffers while allowing explicit runtime JVM options to override the default.
+    environment.putAll([
+            'BPE_PREPEND_JAVA_TOOL_OPTIONS': '-XX:MaxDirectMemorySize=128M',
+            'BPE_DELIM_JAVA_TOOL_OPTIONS': ' '
+    ])
+
     def dockerImageRepo = "ghcr.io/xenit-eu/contentgrid-appserver"
     imageName = "${dockerImageRepo}:${project.version}"
     tags = "${project.version}".endsWith('SNAPSHOT') ? [ "${dockerImageRepo}:SNAPSHOT" ] : null
