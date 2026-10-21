@@ -84,7 +84,7 @@ class S3ReadRetryIntegrationTest {
                     builder.overrideConfiguration(config -> {
                         // Insert a spy on the retry strategy
                         config.retryStrategy(spyRetryStrategy(StandardRetryStrategy.builder()
-                                .backoffStrategy(BackoffStrategy.fixedDelay(Duration.ofMillis(500)))
+                                .backoffStrategy(BackoffStrategy.fixedDelayWithoutJitter(Duration.ofMillis(500)))
                                 .maxAttempts(3)
                                 .build()));
                     });

@@ -51,6 +51,18 @@ public abstract class AbstractContentStoreBehaviorTest {
     }
 
     @Test
+    void createEmptyFileAndReadBack() throws IOException, ContentIOException {
+        var contentStore = getContentStore();
+        var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(new byte[0]));
+
+        var reader = contentStore.getReader(contentAccessor.getReference());
+
+        try(var inputStream = reader.getContentInputStream()) {
+            assertArrayEquals(new byte[0], inputStream.readAllBytes());
+        }
+    }
+
+    @Test
     void deleteFile() throws ContentIOException {
         var contentStore = getContentStore();
         var contentAccessor = contentStore.writeContent(new ByteArrayInputStream(TEST_BYTES));
