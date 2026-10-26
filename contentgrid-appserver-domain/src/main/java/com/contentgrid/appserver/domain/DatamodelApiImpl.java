@@ -129,15 +129,15 @@ public class DatamodelApiImpl implements DatamodelApi {
         ));
         var combinedMapper = inputMapper
                 .andThen(mapper)
-                // Validate constraints
-                .andThen(constraintValidatingMapper)
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
                                 new ContentUploadAttributeMapper(contentStore),
                                 (rel, value) -> Optional.of(value)
                         )
                 ))
-                // Validate constraints again, because content upload modifies fields that are validated
+                // Validate constraints after content has been uploaded,
+                // as content upload writes to the mimetype & filename fields,
+                // which still need to be validated
                 .andThen(constraintValidatingMapper)
                 .andThen(queryEngineMapper);
 

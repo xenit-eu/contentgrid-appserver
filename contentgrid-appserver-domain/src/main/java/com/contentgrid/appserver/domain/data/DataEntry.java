@@ -56,20 +56,42 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
 
     }
 
-    @Value
-    class StringDataEntry implements ScalarDataEntry {
+    @EqualsAndHashCode
+    @ToString
+    @RequiredArgsConstructor
+    final class StringDataEntry implements ScalarDataEntry {
+
+        public StringDataEntry(@NonNull String value) {
+            this(Lazy.of(value));
+        }
 
         @NonNull
-        String value;
+        private final Lazy<String> value;
 
+        @Override
+        @ToString.Include(name = "value")
+        public String getValue() {
+            return value.get();
+        }
     }
 
-    @Value
-    class LongDataEntry implements ScalarDataEntry {
+    @EqualsAndHashCode
+    @ToString
+    @RequiredArgsConstructor
+    final class LongDataEntry implements ScalarDataEntry {
+
+        public LongDataEntry(@NonNull Long value) {
+            this(Lazy.of(value));
+        }
 
         @NonNull
-        Long value;
+        private final Lazy<Long> value;
 
+        @Override
+        @ToString.Include(name = "value")
+        public Long getValue() {
+            return value.get();
+        }
     }
 
     @Value

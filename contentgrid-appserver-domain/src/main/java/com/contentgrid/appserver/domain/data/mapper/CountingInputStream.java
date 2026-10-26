@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 
 /**
  * Counts the number of bytes read from the delegate {@link InputStream}
@@ -43,7 +44,9 @@ class CountingInputStream extends FilterInputStream {
         closed = true;
     }
 
-    public long getSize() throws IOException {
+    // Sneaky throws, because the exception is thrown in a check for an invalid state; this doesn't have to be handled directly
+    @SneakyThrows(IOException.class)
+    public long getSize() {
         try {
             if (!closed && this.read() != -1) {
                 throw new IllegalStateException("InputStream has not been fully read");
