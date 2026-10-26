@@ -611,6 +611,21 @@ class ContentRestControllerTest {
 
     }
 
+    static Stream<String> invalidFilenames() {
+        return Stream.of(
+                ".",
+                "..",
+                "bad:name.txt",
+                "bad<name>.txt",
+                "bad|name.txt",
+                "bad?name.txt",
+                "bad*name.txt",
+                "bad\"name.txt",
+                "bad\\name.txt",
+                "bad\tname.txt"
+        );
+    }
+
     @Nested
     class UploadContent {
 
@@ -696,6 +711,56 @@ class ContentRestControllerTest {
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(content().contentType("application/json"))
                     .andExpect(content().bytes("updated content".getBytes()));
+        }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.ContentRestControllerTest#invalidFilenames")
+        void upload_plain_invalid_filename_fails(String filename) throws Exception {
+            String invoiceId = createInvoice(null);
+
+            mockMvc.perform(put("/invoices/{instanceId}/content", invoiceId)
+                            .contentType(INVOICE_CONTENT_FILE.getContentType())
+                            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                                    .filename(filename, StandardCharsets.UTF_8).build().toString())
+                            .content(INVOICE_CONTENT_FILE.getBytes()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/pattern")
+                                    .withField("field", "content.filename")
+                            )
+                    );
+
+            // No upload has happened
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/content"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.ContentRestControllerTest#invalidFilenames")
+        void upload_multipart_invalid_filename_fails(String filename) throws Exception {
+            String invoiceId = createInvoice(null);
+
+            mockMvc.perform(multipart(HttpMethod.PUT, "/invoices/{instanceId}/content", invoiceId)
+                            .file(new MockMultipartFile(
+                                    "file",
+                                    filename,
+                                    INVOICE_CONTENT_FILE.getContentType(),
+                                    INVOICE_CONTENT_FILE.getBytes()
+                            )))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/pattern")
+                                    .withField("field", "content.filename")
+                            )
+                    );
+
+            // No upload has happened
+            mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/content"));
         }
 
         @ParameterizedTest

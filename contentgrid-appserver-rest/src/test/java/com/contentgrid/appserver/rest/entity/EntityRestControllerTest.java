@@ -335,6 +335,23 @@ class EntityRestControllerTest {
         }
 
         @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.ContentRestControllerTest#invalidFilenames")
+        void testFailToCreateEntityInstanceMultipartInvalidFilename(String filename) throws Exception {
+            mockMvc.perform(multipart("/products")
+                            .file(new MockMultipartFile("picture", filename, "application/jpeg",
+                                    InputStream.nullInputStream()))
+                            .param("name", "My product")
+                            .param("price", "120")
+                    ).andExpect(status().isBadRequest())
+                    .andExpect(ProblemDetailsMockMvcMatchers.validationConstraintViolation()
+                            .withError(e -> e.withType("https://contentgrid.cloud/problems/input/validation/pattern")
+                                    .withField("field", "picture.filename")
+                            )
+                    )
+            ;
+        }
+
+        @ParameterizedTest
         @MethodSource("com.contentgrid.appserver.rest.entity.EntityRestControllerTest#supportedMediaTypes")
         void testFailToCreateEntityWithInvalidPayloadStructure(MediaTypeConfiguration mediaTypeConfiguration)
                 throws Exception {

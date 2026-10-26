@@ -112,33 +112,35 @@ public class DatamodelApiImpl implements DatamodelApi {
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
         var contentStore = contentStoreResolver.resolve(application);
 
+        var constraintValidatingMapper = new OptionalFlatMapAdaptingMapper<>(
+                AttributeAndRelationMapper.from(
+                        new AttributeValidationDataMapper(
+                                new RequiredAttributeConstraintValidator(),
+                                new AllowedValuesConstraintValidator(),
+                                new RegexPatternConstraintValidator()
+                        ),
+                        new RelationRequiredValidationDataMapper()
+                )
+        ).andThen(new OptionalFlatMapAdaptingMapper<>(
+                AttributeAndRelationMapper.from(
+                        new AttributeValidationDataMapper(
+                                List.of(new NulByteValidator(), new TextSetValidator())),
+                        (relation, value) -> Optional.of(value)
+                )
+        ));
         var combinedMapper = inputMapper
                 .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
                 .andThen(auditMapper)
                 // Validate constraints
-                .andThen(new OptionalFlatMapAdaptingMapper<>(
-                        AttributeAndRelationMapper.from(
-                                new AttributeValidationDataMapper(
-                                        new RequiredAttributeConstraintValidator(),
-                                        new AllowedValuesConstraintValidator(),
-                                        new RegexPatternConstraintValidator()
-                                ),
-                                new RelationRequiredValidationDataMapper()
-                        )
-                ))
-                .andThen(new OptionalFlatMapAdaptingMapper<>(
-                        AttributeAndRelationMapper.from(
-                                new AttributeValidationDataMapper(
-                                        List.of(new NulByteValidator(), new TextSetValidator())),
-                                (relation, value) -> Optional.of(value)
-                        )
-                ))
+                .andThen(constraintValidatingMapper)
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
                                 new ContentUploadAttributeMapper(contentStore),
                                 (rel, value) -> Optional.of(value)
                         )
                 ))
+                // Validate constraints again, because content upload modifies fields that are validated
+                .andThen(constraintValidatingMapper)
                 .andThen(queryEngineMapper);
 
         return new RequestInputDataMapper(
