@@ -102,8 +102,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
             @NonNull EntityName entityName,
-            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
-            @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
+            @NonNull AttributeAndRelationMapper<Optional<DataEntry>, Optional<DataEntry>, Optional<DataEntry>, Optional<DataEntry>> mapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
@@ -129,8 +128,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 )
         ));
         var combinedMapper = inputMapper
-                .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
-                .andThen(auditMapper)
+                .andThen(mapper)
                 // Validate constraints
                 .andThen(constraintValidatingMapper)
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
@@ -261,7 +259,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 entityName,
                 // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
+                new OptionalFlatMapAdaptingMapper<>(FilterDataEntryMapper.missingAsNull())
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
@@ -269,7 +267,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, data) -> Optional.of(data)
                                 )
                         ))
-                , new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock)
+                        .andThen(new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -307,15 +305,15 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 existingEntity.getIdentity().getEntityName(),
                 // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
+                new OptionalFlatMapAdaptingMapper<>(FilterDataEntryMapper.missingAsNull())
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
                                         new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
                                         (rel, d) -> Optional.of(d)
                                 )
-                        )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                        ))
+                        .andThen(new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -346,15 +344,15 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 existingEntity.getIdentity().getEntityName(),
                 // Missing fields are omitted, so they are not updated
-                FilterDataEntryMapper.omitMissing()
+                new OptionalFlatMapAdaptingMapper<>(FilterDataEntryMapper.omitMissing())
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
                                         new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
                                         (rel, d) -> Optional.of(d)
                                 )
-                        )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                        ))
+                        .andThen(new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
