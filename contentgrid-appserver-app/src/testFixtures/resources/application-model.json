@@ -340,11 +340,7 @@
           "name": "friends",
           "owner": [{"type": "rel", "name": "friends"}],
           "storage": [{ "type": "attr","name": "_links"},{"type": "attr", "name": "test1"}],
-          "pathSegments": [
-            "_links",
-            "related",
-            "friends"
-          ],
+          "pathSegment": "_links/related/friends",
           "fallbackTemplate": {
             "template": "https://calendar.example/people?me=%{entity.link}&meType=%{entity.name}&related=%{owner.link}&relatedType=%{owner.name}"
           }

@@ -466,24 +466,19 @@ class EntityTest {
                 .link(StoredEntityLink.builder()
                         .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com")))
                         .storage(PropertyPath.toAttribute(AttributeName.of("test")))
-                        .pathSegments(List.of(
-                                PathSegmentName.of("_links"),
-                                PathSegmentName.of("test")
-                        ))
+                        .pathSegment(PathSegmentName.of("_links/test"))
                         .build()
                 )
                 .link(StoredEntityLink.builder()
                         .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.org")))
                         .storage(PropertyPath.toAttribute(AttributeName.of("test")))
-                        .pathSegments(List.of(
-                                PathSegmentName.of("_links"),
-                                PathSegmentName.of("test")
-                        ))
+                        .pathSegment(PathSegmentName.of("_links/test"))
                         .build()
                 );
 
         assertThatThrownBy(builder::build)
-                .hasMessage("Duplicate EntityLink with pathSegments '_links/test'");
+                .isInstanceOf(DuplicateElementException.class)
+                .hasMessage("Duplicate EntityLink with pathSegment '_links/test'");
     }
 
     @Test
@@ -507,14 +502,13 @@ class EntityTest {
                 .link(StoredEntityLink.builder()
                         .identity(new LinkIdentity.UnnamedLink(URI.create("https://example.com")))
                         .storage(PropertyPath.toAttribute(AttributeName.of("test")))
-                        .pathSegments(List.of(
-                                PathSegmentName.of("path-segment")
-                        ))
+                        .pathSegment(PathSegmentName.of("path-segment"))
                         .build()
                 );
 
         assertThatThrownBy(builder::build)
-                .hasMessage("EntityLink with pathSegments 'path-segment' conflicts with ContentAttribute 'test'");
+                .isInstanceOf(DuplicateElementException.class)
+                .hasMessage("EntityLink with pathSegment 'path-segment' conflicts with ContentAttribute 'test'");
     }
 
     @Test

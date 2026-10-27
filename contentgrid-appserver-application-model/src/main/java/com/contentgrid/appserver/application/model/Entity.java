@@ -20,7 +20,6 @@ import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
-import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -35,15 +34,12 @@ import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -213,21 +209,17 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                     // nothing do do here, it doesn't have a path segment
                 }
                 case StoredEntityLink storedEntityLink -> {
-                    var stringifiedSegments = storedEntityLink.getPathSegments().stream()
-                            .map(PathSegmentName::getValue)
-                            .collect(Collectors.joining("/"));
-                    if (!linkPathSegments.add(stringifiedSegments)) {
+                    var storedEntityLInkPathSegment = storedEntityLink.getPathSegment();
+                    if (!linkPathSegments.add(storedEntityLInkPathSegment.getValue())) {
                         throw new DuplicateElementException(
-                                "Duplicate EntityLink with pathSegments '%s'".formatted(stringifiedSegments));
+                                "Duplicate EntityLink with pathSegment '%s'".formatted(storedEntityLInkPathSegment.getValue()));
                     }
-                    if (storedEntityLink.getPathSegments().size() == 1) {
-                        this.getContentByPathSegment(storedEntityLink.getPathSegments().getFirst())
-                                .ifPresent(contentAttribute -> {
-                                    throw new DuplicateElementException(
-                                            "EntityLink with pathSegments '%s' conflicts with ContentAttribute '%s'".formatted(
-                                                    stringifiedSegments, contentAttribute.getName()));
-                                });
-                    }
+                    this.getContentByPathSegment(storedEntityLInkPathSegment)
+                            .ifPresent(contentAttribute -> {
+                                throw new DuplicateElementException(
+                                        "EntityLink with pathSegment '%s' conflicts with ContentAttribute '%s'".formatted(
+                                                storedEntityLInkPathSegment.getValue(), contentAttribute.getName()));
+                            });
                 }
             }
         }
