@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
 final public class StoredEntityLink extends EntityLink {
 
     @NonNull
-    List<PathSegmentName> pathSegments;
+    PathSegmentName pathSegment;
 
     @NonNull
     AttributePath storage;
@@ -27,11 +27,11 @@ final public class StoredEntityLink extends EntityLink {
             URI profile,
             PropertyPath owner,
             @NonNull AttributePath storage,
-            @NonNull List<PathSegmentName> pathSegments,
+            @NonNull PathSegmentName pathSegment,
             UriTemplateDefinition fallbackTemplate
     ) {
         super(identity, profile, owner, fallbackTemplate);
-        this.pathSegments = pathSegments;
+        this.pathSegment = pathSegment;
         this.storage = storage;
     }
 }
