@@ -26,7 +26,6 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkE
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
-import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;

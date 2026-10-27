@@ -582,7 +582,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         if (entityLink.getStorage() != null) {
             builder = (EntityLinkBuilder<EntityLink, ?>) StoredEntityLink.builder()
                     .storage(fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class))
-                    .pathSegments(entityLink.getPathSegments().stream().map(PathSegmentName::of).toList());
+                    .pathSegment(PathSegmentName.of(entityLink.getPathSegment()));
         } else {
             builder = (EntityLinkBuilder<EntityLink, ?>) PlainEntityLink.builder();
         }
@@ -848,10 +848,7 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                 jsonEntityLink.setStorage(
                         toJsonPropertyPath(storedEntityLink.getStorage())
                 );
-                jsonEntityLink.setPathSegments(storedEntityLink.getPathSegments()
-                        .stream()
-                        .map(PathSegmentName::getValue)
-                        .toList());
+                jsonEntityLink.setPathSegment(storedEntityLink.getPathSegment().getValue());
             }
         }
 
