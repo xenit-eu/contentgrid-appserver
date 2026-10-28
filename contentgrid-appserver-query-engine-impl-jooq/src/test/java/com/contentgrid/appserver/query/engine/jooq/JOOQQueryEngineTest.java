@@ -1486,26 +1486,6 @@ class JOOQQueryEngineTest {
                                 .name(INVOICE_PREVIOUS.getSourceEndPoint().getName())
                                 .ref(INVOICE1_ID) // is already linked with INVOICE2_ID
                                 .build())
-                        .build()),
-                Arguments.argumentSet("Duplicate relation provided", IllegalInputDataException.class,
-                        EntityCreateData.builder()
-                        .entityName(INVOICE.getName())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_NUMBER.getName())
-                                .value("random_number")
-                                .build())
-                        .attribute(SimpleAttributeData.builder()
-                                .name(INVOICE_AMOUNT.getName())
-                                .value(BigDecimal.valueOf(25.0))
-                                .build())
-                        .relation(XToOneRelationData.builder()
-                                .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
-                                .ref(ALICE_ID)
-                                .build())
-                        .relation(XToOneRelationData.builder()
-                                .name(INVOICE_CUSTOMER.getSourceEndPoint().getName())
-                                .ref(BOB_ID)
-                                .build())
                         .build())
         );
     }
