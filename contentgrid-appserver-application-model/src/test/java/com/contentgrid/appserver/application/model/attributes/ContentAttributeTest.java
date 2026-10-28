@@ -79,6 +79,56 @@ class ContentAttributeTest {
     }
 
     @Nested
+    class FilenameConstraintTest {
+
+        public static Stream<String> validFilenames() {
+            return Stream.of(
+                    "file.txt",
+                    "a",
+                    "no-extension",
+                    ".gitignore",
+                    ".hidden.txt",
+                    "file with spaces.pdf",
+                    " leading-space.txt",
+                    "multiple.dots.tar.gz",
+                    "under_score-and-dash.docx",
+                    "brackets (1) [2] {3}.txt",
+                    "punctuation!@#$%^&'+,;=~`.txt",
+                    "accents-éèàçñ.txt",
+                    "cjk-中文-日本語.txt",
+                    "emoji-\uD83D\uDE00.png",
+                    "1234567890"
+            );
+        }
+
+        public static Stream<String> invalidFilenames() {
+            return Stream.concat(
+                    "\0\r\n\t<>:/\\\"|?*".chars()
+                            .mapToObj(Character::toString)
+                            .map(s -> "invalid char "+s),
+                    Stream.of(
+                            "",
+                            ".",
+                            ".."
+                    )
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void validFilenames(String filename) {
+            assertThat(ContentAttribute.FILENAME_PATTERN_CONSTRAINT.getPattern().matcher(filename).matches()).isTrue();
+        }
+
+        @ParameterizedTest
+        @MethodSource
+        void invalidFilenames(String filename) {
+            assertThat(ContentAttribute.FILENAME_PATTERN_CONSTRAINT.getPattern().matcher(filename).matches()).isFalse();
+        }
+
+    }
+
+    @Nested
     class MimetypeConstraintTest {
 
         public static Stream<String> readLines(String file) throws IOException {
