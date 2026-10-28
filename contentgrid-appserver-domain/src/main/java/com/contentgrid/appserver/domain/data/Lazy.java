@@ -22,7 +22,7 @@ public class Lazy<T> {
      * The supplier of the lazy value.
      * If it is {@code null}, the value itself is valid (even if it is {@code null} itself)
      */
-    private Supplier<T> supplier;
+    private volatile Supplier<T> supplier;
 
     /**
      * The value after it has been fetched.
@@ -33,6 +33,11 @@ public class Lazy<T> {
      * The exception that was thrown when fetching the value
      */
     private Exception thrown;
+
+    /**
+     * Object used to synchronize the evaluation of the supplier on
+     */
+    private final Object evaluationLock = new Object();
 
     public static <T> Lazy<T> of(Supplier<T> supplier) {
         return new Lazy<>(supplier, null, null);
@@ -48,12 +53,19 @@ public class Lazy<T> {
     @EqualsAndHashCode.Include
     public T get() {
         if (supplier != null) {
-            try {
-                value = supplier.get();
-            } catch (Exception e) {
-                thrown = e;
-            } finally {
-                supplier = null; // Clear supplier indicate that a final value is present
+            // Double-checked locking, so:
+            // 1. there is no locking anymore after the value itself has settled,
+            // 2. the supplier is only evaluated once, even when `#get()` is executed in parallel across threads
+            synchronized (evaluationLock) {
+                if (supplier != null) {
+                    try {
+                        value = supplier.get();
+                    } catch (Exception e) {
+                        thrown = e;
+                    } finally {
+                        supplier = null; // Clear supplier indicate that a final value is present
+                    }
+                }
             }
         }
         rethrow();
