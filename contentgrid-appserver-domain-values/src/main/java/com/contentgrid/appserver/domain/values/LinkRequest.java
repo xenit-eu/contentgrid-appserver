@@ -34,9 +34,12 @@ public class LinkRequest {
     public static LinkRequest forLink(EntityName entityName, EntityId entityId, LinkIdentity linkIdentity) {
         return new LinkRequest(entityName, entityId, linkIdentity, VersionConstraint.ANY);
     }
+    public static LinkRequest forLink(EntityName entityName, EntityId entityId, LinkIdentity linkIdentity, VersionConstraint versionConstraint) {
+        return new LinkRequest(entityName, entityId, linkIdentity, versionConstraint);
+    }
 
     public EntityRequest toEntityRequest() {
-        return EntityRequest.forEntity(getEntityName(), getEntityId());
+        return EntityRequest.forEntity(getEntityName(), getEntityId(), getVersionConstraint());
     }
 
     public String toString() {
