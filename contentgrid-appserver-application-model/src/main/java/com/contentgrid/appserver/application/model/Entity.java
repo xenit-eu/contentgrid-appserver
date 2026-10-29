@@ -18,6 +18,8 @@ import com.contentgrid.appserver.application.model.i18n.TranslationBuilderSuppor
 import com.contentgrid.appserver.application.model.i18n.UnconfigurableTranslatable;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPathResolver;
 import com.contentgrid.appserver.application.model.searchfilters.SearchFilter;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -198,6 +200,29 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                 }
         );
         this.attributes.remove(this.primaryKey.getName());
+
+        // link path segments have to be unique for the entity
+        var linkPathSegments = new HashSet<String>();
+        for (var link : links) {
+            switch (link) {
+                case PlainEntityLink plainEntityLink -> {
+                    // nothing do do here, it doesn't have a path segment
+                }
+                case StoredEntityLink storedEntityLink -> {
+                    var storedEntityLInkPathSegment = storedEntityLink.getPathSegment();
+                    if (!linkPathSegments.add(storedEntityLInkPathSegment.getValue())) {
+                        throw new DuplicateElementException(
+                                "Duplicate EntityLink with pathSegment '%s'".formatted(storedEntityLInkPathSegment.getValue()));
+                    }
+                    this.getContentByPathSegment(storedEntityLInkPathSegment)
+                            .ifPresent(contentAttribute -> {
+                                throw new DuplicateElementException(
+                                        "EntityLink with pathSegment '%s' conflicts with ContentAttribute '%s'".formatted(
+                                                storedEntityLInkPathSegment.getValue(), contentAttribute.getName()));
+                            });
+                }
+            }
+        }
 
         this.links.addAll(links);
     }
