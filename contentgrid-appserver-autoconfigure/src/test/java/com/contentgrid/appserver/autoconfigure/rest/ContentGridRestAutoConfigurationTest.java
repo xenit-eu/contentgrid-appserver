@@ -17,6 +17,7 @@ import com.contentgrid.appserver.rest.automations.AutomationsRestController;
 import com.contentgrid.thunx.api.autoconfigure.AbacContextAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.http.converter.autoconfigure.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
@@ -49,6 +50,7 @@ class ContentGridRestAutoConfigurationTest {
                     BlueprintArtifactAutoConfiguration.class,
                     // autoconfiguration for domain
                     ContentGridDomainAutoConfiguration.class,
+                    TaskExecutionAutoConfiguration.class,
                     // autoconfigurations for rest
                     ContentGridEventsAutoConfiguration.class,
                     ContentGridRestFormatterAutoConfiguration.class,

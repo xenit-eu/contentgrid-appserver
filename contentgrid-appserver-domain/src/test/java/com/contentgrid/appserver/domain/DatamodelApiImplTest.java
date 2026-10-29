@@ -114,6 +114,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -218,6 +219,7 @@ class DatamodelApiImplTest {
                 application -> linkUriProvider,
                 application -> configurationProperties,
                 codec,
+                Runnable::run,
                 clock
         );
     }

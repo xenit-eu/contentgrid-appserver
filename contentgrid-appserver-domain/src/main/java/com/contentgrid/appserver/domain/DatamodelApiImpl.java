@@ -84,7 +84,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -100,8 +99,8 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final LinkUriProviderFactory linkUriProviderFactory;
     private final ConfigurationPropertiesFactory configurationPropertiesFactory;
     private final CursorCodec cursorCodec;
+    private final Executor asyncExecutor;
     private final Clock clock;
-    private static final Executor asyncExecutor = Executors.newCachedThreadPool();
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
