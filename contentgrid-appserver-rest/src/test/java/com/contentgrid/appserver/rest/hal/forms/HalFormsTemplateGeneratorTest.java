@@ -178,7 +178,7 @@ class HalFormsTemplateGeneratorTest {
     }
 
     @Test
-    void generateCreateTemplate_noContent() {
+    void generateCreateTemplate_withContentLink() {
         var template = generator.generateCreateTemplate(ModelTestFixtures.PERSON.getName());
 
         assertThat(template.getProperties()).satisfiesExactly(
@@ -236,7 +236,6 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(portrait.getName()).isEqualTo("portrait");
                     assertThat(portrait.getPrompt()).isEqualTo("portrait");
                     assertThat(portrait.isReadOnly()).isFalse();
-                    // A multi-value attribute can always be omitted (a missing value is the empty set)
                     assertThat(portrait.isRequired()).isFalse();
                     assertThat(portrait.getType()).isEqualTo(HtmlInputType.FILE_VALUE);
                 },
@@ -286,7 +285,32 @@ class HalFormsTemplateGeneratorTest {
                     });
                 }
         );
+
+        // No File input; use JSON for mediatype
         assertThat(template.getContentType()).isEqualTo(MediaType.MULTIPART_FORM_DATA_VALUE);
+    }
+
+    @Test
+    void generateCreateTemplate_noContent() {
+        var template = generator.generateCreateTemplate(ModelTestFixtures.STORE.getName());
+        assertThat(template.getProperties()).satisfiesExactly(
+                name -> {
+                    assertThat(name.getName()).isEqualTo("name");
+                    assertThat(name.getPrompt()).isEqualTo("name");
+                    assertThat(name.isReadOnly()).isFalse();
+                    assertThat(name.isRequired()).isTrue();
+                    assertThat(name.getType()).isEqualTo(HtmlInputType.TEXT_VALUE);
+
+                },
+                rating -> {
+                    assertThat(rating.getName()).isEqualTo("rating");
+                    assertThat(rating.getPrompt()).isEqualTo("rating");
+                    assertThat(rating.isReadOnly()).isFalse();
+                    assertThat(rating.isRequired()).isFalse();
+                    assertThat(rating.getType()).isEqualTo(HtmlInputType.NUMBER_VALUE);
+                }
+        );
+        assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test
