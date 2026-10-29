@@ -7,16 +7,12 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper.Validator;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
-@Slf4j
 public class ContentAttributeModificationValidator implements Validator {
     private final EntityInstance entityData;
 
@@ -24,9 +20,7 @@ public class ContentAttributeModificationValidator implements Validator {
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
         if (attribute instanceof ContentAttribute contentAttribute) {
-            var hasContent = resolveData(attributePath)
-                    .map(MapDataEntry.class::isInstance)
-                    .orElse(false);
+            var hasContent = entityData != null && entityData.hasContent(contentAttribute);
             if (dataEntry instanceof MapDataEntry mapDataEntry) {
                 if (!hasContent) {
                     for (var contentSubAttribute : contentAttribute.getAttributes()) {
@@ -58,24 +52,5 @@ public class ContentAttributeModificationValidator implements Validator {
             case MissingDataEntry missingDataEntry -> true;
             default -> false;
         };
-    }
-
-    private Optional<PlainDataEntry> resolveData(AttributePath path) {
-        if(entityData == null) {
-            return Optional.empty();
-        }
-        var attributeData = entityData.getData().get(path.getFirst().getValue());
-        var rest = path.getRest();
-        while(rest != null) {
-            if(attributeData instanceof MapDataEntry mapDataEntry) {
-                attributeData = mapDataEntry.get(rest.getFirst().getValue());
-            } else {
-                log.warn("Data is not composite along path {}", path);
-                return Optional.empty();
-            }
-            rest = rest.getRest();
-        }
-
-        return Optional.ofNullable(attributeData);
     }
 }

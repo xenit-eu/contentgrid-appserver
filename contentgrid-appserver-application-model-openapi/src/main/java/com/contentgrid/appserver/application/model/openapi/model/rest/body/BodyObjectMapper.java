@@ -28,6 +28,7 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import lombok.AccessLevel;
 import lombok.With;
 
@@ -45,9 +46,17 @@ public final class BodyObjectMapper {
             Application application,
             BodyType bodyType,
             MediaType mediaType,
-            UserLocales userLocales
+            UserLocales userLocales,
+            Predicate<ContentAttribute> contentPresent
     ) {
 
+        /**
+         * Context that describes an entity type, not an entity instance: content may or may not be present,
+         * so content sub-attributes are described as if content is present
+         */
+        public static Context forType(Application application, BodyType bodyType, MediaType mediaType, UserLocales userLocales) {
+            return new Context(application, bodyType, mediaType, userLocales, contentAttribute -> true);
+        }
     }
 
     private BodyObjectMapper() {}
@@ -59,7 +68,7 @@ public final class BodyObjectMapper {
      * @param entityName      the entity to map
      */
     public static ObjectBodyValue forSearch(Application application, UserLocales userLocales, EntityName entityName) {
-        var context = new Context(application, BodyType.RESPONSE, MediaType.FORM, userLocales);
+        var context = Context.forType(application, BodyType.RESPONSE, MediaType.FORM, userLocales);
         var entity = context.application().getRequiredEntityByName(entityName);
         var fields = new LinkedHashMap<String, BodyValue>();
         for (var searchFilter : entity.getSearchFilters()) {
@@ -314,8 +323,8 @@ public final class BodyObjectMapper {
                             .nullable(true)
                             .build();
                 }
-                if (context.bodyType() == BodyType.POST) {
-                    // For non-multipart POST forms, the content never exists, so filename/mimetype can't be specified
+                if (context.bodyType() == BodyType.POST || !context.contentPresent().test(ca)) {
+                    // Without content (which never exists for non-multipart POST forms), filename/mimetype can't be specified
                     yield null;
                 }
                 // For JSON / FORM media types, treat content as an object so that

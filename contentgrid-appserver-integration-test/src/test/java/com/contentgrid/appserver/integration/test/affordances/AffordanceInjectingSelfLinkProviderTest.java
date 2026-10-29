@@ -71,14 +71,6 @@ class AffordanceInjectingSelfLinkProviderTest {
                                             type: "text"
                                         },
                                         {
-                                            name: "content.mimetype",
-                                            type: "text"
-                                        },
-                                        {
-                                            name: "content.filename",
-                                            type: "text"
-                                        },
-                                        {
                                             name: "birthday",
                                             type: "datetime"
                                         },
@@ -132,14 +124,6 @@ class AffordanceInjectingSelfLinkProviderTest {
                                                     },
                                                     {
                                                         name: "vat",
-                                                        type: "text"
-                                                    },
-                                                    {
-                                                        name: "content.mimetype",
-                                                        type: "text"
-                                                    },
-                                                    {
-                                                        name: "content.filename",
                                                         type: "text"
                                                     },
                                                     {

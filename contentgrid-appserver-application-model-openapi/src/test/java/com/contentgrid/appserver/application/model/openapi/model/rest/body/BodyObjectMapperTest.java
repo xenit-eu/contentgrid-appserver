@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.Constraint.AllowedValuesConst
 import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.Constraint.UniqueConstraint;
 import com.contentgrid.appserver.application.model.Entity;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
@@ -62,7 +63,7 @@ class BodyObjectMapperTest {
     class ForBody {
 
         private static BodyObjectMapper.Context context(SupportedCombination combination) {
-            return new Context(APPLICATION, combination.bodyType(), combination.mediaType(), ENGLISH);
+            return Context.forType(APPLICATION, combination.bodyType(), combination.mediaType(), ENGLISH);
         }
 
         @RequiredArgsConstructor
@@ -196,7 +197,7 @@ class BodyObjectMapperTest {
                             .build())
                     .build();
 
-            var result = BodyObjectMapper.forBody(new Context(application, BodyType.POST, MediaType.JSON, ENGLISH),
+            var result = BodyObjectMapper.forBody(Context.forType(application, BodyType.POST, MediaType.JSON, ENGLISH),
                     EntityName.of("document"));
 
             assertThat(result.getField("tags")).hasValueSatisfying(value ->
@@ -276,6 +277,79 @@ class BodyObjectMapperTest {
         }
 
         @ParameterizedTest
+        @EnumSource(value = SupportedCombination.class, names = {"PUT_JSON", "PUT_JSON_FLAT", "PUT_FORM",
+                "PATCH_JSON", "PATCH_JSON_FLAT", "PATCH_FORM"})
+        void contentAttribute_contentNotPresent(SupportedCombination combination) {
+            var context = new Context(APPLICATION, combination.bodyType(), combination.mediaType(), ENGLISH,
+                    contentAttribute -> false);
+            var result = BodyObjectMapper.forBody(context, INVOICE.getName());
+
+            // Without content, filename and mimetype can't be set, so the content field is left out entirely
+            assertThat(result.getField("content")).isEmpty();
+            assertThat(result.getField("content.filename")).isEmpty();
+            assertThat(result.getField("content.mimetype")).isEmpty();
+            // Other attributes are unaffected
+            assertThat(result.getField("number")).isPresent();
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = SupportedCombination.class, names = {"PUT_JSON", "PUT_JSON_FLAT", "PUT_FORM",
+                "PATCH_JSON", "PATCH_JSON_FLAT", "PATCH_FORM"})
+        void contentAttribute_contentPresentPerAttribute(SupportedCombination combination) {
+            var attachment = contentAttribute("attachment");
+            var document = contentAttribute("document");
+            var application = Application.builder()
+                    .name(ApplicationName.of("test"))
+                    .entity(Entity.builder()
+                            .name(EntityName.of("letter"))
+                            .table(TableName.of("letter"))
+                            .pathSegment(PathSegmentName.of("letters"))
+                            .linkName(LinkName.of("letters"))
+                            .primaryKey(SimpleAttribute.builder()
+                                    .name(AttributeName.of("id"))
+                                    .column(ColumnName.of("id"))
+                                    .type(Type.UUID)
+                                    .flag(ReadOnlyFlag.INSTANCE)
+                                    .build())
+                            .attribute(attachment)
+                            .attribute(document)
+                            .build())
+                    .build();
+
+            // Only the attachment has content
+            var context = new Context(application, combination.bodyType(), combination.mediaType(), ENGLISH,
+                    contentAttribute -> contentAttribute.getName().equals(attachment.getName()));
+            var result = BodyObjectMapper.forBody(context, EntityName.of("letter"));
+
+            // Nested object for JSON, flattened "attachment.filename" fields otherwise
+            assertThat(result.getFields().keySet())
+                    .anyMatch(name -> name.startsWith("attachment"))
+                    .noneMatch(name -> name.startsWith("document"));
+        }
+
+        @Test
+        void contentAttribute_contentNotPresent_multipartUploadStillOffered() {
+            var context = new Context(APPLICATION, BodyType.POST, MediaType.MULTIPART_FORM, ENGLISH,
+                    contentAttribute -> false);
+            var result = BodyObjectMapper.forBody(context, INVOICE.getName());
+
+            assertThat(result.getField("content")).hasValueSatisfying(value ->
+                    assertThat(value).isInstanceOf(ContentBodyValue.class));
+        }
+
+        private static ContentAttribute contentAttribute(String name) {
+            return ContentAttribute.builder()
+                    .name(AttributeName.of(name))
+                    .pathSegment(PathSegmentName.of(name))
+                    .linkName(LinkName.of(name))
+                    .idColumn(ColumnName.of(name + "__id"))
+                    .filenameColumn(ColumnName.of(name + "__filename"))
+                    .mimetypeColumn(ColumnName.of(name + "__mimetype"))
+                    .lengthColumn(ColumnName.of(name + "__length"))
+                    .build();
+        }
+
+        @ParameterizedTest
         @EnumSource(SupportedCombination.class)
         void userAttribute(SupportedCombination combination) {
             var result = BodyObjectMapper.forBody(context(combination), ORDER.getName());
@@ -308,7 +382,7 @@ class BodyObjectMapperTest {
         @Test
         void attributeConstraintsPreserved() {
             var result = BodyObjectMapper.forBody(
-                    new Context(ModelTestFixtures.APPLICATION, BodyType.RESPONSE, MediaType.JSON, ENGLISH),
+                    Context.forType(ModelTestFixtures.APPLICATION, BodyType.RESPONSE, MediaType.JSON, ENGLISH),
                     INVOICE.getName());
             assertThat(result.getField("confidentiality")).get()
                     .isInstanceOfSatisfying(SimpleBodyValue.class, value -> {
