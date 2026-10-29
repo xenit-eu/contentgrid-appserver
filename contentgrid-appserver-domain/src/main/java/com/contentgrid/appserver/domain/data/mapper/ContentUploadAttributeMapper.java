@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.util.InvalidMimeTypeException;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
@@ -62,34 +63,41 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
     @Override
     protected Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(AttributePath path, CompositeAttribute attribute, DataEntry inputData) throws InvalidDataException {
         if(attribute instanceof ContentAttribute contentAttribute && inputData instanceof FileDataEntry fileDataEntry) {
-            MimeType mimeType;
             try {
-                mimeType = MimeTypeUtils.parseMimeType(fileDataEntry.getContentType());
-                if(!mimeType.isConcrete()) {
-                    throw new InvalidMimeTypeException(fileDataEntry.getContentType(), "Must be concrete");
-                }
-            } catch (InvalidMimeTypeException invalidMimeTypeException) {
-                throw new InvalidDataFormatException(DataType.of(FileDataEntry.class), invalidMimeTypeException);
-            }
-            try {
-                var inputStream = new CountingInputStream(fileDataEntry.getInputStream());
-                var contentAccessor = contentStore.writeContent(inputStream);
-
-                var builder = MapDataEntry.builder();
-                builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.getReference().getValue()))
-                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(inputStream.getSize()))
-                        .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(mimeType.toString()));
-
-                if(fileDataEntry.getFilename() != null) {
-                    builder.item(contentAttribute.getFilename().getName().getValue(), new StringDataEntry(fileDataEntry.getFilename()));
-                }
-
-                return Optional.of(builder.build());
-            } catch (UnwritableContentException|IOException e) {
+                return Optional.of(uploadFileDataEntry(contentStore, contentAttribute, fileDataEntry));
+            } catch (UnwritableContentException | IOException e) {
                 throw new RuntimeException(e);
             }
-
         }
         return Optional.of(inputData);
+    }
+
+    public static @NonNull MapDataEntry uploadFileDataEntry(ContentStore contentStore,
+            ContentAttribute contentAttribute, FileDataEntry fileDataEntry)
+            throws InvalidDataFormatException, IOException, UnwritableContentException {
+        MimeType mimeType;
+        try {
+            mimeType = MimeTypeUtils.parseMimeType(fileDataEntry.getContentType());
+            if (!mimeType.isConcrete()) {
+                throw new InvalidMimeTypeException(fileDataEntry.getContentType(), "Must be concrete");
+            }
+        } catch (InvalidMimeTypeException invalidMimeTypeException) {
+            throw new InvalidDataFormatException(DataType.of(FileDataEntry.class), invalidMimeTypeException);
+        }
+        var inputStream = new CountingInputStream(fileDataEntry.getInputStream());
+        var contentAccessor = contentStore.writeContent(inputStream);
+
+        var builder = MapDataEntry.builder();
+        builder.item(contentAttribute.getId().getName().getValue(),
+                        new StringDataEntry(contentAccessor.getReference().getValue()))
+                .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(inputStream.getSize()))
+                .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(mimeType.toString()));
+
+        if (fileDataEntry.getFilename() != null) {
+            builder.item(contentAttribute.getFilename().getName().getValue(),
+                    new StringDataEntry(fileDataEntry.getFilename()));
+        }
+
+        return builder.build();
     }
 }

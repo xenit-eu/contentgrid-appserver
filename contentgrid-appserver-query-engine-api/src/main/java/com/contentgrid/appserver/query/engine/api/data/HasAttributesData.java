@@ -1,9 +1,7 @@
 package com.contentgrid.appserver.query.engine.api.data;
 
-import com.contentgrid.appserver.application.model.values.AttributeName;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
-import com.contentgrid.appserver.application.model.propertypath.CompositeAttributePath;
-import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
+import com.contentgrid.appserver.application.model.values.AttributeName;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
@@ -14,22 +12,20 @@ public interface HasAttributesData {
 
     Optional<AttributeData> getAttributeByName(AttributeName name);
 
-    default Optional<SimpleAttributeData<?>> getNestedAttributeByPath(@NonNull AttributePath path) {
-        var maybeAttributeData = getAttributeByName(path.getFirst());
-        return switch (path) {
-            case SimpleAttributePath simpleAttributePath -> maybeAttributeData.flatMap(attr -> {
-                if (attr instanceof SimpleAttributeData<?> simpleAttributeData) {
-                    return Optional.of(simpleAttributeData);
-                }
-                return Optional.empty();
-            });
-            case CompositeAttributePath compositeAttributePath -> maybeAttributeData.flatMap(attr -> {
-                if(attr instanceof HasAttributesData hasAttributesData) {
-                    return hasAttributesData.getNestedAttributeByPath(path.getRest());
-                }
-                return Optional.empty();
-            });
-        };
+    default Optional<AttributeData> getNestedAttributeByPath(@NonNull AttributePath path) {
+        return getNestedAttributeByPath(path, AttributeData.class);
     }
 
+    default <T extends AttributeData> Optional<T> getNestedAttributeByPath(@NonNull AttributePath path,
+            @NonNull Class<T> attributeDataClass) {
+        var maybeAttributeData = getAttributeByName(path.getFirst());
+        if (path.getRest() == null) {
+            return maybeAttributeData
+                    .map(attributeDataClass::cast);
+        }
+        return maybeAttributeData
+                .map(HasAttributesData.class::cast)
+                .flatMap(hasAttributesData -> hasAttributesData.getNestedAttributeByPath(path.getRest(),
+                        attributeDataClass));
+    }
 }

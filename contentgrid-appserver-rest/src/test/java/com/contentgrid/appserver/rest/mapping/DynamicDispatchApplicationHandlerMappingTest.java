@@ -280,8 +280,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
 
         private StoredEntityLink getStoredEntityLink(String entityName, String linkPath) {
             return APPLICATION.getEntityByPathSegment(PathSegmentName.of(entityName)).orElseThrow()
-                    // SpecializedOnLinkType extracts *linkPath with leading '/', consistent with Spring pathparam extraction. Handle leading slash in controller
-                    .getStoredEntityLinkByPathSegments(PathSegmentName.of(linkPath.substring(1)))
+                    .getStoredEntityLinkByPathSegments(PathSegmentName.of(linkPath))
                     .orElseThrow();
         }
 
