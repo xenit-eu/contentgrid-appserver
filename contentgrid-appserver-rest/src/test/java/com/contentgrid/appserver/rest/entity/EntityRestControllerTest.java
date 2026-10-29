@@ -986,6 +986,14 @@ class EntityRestControllerTest {
                                             {
                                                 name: "tags",
                                                 prompt: "Tags"
+                                            },
+                                            {
+                                                name: "portrait.filename",
+                                                prompt: "portrait: Filename"
+                                            },
+                                            {
+                                                name: "portrait.mimetype",
+                                                prompt: "portrait: Mimetype"
                                             }
                                         ]
                                     }
