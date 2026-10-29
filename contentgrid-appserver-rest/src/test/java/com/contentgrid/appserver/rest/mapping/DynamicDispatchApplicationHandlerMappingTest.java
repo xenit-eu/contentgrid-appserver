@@ -274,7 +274,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @PathVariable String entityName,
                 @PathVariable String linkPath
         ) {
-            var link = getStoredEntityLink(entityName, linkPath);
+            var link = getStoredEntityLink(entityName, linkPath.substring(1));
             return ResponseEntity.ok("Get link %s".formatted(link.getIdentity()));
         }
 
@@ -290,7 +290,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @PathVariable String entityName,
                 @PathVariable String linkPath
         ) {
-            var link = getStoredEntityLink(entityName, linkPath);
+            var link = getStoredEntityLink(entityName, linkPath.substring(1));
             return ResponseEntity.ok("PUT text link %s".formatted(link.getIdentity()));
         }
 
@@ -300,7 +300,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @PathVariable String entityName,
                 @PathVariable String linkPath
         ) {
-            var link = getStoredEntityLink(entityName, linkPath);
+            var link = getStoredEntityLink(entityName, linkPath.substring(1));
             return ResponseEntity.ok("PUT content link %s".formatted(link.getIdentity()));
         }
 

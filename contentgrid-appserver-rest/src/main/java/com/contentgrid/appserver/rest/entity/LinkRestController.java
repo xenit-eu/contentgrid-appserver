@@ -34,7 +34,7 @@ import org.springframework.web.context.request.WebRequest;
 @RestController
 @RequiredArgsConstructor
 @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath")
-public class DatamodelExtensionLinkRestController {
+public class LinkRestController {
 
     private final DatamodelApi datamodelApi;
     private final EntityDataRepresentationModelAssembler assembler;
