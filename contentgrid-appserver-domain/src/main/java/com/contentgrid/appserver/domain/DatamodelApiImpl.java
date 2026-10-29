@@ -64,8 +64,10 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.exception.DomainException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -589,7 +591,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
         // Early rejection before mapping (and uploading) the new value. This read is not locked, so the same check is
         // repeated by the query engine on the locked row to guard against concurrent writes of this link.
-        var existingEntityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+        var existingEntityData = queryEngine.findById(application, existingEntityRequest, authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
         linkVersionCheck.check(existingEntityData);
 
