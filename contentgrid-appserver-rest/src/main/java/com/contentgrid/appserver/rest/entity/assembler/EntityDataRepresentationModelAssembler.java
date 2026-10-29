@@ -96,7 +96,7 @@ public class EntityDataRepresentationModelAssembler implements RepresentationMod
             model.add(link);
         }
 
-        return model.addTemplate(context.templateGenerator().generateUpdateTemplate(entity.getName()))
+        return model.addTemplate(context.templateGenerator().generateUpdateTemplate(entity.getName(), entityData::hasContent))
                 .addTemplate(getDeleteTemplate());
     }
 

@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -82,8 +83,8 @@ public class HalFormsTemplateGenerator {
                 .build();
     }
 
-    public HalFormsTemplate generateUpdateTemplate(EntityName entityName) {
-        var body = BodyObjectMapper.forBody(new Context(application, BodyType.PUT, FLAT_JSON, userLocales), entityName);
+    public HalFormsTemplate generateUpdateTemplate(EntityName entityName, Predicate<ContentAttribute> contentPresent) {
+        var body = BodyObjectMapper.forBody(new Context(application, BodyType.PUT, FLAT_JSON, userLocales, contentPresent), entityName);
         var properties = toHalFormsProperties(body);
         return HalFormsTemplate.builder()
                 .key(HalFormsTemplate.DEFAULT_KEY)

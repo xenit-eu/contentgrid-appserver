@@ -5,6 +5,7 @@ import static com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers.
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -769,12 +770,6 @@ class EntityRestControllerTest {
                                         }, {
                                             name: "in_stock",
                                             type: "checkbox"
-                                        }, {
-                                            name: "picture.filename",
-                                            type: "text"
-                                        }, {
-                                            name: "picture.mimetype",
-                                            type: "text"
                                         }]
                                     },
                                     delete: {
@@ -845,14 +840,16 @@ class EntityRestControllerTest {
                     .content("My small content")
             ).andExpect(status().isNoContent());
 
-            mockMvc.perform(get(invoice.getRedirectedUrl()))
+            mockMvc.perform(get(invoice.getRedirectedUrl()).accept(MediaTypes.HAL_FORMS_JSON))
                     .andExpect(status().isOk())
                     .andExpect(header().exists(HttpHeaders.ETAG))
                     .andExpect(jsonPath("$.pay_before", nullValue()))
                     .andExpect(jsonPath("$.content.id").doesNotExist())
                     .andExpect(jsonPath("$.content.filename", nullValue()))
                     .andExpect(jsonPath("$.content.mimetype", is("text/plain;charset=UTF-8")))
-                    .andExpect(jsonPath("$.content.length", is(16)));
+                    .andExpect(jsonPath("$.content.length", is(16)))
+                    .andExpect(jsonPath("$._templates.default.properties[*].name",
+                            hasItems("content.filename", "content.mimetype")));
         }
 
         @ParameterizedTest

@@ -5,6 +5,8 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApi;
 import com.contentgrid.appserver.integration.test.fixture.invoicing.InvoicingApiApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -284,6 +286,10 @@ class HalLinkTitlesAndFormPromptsTest {
 
     @Test
     void promptOnCgContentPropertiesInHalForms() throws Exception {
+        // Content properties are only in the form when content is present
+        invoicingApi.storeInvoiceAttachment(invoiceId, "attachment.txt", "text/plain",
+                new ByteArrayInputStream("attachment".getBytes(StandardCharsets.UTF_8)));
+
         mockMvc.perform(MockMvcRequestBuilders.get("/invoices/" + invoiceId).accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(res -> System.out.println(res.getResponse().getContentAsString()))
@@ -302,7 +308,7 @@ class HalLinkTitlesAndFormPromptsTest {
                                             name: "attachment.mimetype",
                                             type: "text"
                                         },
-                                        {},{},{},{},{}
+                                        {},{},{}
                                     ]
                                 }
                             }

@@ -284,7 +284,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateUpdateTemplate() {
-        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName());
+        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName(), contentAttribute -> true);
 
         assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
@@ -371,6 +371,16 @@ class HalFormsTemplateGeneratorTest {
         );
 
         assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
+    }
+
+    @Test
+    void generateUpdateTemplate_contentNotPresent() {
+        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName(), contentAttribute -> false);
+
+        assertThat(template.getProperties())
+                .extracting(HalFormsProperty::getName)
+                .containsExactly("number", "amount", "received", "pay_before", "pay_timestamp", "is_paid",
+                        "confidentiality", "labels");
     }
 
     @Test

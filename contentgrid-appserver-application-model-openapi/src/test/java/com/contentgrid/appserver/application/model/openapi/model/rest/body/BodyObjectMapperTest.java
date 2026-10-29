@@ -276,6 +276,22 @@ class BodyObjectMapperTest {
         }
 
         @ParameterizedTest
+        @EnumSource(value = SupportedCombination.class, names = {"PUT_JSON", "PUT_JSON_FLAT", "PUT_FORM",
+                "PATCH_JSON", "PATCH_JSON_FLAT", "PATCH_FORM"})
+        void contentAttribute_contentNotPresent(SupportedCombination combination) {
+            var context = new Context(APPLICATION, combination.bodyType(), combination.mediaType(), ENGLISH,
+                    contentAttribute -> false);
+            var result = BodyObjectMapper.forBody(context, INVOICE.getName());
+
+            // Without content, filename and mimetype can't be set, so the content field is left out entirely
+            assertThat(result.getField("content")).isEmpty();
+            assertThat(result.getField("content.filename")).isEmpty();
+            assertThat(result.getField("content.mimetype")).isEmpty();
+            // Other attributes are unaffected
+            assertThat(result.getField("number")).isPresent();
+        }
+
+        @ParameterizedTest
         @EnumSource(SupportedCombination.class)
         void userAttribute(SupportedCombination combination) {
             var result = BodyObjectMapper.forBody(context(combination), ORDER.getName());
