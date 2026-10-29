@@ -26,6 +26,7 @@ import com.contentgrid.appserver.domain.data.mapper.AttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper.Mode;
 import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
+import com.contentgrid.appserver.domain.data.mapper.ContentUploadInteractionManager;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
@@ -82,6 +83,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -98,6 +101,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final ConfigurationPropertiesFactory configurationPropertiesFactory;
     private final CursorCodec cursorCodec;
     private final Clock clock;
+    private static final Executor asyncExecutor = Executors.newCachedThreadPool();
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
@@ -109,7 +113,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
-        var contentStore = contentStoreResolver.resolve(application);
+        var uploadManager = new ContentUploadInteractionManager(contentStoreResolver.resolve(application), asyncExecutor);
 
         var constraintValidatingMapper = new OptionalFlatMapAdaptingMapper<>(
                 AttributeAndRelationMapper.from(
@@ -131,7 +135,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .andThen(mapper)
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
-                                new ContentUploadAttributeMapper(contentStore),
+                                new ContentUploadAttributeMapper(uploadManager),
                                 (rel, value) -> Optional.of(value)
                         )
                 ))
@@ -144,6 +148,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         return new RequestInputDataMapper(
                 entity.getAttributes(),
                 relations,
+                uploadManager,
                 combinedMapper,
                 combinedMapper
         );
@@ -291,7 +296,10 @@ public class DatamodelApiImpl implements DatamodelApi {
         var outputMapper = createOutputDataMapper(application, entityName);
 
         CreateEventConsumer onCreate = new EventConsumerImpl(outputMapper);
-        return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
+
+        var createResult = inputMapper.ensureInteractions(() -> queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
+
+        return outputMapper.mapAttributes(createResult);
     }
 
 
@@ -329,7 +337,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        var updateData = inputMapper.ensureInteractions(() -> queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate));
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -368,7 +377,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        var updateData = inputMapper.ensureInteractions(() -> queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate));
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }

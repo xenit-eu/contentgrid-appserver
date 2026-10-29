@@ -5,16 +5,13 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
-import com.contentgrid.appserver.domain.data.Lazy;
-import java.io.IOException;
+import com.contentgrid.appserver.domain.data.mapper.ContentUploadInteractionManager.UploadResult;
 import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMapper {
 
-    private final ContentStore contentStore;
+    private final ContentUploadInteractionManager contentUploadManager;
 
     @Override
     protected Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData) {
@@ -58,25 +55,11 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
     @Override
     protected Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(AttributePath path, CompositeAttribute attribute, DataEntry inputData) throws InvalidDataException {
         if(attribute instanceof ContentAttribute contentAttribute && inputData instanceof FileDataEntry fileDataEntry) {
-            var inputStream = Lazy.of(() -> {
-                try {
-                    return new CountingInputStream(fileDataEntry.getInputStream());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-
-            var contentAccessor = inputStream.map(is -> {
-                try {
-                    return contentStore.writeContent(is);
-                } catch (UnwritableContentException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            var uploadResultLazy = contentUploadManager.scheduleUpload(fileDataEntry::getInputStream);
 
             var builder = MapDataEntry.builder();
-            builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.map(ca -> ca.getReference().getValue())))
-                    .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(contentAccessor.map(_unused -> inputStream.get().getSize())))
+            builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(uploadResultLazy.map(uploadResult -> uploadResult.accessor().getReference().getValue())))
+                    .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(uploadResultLazy.map(UploadResult::size)))
                     .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(fileDataEntry.getContentType()));
 
             if(fileDataEntry.getFilename() != null) {
