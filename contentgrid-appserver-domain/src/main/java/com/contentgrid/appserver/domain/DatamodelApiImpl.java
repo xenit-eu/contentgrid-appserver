@@ -66,7 +66,9 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.exception.DomainException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -74,6 +76,7 @@ import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -276,7 +279,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
             @NonNull AuthorizationContext authorizationContext
-    ) throws QueryEngineException, InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
@@ -557,6 +560,13 @@ public class DatamodelApiImpl implements DatamodelApi {
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+        // TODO ACC-3004 wrap queryengineExceptions?
+//        UpdateResult updateResult = null;
+//        try {
+//            queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+//        } catch (QueryEngineException qEEx) {
+//            handleQueryEngineException(qEEx);
+//        }
         var attributeData = updateResult
                 .getUpdated();
         return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage).orElseThrow();
@@ -613,6 +623,25 @@ public class DatamodelApiImpl implements DatamodelApi {
     public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
         updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
     }
+
+// TODO ACC-3004 Wrap queryEngineExceptions in DomainExceptions?
+
+//    private void handleQueryEngineException(QueryEngineException queryEngineException) {
+//        switch(queryEngineException) {
+//            case com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException unsatisfiedVersionQEException ->
+//                    throw new UnsatisfiedVersionException(unsatisfiedVersionQEException.getActualVersion(), unsatisfiedVersionQEException.getRequestedVersion(), unsatisfiedVersionQEException);
+//            // !! Preserve order of relationTargetNotFound > entityIdNotFound or switch will break. RTNF extends EINF.
+//            case com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException relationTargetNotFoundQEException ->
+//                    throw new RelationTargetNotFoundException(
+//                            relationTargetNotFoundQEException.getEntityName(),
+//                            relationTargetNotFoundQEException.getId(),
+//                            relationTargetNotFoundQEException.getRelation(),
+//                            relationTargetNotFoundQEException);
+//            case com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException entityIdNotFoundQEException ->
+//                    throw new EntityIdNotFoundException(entityIdNotFoundQEException.getEntityName(), entityIdNotFoundQEException.getId(), entityIdNotFoundQEException);
+//            default -> throw new DomainException("QueryEngineException could not be handled at domain layer.", queryEngineException);
+//        }
+//    }
 
     @RequiredArgsConstructor
     private class ResponseOutputDataMapper {
