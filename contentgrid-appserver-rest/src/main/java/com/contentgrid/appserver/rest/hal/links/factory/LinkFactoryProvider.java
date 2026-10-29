@@ -14,7 +14,7 @@ import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
-import com.contentgrid.appserver.rest.entity.DatamodelExtensionLinkRestController;
+import com.contentgrid.appserver.rest.entity.LinkRestController;
 import com.contentgrid.appserver.rest.entity.EntityRestController;
 import com.contentgrid.appserver.rest.profile.ProfileRestController;
 import com.contentgrid.appserver.rest.metadata.RootRestController;
@@ -292,7 +292,7 @@ public class LinkFactoryProvider {
             case StoredEntityLink storedEntityLink -> {
                 var pathSegments = storedEntityLink.getPathSegment();
                 yield Optional.of(
-                                linkTo(methodOn(DatamodelExtensionLinkRestController.class)
+                                linkTo(methodOn(LinkRestController.class)
                                         .getLink(
                                                 application,
                                                 entity.getPathSegment(),
