@@ -63,7 +63,9 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.exception.DomainException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -71,6 +73,7 @@ import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
@@ -273,7 +276,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
             @NonNull AuthorizationContext authorizationContext
-    ) throws QueryEngineException, InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,

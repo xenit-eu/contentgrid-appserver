@@ -18,7 +18,13 @@ public class EntityIdNotFoundException extends RuntimeException { //TODO ACC-300
     private final EntityId id;
 
     public EntityIdNotFoundException(@NonNull EntityName entityName, @NonNull EntityId entityId) {
-        super("No entity '%s' found with id '%s'".formatted(entityName, entityId));
+        super(formatMessage(entityName, entityId));
+        this.entityName = entityName;
+        this.id = entityId;
+    }
+
+    public EntityIdNotFoundException(@NonNull EntityName entityName, @NonNull EntityId entityId, @NonNull Throwable cause) {
+        super(formatMessage(entityName, entityId), cause);
         this.entityName = entityName;
         this.id = entityId;
     }
@@ -34,5 +40,9 @@ public class EntityIdNotFoundException extends RuntimeException { //TODO ACC-300
     @Override
     public String getMessage() {
         return "No entity '%s' found with id '%s'".formatted(entityName, id);
+    }
+
+    public static String formatMessage(EntityName entityName, EntityId entityId) {
+        return "No entity '%s' found with id '%s'".formatted(entityName, entityId);
     }
 }

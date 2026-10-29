@@ -1,5 +1,7 @@
 package com.contentgrid.appserver.domain.values.exception;
 
+import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import lombok.Getter;
@@ -14,9 +16,35 @@ import lombok.NonNull;
 public class RelationTargetNotFoundException extends EntityIdNotFoundException {
     private final RelationIdentity relation;
 
-    public RelationTargetNotFoundException(@NonNull EntityIdentity entity, @NonNull RelationIdentity relation) {
-        super(entity.getEntityName(), entity.getEntityId());
+    public RelationTargetNotFoundException(
+            @NonNull EntityName entityName,
+            @NonNull EntityId entityId,
+            @NonNull RelationIdentity relation) {
+        super(entityName, entityId);
         this.relation = relation;
+    }
+
+    public RelationTargetNotFoundException(
+            @NonNull EntityName entityName,
+            @NonNull EntityId entityId,
+            @NonNull RelationIdentity relation,
+            @NonNull Throwable cause) {
+        super(entityName, entityId, cause);
+        this.relation = relation;
+    }
+
+    public RelationTargetNotFoundException(
+            @NonNull EntityIdentity entity,
+            @NonNull RelationIdentity relation) {
+        this(entity.getEntityName(), entity.getEntityId(), relation);
+    }
+
+    public RelationTargetNotFoundException(
+            @NonNull EntityIdentity entityIdentity,
+            @NonNull RelationIdentity relationIdentity,
+            @NonNull Throwable cause
+    ) {
+        this(entityIdentity.getEntityName(), entityIdentity.getEntityId(), relationIdentity, cause);
     }
 
     @Override
