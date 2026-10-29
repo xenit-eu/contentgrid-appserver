@@ -64,7 +64,6 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
-import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.DomainException;
