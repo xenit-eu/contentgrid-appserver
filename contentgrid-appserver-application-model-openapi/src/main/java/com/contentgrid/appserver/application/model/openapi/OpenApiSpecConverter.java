@@ -535,7 +535,7 @@ public class OpenApiSpecConverter {
 
         var schemaName = entityName.getValue() + suffixName;
         return context.spec().getComponents().getSchemas().register(schemaName, () -> {
-            var body = BodyObjectMapper.forBody(new Context(context.application(), bodyType, mediaType, UserLocales.defaults()), entityName);
+            var body = BodyObjectMapper.forBody(Context.forType(context.application(), bodyType, mediaType, UserLocales.defaults()), entityName);
             var jsonSchema = (JsonSchemaObject) bodyValueToJsonSchema(context, body, bodyType);
             if(bodyType == BodyType.RESPONSE) {
                 jsonSchema

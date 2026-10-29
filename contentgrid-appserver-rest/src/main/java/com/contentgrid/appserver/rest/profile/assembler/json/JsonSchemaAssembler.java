@@ -37,9 +37,9 @@ public class JsonSchemaAssembler {
 
     public JsonSchema toModel(Entity entity, Context context) {
         var postBody = BodyObjectMapper.forBody(
-                new BodyObjectMapper.Context(context.application(), BodyType.POST, MediaType.JSON, context.userLocales()), entity.getName());
+                BodyObjectMapper.Context.forType(context.application(), BodyType.POST, MediaType.JSON, context.userLocales()), entity.getName());
         var responseBody = BodyObjectMapper.forBody(
-                new BodyObjectMapper.Context(context.application(), BodyType.RESPONSE, MediaType.JSON, context.userLocales()), entity.getName());
+                BodyObjectMapper.Context.forType(context.application(), BodyType.RESPONSE, MediaType.JSON, context.userLocales()), entity.getName());
 
         var definitions = new Definitions();
 

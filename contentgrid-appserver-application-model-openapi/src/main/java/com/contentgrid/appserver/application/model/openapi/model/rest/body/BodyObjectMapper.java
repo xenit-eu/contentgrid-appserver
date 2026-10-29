@@ -51,10 +51,11 @@ public final class BodyObjectMapper {
     ) {
 
         /**
-         * Context that is not bound to an entity instance: content sub-attributes are described as if content is present
+         * Context that describes an entity type, not an entity instance: content may or may not be present,
+         * so content sub-attributes are described as if content is present
          */
-        public Context(Application application, BodyType bodyType, MediaType mediaType, UserLocales userLocales) {
-            this(application, bodyType, mediaType, userLocales, contentAttribute -> true);
+        public static Context forType(Application application, BodyType bodyType, MediaType mediaType, UserLocales userLocales) {
+            return new Context(application, bodyType, mediaType, userLocales, contentAttribute -> true);
         }
     }
 
@@ -67,7 +68,7 @@ public final class BodyObjectMapper {
      * @param entityName      the entity to map
      */
     public static ObjectBodyValue forSearch(Application application, UserLocales userLocales, EntityName entityName) {
-        var context = new Context(application, BodyType.RESPONSE, MediaType.FORM, userLocales);
+        var context = Context.forType(application, BodyType.RESPONSE, MediaType.FORM, userLocales);
         var entity = context.application().getRequiredEntityByName(entityName);
         var fields = new LinkedHashMap<String, BodyValue>();
         for (var searchFilter : entity.getSearchFilters()) {

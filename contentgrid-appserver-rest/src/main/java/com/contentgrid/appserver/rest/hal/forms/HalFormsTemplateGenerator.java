@@ -72,7 +72,7 @@ public class HalFormsTemplateGenerator {
 
     public HalFormsTemplate generateCreateTemplate(EntityName entityName) {
         var hasFiles = !application.getRequiredEntityByName(entityName).getContentAttributes().isEmpty();
-        var body = BodyObjectMapper.forBody(new Context(application, BodyType.POST, hasFiles?MULTIPART_FORM:FLAT_JSON, userLocales), entityName);
+        var body = BodyObjectMapper.forBody(Context.forType(application, BodyType.POST, hasFiles?MULTIPART_FORM:FLAT_JSON, userLocales), entityName);
         var properties = toHalFormsProperties(body);
         return HalFormsTemplate.builder()
                 .key(IanaLinkRelations.CREATE_FORM_VALUE)
