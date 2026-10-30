@@ -67,6 +67,7 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -537,6 +538,11 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public StoredLinkValue updateLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
             @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
+        return writeLink(application, linkRequest, value, authorizationContext).orElseThrow();
+    }
+
+    private Optional<StoredLinkValue> writeLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+            @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
         var storage = application
                 .getRequiredEntityByName(linkRequest.getEntityName())
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
@@ -544,11 +550,16 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .getStorage();
 
         var targetEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
-        var targetEntity = this.findLink(application, linkRequest, authorizationContext)
+        var targetEntity = queryEngine.findById(application, targetEntityRequest, authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
 
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetEntity.getVersion())) {
-            throw new UnsatisfiedVersionException(targetEntity.getVersion(), linkRequest.getVersionConstraint());
+        // An empty link has no value, and therefore no version
+        var linkVersion = mapAttributeDataToStoredValue(targetEntity, application, linkRequest.getEntityName(), storage)
+                .map(StoredLinkValue::getVersion)
+                .orElse(Version.nonExisting());
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(linkVersion)) {
+            throw new UnsatisfiedVersionException(linkVersion, linkRequest.getVersionConstraint());
         }
 
         var entityData = new EntityData(
@@ -566,7 +577,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 //        }
         var attributeData = updateResult
                 .getUpdated();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage).orElseThrow();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
@@ -618,7 +629,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
-        updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
+        writeLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
     }
 
 // TODO ACC-3004 Wrap queryEngineExceptions in DomainExceptions?
