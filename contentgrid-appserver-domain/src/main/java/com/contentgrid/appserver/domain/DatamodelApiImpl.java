@@ -64,6 +64,7 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -561,6 +562,15 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
         if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
             throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
+        }
+        // An empty link has no value, and therefore no version
+            //TODO ACC-3004 clean up
+        var linkVersion = mapAttributeDataToStoredValue(queryEngine.findById(application, existingEntityRequest, authorizationContext.predicate()).orElseThrow(), application, linkRequest.getEntityName(), storage)
+                .map(StoredLinkValue::getVersion)
+                .orElse(Version.nonExisting());
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(linkVersion)) {
+            throw new UnsatisfiedVersionException(linkVersion, linkRequest.getVersionConstraint());
         }
 
         var entityData = new EntityData(
