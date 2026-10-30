@@ -58,7 +58,7 @@ public final class ContentVersion {
     }
 
     @SneakyThrows(NoSuchAlgorithmException.class)
-    private static String hash(String... inputs) {
+    static String hash(String... inputs) {
         var md = MessageDigest.getInstance("SHA256");
 
         for (var input : inputs) {

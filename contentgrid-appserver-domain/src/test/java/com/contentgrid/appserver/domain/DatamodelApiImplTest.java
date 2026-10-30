@@ -2219,6 +2219,10 @@ class DatamodelApiImplTest {
             return createDocumentData(id, Version.unspecified());
         }
 
+        private static Version ftsVersion(EntityId id, String text) {
+            return TextLinkVersion.calculate(EntityIdentity.forEntity(DOCUMENT.getName(), id), FTS_LINK.getIdentity(), text);
+        }
+
         private static EntityData createDocumentData(EntityId id, Version version) {
             return new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), id, version),
@@ -2398,7 +2402,7 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2484,8 +2488,9 @@ class DatamodelApiImplTest {
         @Test
         void updateLink_storesTextData_withVersionConstraint() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
-            var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
+            // The text link version is calculated from the link identity and the stored text, not the entity version
+            var mustMatchVersionConstraint = ftsVersion(entityId, EXTRACTION);
+            var entityData = createDocumentData(entityId);
             var updateResultEntityData = new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), entityId, Version.exactly("UPDATED_VERSION")),
                     List.of(buildLinksAttribute(
@@ -2675,7 +2680,8 @@ class DatamodelApiImplTest {
                     }
                 );
             assertEquals(
-                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version unspecified)",
+                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version %s)"
+                            .formatted(ftsVersion(entityId, EXTRACTION)),
                     ex.getMessage());
         }
 

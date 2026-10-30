@@ -10,6 +10,9 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
+import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
+import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.LinkRequest;
@@ -18,16 +21,21 @@ import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType;
+import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType.StoredLinkType;
+import java.io.InputStream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
@@ -89,19 +97,76 @@ public class LinkRestController {
         return ResponseEntity.ok(targetLink);
     }
 
-    @PutMapping("/{entityName}/{entityId}/{*linkPath}")
-    public ResponseEntity<Object> updateLink(
+    @SpecializedOnLinkType(type = StoredLinkType.TEXT, entityPathVariable = "entityName", linkPathVariable = "*linkPath")
+    @PutMapping(value = "/{entityName}/{entityId}/{*linkPath}", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<Object> updateTextLink(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId entityId,
             @PathVariable PathSegmentName linkPath,
             VersionConstraint versionConstraint,
-            WebRequest webRequest,
-            AuthorizationContext authorizationContext,
-            LinkFactoryProvider linkFactoryProvider
+            @RequestBody String requestBody,
+            AuthorizationContext authorizationContext
     ) {
-        return ResponseEntity
-                .status(HttpStatus.NOT_IMPLEMENTED)
+        var entity = getEntityOrThrow(application, entityName);
+        var storedLink = getStoredLinkOrThrow(entity, linkPath);
+        var linkRequest = LinkRequest.forLink(
+                entity.getName(),
+                entityId,
+                storedLink.getIdentity(),
+                versionConstraint
+        );
+        var newValue = datamodelApi.updateLink(
+                application,
+                linkRequest,
+                new StringDataEntry(requestBody),
+                authorizationContext
+        );
+        return ResponseEntity.noContent()
+                .eTag(versionValidator.calculateETag(newValue.getVersion()))
+                .build();
+    }
+
+    @SpecializedOnLinkType(type = StoredLinkType.CONTENT, entityPathVariable = "entityName", linkPathVariable = "*linkPath")
+    @PutMapping(value = "/{entityName}/{entityId}/{*linkPath}", consumes = MediaType.ALL_VALUE)
+    public ResponseEntity<Object> updateContentLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId entityId,
+            @PathVariable PathSegmentName linkPath,
+            @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
+            VersionConstraint versionConstraint,
+            @RequestBody(required = false) InputStreamResource requestBody,
+            @RequestHeader(value = HttpHeaders.CONTENT_DISPOSITION, required = false) String contentDisposition,
+            AuthorizationContext authorizationContext
+    ) {
+        var entity = getEntityOrThrow(application, entityName);
+        var storedLink = getStoredLinkOrThrow(entity, linkPath);
+        var linkRequest = LinkRequest.forLink(
+                entity.getName(),
+                entityId,
+                storedLink.getIdentity(),
+                versionConstraint
+        );
+
+        String filename = null;
+        if (contentDisposition != null) {
+            try {
+                filename = ContentDisposition.parse(contentDisposition).getFilename();
+            } catch (IllegalArgumentException e) {
+                // ignore, filename stays null
+            }
+        }
+        InputStreamSupplier inputStreamSupplier = requestBody != null ? requestBody::getInputStream : InputStream::nullInputStream;
+
+        var newValue = datamodelApi.updateLink(
+                application,
+                linkRequest,
+                new FileDataEntry(filename, contentType.toString(), inputStreamSupplier),
+                authorizationContext
+        );
+        return ResponseEntity.noContent()
+                .eTag(versionValidator.calculateETag(newValue.getVersion()))
                 .build();
     }
 
