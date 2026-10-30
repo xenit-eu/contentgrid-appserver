@@ -153,13 +153,13 @@ public class ModelTestFixtures {
             .build();
 
     public static final StoredEntityLink PERSON_SUMMARY_LINK = StoredEntityLink.builder()
-            .identity(new UnnamedLink(URI.create("https://people.example/rel/summary")))
+            .identity(new UnnamedLink(URI.create("summary-hash123")))
             .pathSegment(PathSegmentName.of("_links/summary-hash123"))
             .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_SUMMARY.getName())))
             .build();
 
     public static final StoredEntityLink PERSON_PORTRAIT_LINK = StoredEntityLink.builder()
-            .identity(new NamedLink(URI.create("https://people.example/rel/portrait/16-9"), "portrait"))
+            .identity(new NamedLink(URI.create("16-9-hash123"), "portrait"))
             .pathSegment(PathSegmentName.of("_links/16-9-hash123/portrait"))
             .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_PORTRAIT.getName())))
             .build();
