@@ -235,10 +235,22 @@ class ProfileRestControllerTest {
                                     _embedded: {
                                         "blueprint:attribute": [{
                                             name: "filename",
-                                            type: "string"
+                                            type: "string",
+                                            "_embedded": {
+                                                "blueprint:constraint": [{
+                                                    pattern: "^(?!^\\\\x2e{1,2}$)[^\\\\x3c\\\\x3e\\\\x3a\\\\x22\\\\x2f\\\\x5c\\\\x7c\\\\x3f\\\\x2a\\\\x00-\\\\x1f]+$",
+                                                    type: "pattern"
+                                                }]
+                                            }
                                         }, {
                                             name: "mimetype",
-                                            type: "string"
+                                            type: "string",
+                                            _embedded: {
+                                                "blueprint:constraint": [{
+                                                    pattern: "(?!\\\\x2a)[\\\\x21\\\\x23\\\\x24\\\\x25\\\\x26\\\\x2a\\\\x2b\\\\x2d\\\\x2e\\\\x5e\\\\x5f\\\\x60\\\\x7c\\\\x7e\\\\x30-\\\\x39\\\\x41-\\\\x5a\\\\x61-\\\\x7a]+\\\\x2f(?!\\\\x2a)[\\\\x21\\\\x23\\\\x24\\\\x25\\\\x26\\\\x2a\\\\x2b\\\\x2d\\\\x2e\\\\x5e\\\\x5f\\\\x60\\\\x7c\\\\x7e\\\\x30-\\\\x39\\\\x41-\\\\x5a\\\\x61-\\\\x7a]+(?:[\\\\x20\\\\x09]*\\\\x3b[\\\\x20\\\\x09]*(?:[\\\\x21\\\\x23\\\\x24\\\\x25\\\\x26\\\\x2a\\\\x2b\\\\x2d\\\\x2e\\\\x5e\\\\x5f\\\\x60\\\\x7c\\\\x7e\\\\x30-\\\\x39\\\\x41-\\\\x5a\\\\x61-\\\\x7a]+\\\\x3d(?:[\\\\x21\\\\x23\\\\x24\\\\x25\\\\x26\\\\x2a\\\\x2b\\\\x2d\\\\x2e\\\\x5e\\\\x5f\\\\x60\\\\x7c\\\\x7e\\\\x30-\\\\x39\\\\x41-\\\\x5a\\\\x61-\\\\x7a]+|(?:\\\\x22(?:[\\\\x09\\\\x20\\\\x21\\\\x23-\\\\x5b\\\\x5d-\\\\x7e\\\\x80-\\\\xff]|(?:\\\\x5c[\\\\x09\\\\x20\\\\x21-\\\\x7e\\\\x80-\\\\xff]))*\\\\x22)))?)*",
+                                                    type: "pattern"
+                                                }]
+                                            }
                                         }, {
                                             name: "length",
                                             type: "long",
@@ -645,6 +657,10 @@ class ProfileRestControllerTest {
                                                 }
                                             ]
                                         }
+                                    },
+                                    {
+                                        name: "portrait",
+                                        title: "portrait"
                                     }
                                 ],
                                 "blueprint:relation": [
@@ -847,6 +863,10 @@ class ProfileRestControllerTest {
                                         {
                                             name: "parent",
                                             prompt: "Parent(e)"
+                                        },
+                                        {
+                                            name: "portrait",
+                                            prompt: "portrait"
                                         }
                                     ]
                                 }
@@ -858,7 +878,7 @@ class ProfileRestControllerTest {
 
     @Test
     void getProfileEntity_withoutContent() throws Exception {
-        mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_FORMS_JSON))
+        mockMvc.perform(get("/profile/stores").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._templates.create-form.contentType").value("application/json"));
     }

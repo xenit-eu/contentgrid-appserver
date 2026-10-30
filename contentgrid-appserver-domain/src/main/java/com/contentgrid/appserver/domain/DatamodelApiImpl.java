@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
@@ -67,6 +68,7 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -276,7 +278,7 @@ public class DatamodelApiImpl implements DatamodelApi {
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
             @NonNull AuthorizationContext authorizationContext
-    ) throws QueryEngineException, InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
@@ -493,13 +495,14 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
+        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
             @NonNull EntityData entityData,
             @NonNull Application application,
             @NonNull EntityName entityName,
+            @NonNull LinkIdentity linkIdentity,
             @NonNull AttributePath attributePath) {
         var attributeData = entityData.getNestedAttributeByPath(attributePath);
         if (attributeData.isPresent()) {
@@ -509,11 +512,11 @@ public class DatamodelApiImpl implements DatamodelApi {
                     .getAttribute();
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
-                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() != null) {
+                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() instanceof String text) {
                         yield Optional.of(
                                 new TextValue(
-                                        (String) ((SimpleAttributeData<?>) attributeData.get()).getValue(),
-                                        entityData.getIdentity().getVersion()));
+                                        text,
+                                        TextLinkVersion.calculate(entityData.getIdentity(), linkIdentity, text)));
                     }
                     yield Optional.empty();
                 }
@@ -537,6 +540,11 @@ public class DatamodelApiImpl implements DatamodelApi {
     @Override
     public StoredLinkValue updateLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
             @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
+        return writeLink(application, linkRequest, value, authorizationContext).orElseThrow();
+    }
+
+    private Optional<StoredLinkValue> writeLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+            @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
         var storage = application
                 .getRequiredEntityByName(linkRequest.getEntityName())
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
@@ -544,11 +552,16 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .getStorage();
 
         var targetEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
-        var targetEntity = this.findLink(application, linkRequest, authorizationContext)
+        var targetEntity = queryEngine.findById(application, targetEntityRequest, authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
 
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetEntity.getVersion())) {
-            throw new UnsatisfiedVersionException(targetEntity.getVersion(), linkRequest.getVersionConstraint());
+        // An empty link has no value, and therefore no version
+        var linkVersion = mapAttributeDataToStoredValue(targetEntity, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage)
+                .map(StoredLinkValue::getVersion)
+                .orElse(Version.nonExisting());
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(linkVersion)) {
+            throw new UnsatisfiedVersionException(linkVersion, linkRequest.getVersionConstraint());
         }
 
         var entityData = new EntityData(
@@ -557,9 +570,16 @@ public class DatamodelApiImpl implements DatamodelApi {
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+        // TODO ACC-3004 wrap queryengineExceptions?
+//        UpdateResult updateResult = null;
+//        try {
+//            queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+//        } catch (QueryEngineException qEEx) {
+//            handleQueryEngineException(qEEx);
+//        }
         var attributeData = updateResult
                 .getUpdated();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage).orElseThrow();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
@@ -595,8 +615,11 @@ public class DatamodelApiImpl implements DatamodelApi {
                     try {
                         var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
                         for (var nestedAttr : contentAttribute.getAttributes()) {
-                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
-                                    nestedAttr.getName().getValue())).getValue()));
+                            // Optional fields (e.g. filename) are absent from the upload result
+                            var nestedValue = mapDataEntry.get(nestedAttr.getName().getValue()) instanceof ScalarDataEntry scalarDataEntry
+                                    ? scalarDataEntry.getValue()
+                                    : null;
+                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), nestedValue));
                         }
                     } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
                         throw new RuntimeException(e);
@@ -611,8 +634,27 @@ public class DatamodelApiImpl implements DatamodelApi {
 
     @Override
     public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
-        updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
+        writeLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
     }
+
+// TODO ACC-3004 Wrap queryEngineExceptions in DomainExceptions?
+
+//    private void handleQueryEngineException(QueryEngineException queryEngineException) {
+//        switch(queryEngineException) {
+//            case com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException unsatisfiedVersionQEException ->
+//                    throw new UnsatisfiedVersionException(unsatisfiedVersionQEException.getActualVersion(), unsatisfiedVersionQEException.getRequestedVersion(), unsatisfiedVersionQEException);
+//            // !! Preserve order of relationTargetNotFound > entityIdNotFound or switch will break. RTNF extends EINF.
+//            case com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException relationTargetNotFoundQEException ->
+//                    throw new RelationTargetNotFoundException(
+//                            relationTargetNotFoundQEException.getEntityName(),
+//                            relationTargetNotFoundQEException.getId(),
+//                            relationTargetNotFoundQEException.getRelation(),
+//                            relationTargetNotFoundQEException);
+//            case com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException entityIdNotFoundQEException ->
+//                    throw new EntityIdNotFoundException(entityIdNotFoundQEException.getEntityName(), entityIdNotFoundQEException.getId(), entityIdNotFoundQEException);
+//            default -> throw new DomainException("QueryEngineException could not be handled at domain layer.", queryEngineException);
+//        }
+//    }
 
     @RequiredArgsConstructor
     private class ResponseOutputDataMapper {
@@ -666,7 +708,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 EntityData entityData,
                 EntityLink entityLink) {
             if (entityLink instanceof StoredEntityLink storedEntityLink) {
-                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
+                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getIdentity(), storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
                     return Optional.of(
                             new EntityLinkData(

@@ -153,13 +153,13 @@ public class ModelTestFixtures {
             .build();
 
     public static final StoredEntityLink PERSON_SUMMARY_LINK = StoredEntityLink.builder()
-            .identity(new UnnamedLink(URI.create("https://people.example/rel/summary")))
+            .identity(new UnnamedLink(URI.create("summary-hash123")))
             .pathSegment(PathSegmentName.of("_links/summary-hash123"))
             .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_SUMMARY.getName())))
             .build();
 
     public static final StoredEntityLink PERSON_PORTRAIT_LINK = StoredEntityLink.builder()
-            .identity(new NamedLink(URI.create("https://people.example/rel/portrait/16-9"), "portrait"))
+            .identity(new NamedLink(URI.create("16-9-hash123"), "portrait"))
             .pathSegment(PathSegmentName.of("_links/16-9-hash123/portrait"))
             .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_PORTRAIT.getName())))
             .build();
@@ -770,6 +770,26 @@ public class ModelTestFixtures {
                     .build())
             .build();
 
+    public static final SimpleAttribute STORE_ID = SimpleAttribute.builder()
+            .name(AttributeName.of("store_id"))
+            .column(ColumnName.of("store_id"))
+            .type(Type.UUID)
+            .flag(ReadOnlyFlag.INSTANCE)
+            .build();
+
+    public static final SimpleAttribute STORE_NAME = SimpleAttribute.builder()
+            .name(AttributeName.of("name"))
+            .column(ColumnName.of("name"))
+            .type(Type.TEXT)
+            .constraint(Constraint.required())
+            .build();
+
+    public static final SimpleAttribute STORE_RATING = SimpleAttribute.builder()
+            .name(AttributeName.of("rating"))
+            .column(ColumnName.of("rating"))
+            .type(Type.LONG)
+            .build();
+
     public static final SimpleAttribute ORDER_ID = SimpleAttribute.builder()
             .name(AttributeName.of("order_id"))
             .column(ColumnName.of("order_id"))
@@ -853,6 +873,16 @@ public class ModelTestFixtures {
                     .name(SortableName.of("modified_at"))
                     .propertyPath(PropertyPath.toAttribute(ORDER_MODIFIED_AT.getName()))
                     .build())
+            .build();
+
+    public static final Entity STORE = Entity.builder()
+            .name(EntityName.of("store"))
+            .table(TableName.of("store"))
+            .pathSegment(PathSegmentName.of("stores"))
+            .linkName(LinkName.of("store"))
+            .primaryKey(STORE_ID)
+            .attribute(STORE_NAME)
+            .attribute(STORE_RATING)
             .build();
 
     public static final SimpleAttribute EMPTY_WITHOUT_ETAG_ID = SimpleAttribute.builder()
@@ -1020,6 +1050,7 @@ public class ModelTestFixtures {
             .entity(PERSON)
             .entity(PRODUCT)
             .entity(ORDER)
+            .entity(STORE)
             .entity(EMPTY_WITHOUT_ETAG)
             .entity(EMPTY_WITH_ETAG)
             .relation(INVOICE_CUSTOMER)

@@ -13,6 +13,7 @@ import com.contentgrid.appserver.domain.data.validation.RequiredConstraintViolat
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec.CursorDecodeException;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
+import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.exception.InvalidFilterParameterException;
 import com.contentgrid.appserver.exception.InvalidPaginationParameterException;
@@ -176,6 +177,23 @@ public class ProblemDetailsExceptionHandler {
         ));
     }
 
+    // TODO ACC-3004 Deduplicate when aligning exceptions. domain-values, domain, and query engine exceptions have no sensible common superclass and do not have dependencies upon another atow
+    @ExceptionHandler
+    ResponseEntity<Problem> inputValidation(com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException exception, LinkFactoryProvider linkFactoryProvider) {
+        return createResponse(inputValidation(allExceptions(exception, com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException.class)
+                .map(e -> {
+                    var identity = EntityIdentity.forEntity(e.getEntityName(), e.getId());
+                    return problemFactory.createProblem(ProblemType.INPUT_VALIDATION_MISSING_RELATION_TARGET, identity)
+                            .withStatus(HttpStatus.BAD_REQUEST)
+                            .withProperties(Map.of(
+                                    "field", e.getRelation().getRelationName().getValue(),
+                                    "missing_item", linkFactoryProvider.toItem(identity).toUri().toString()
+                            ));
+                })
+                .toList()
+        ));
+    }
+
     Problem inputValidation(List<? extends Problem> problems) {
         return problemFactory.createProblem(ProblemType.INPUT_VALIDATION, problems.size())
                 .withStatus(HttpStatus.BAD_REQUEST)
@@ -323,6 +341,22 @@ public class ProblemDetailsExceptionHandler {
                 }));
     }
 
+    // TODO ACC-3004 Deduplicate when aligning exceptions. domain-values, domain, and query engine exceptions have no sensible common superclass and do not have dependencies upon another atow
+    @ExceptionHandler
+    ResponseEntity<Problem> versionConflict(com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException queryEngineException) {
+        return createResponse(problemFactory.createProblem(
+                        ProblemType.UNSATISFIED_VERSION,
+                        queryEngineException.getActualVersion(),
+                        queryEngineException.getRequestedVersion()
+                )
+                .withStatus(HttpStatus.PRECONDITION_FAILED)
+                .withProperties(properties -> {
+                    if(queryEngineException.getActualVersion() instanceof ExactlyVersion exactlyVersion) {
+                        properties.put("actual_version", exactlyVersion.getVersion());
+                    }
+                }));
+    }
+
     @ExceptionHandler
     ResponseEntity<Problem> notFound(NoResourceFoundException exception) {
         return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_ENDPOINT)
@@ -347,6 +381,13 @@ public class ProblemDetailsExceptionHandler {
                 .withStatus(HttpStatus.NOT_FOUND));
     }
 
+    // TODO ACC-3004 Deduplicate when aligning exceptions. domain-values, domain, and query engine exceptions have no sensible common superclass and do not have dependencies upon another atow
+    @ExceptionHandler
+    ResponseEntity<Problem> notFound(com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException exception) {
+        return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_ENTITY_ITEM, exception.getEntityName().getValue(), exception.getId().getValue())
+                .withStatus(HttpStatus.NOT_FOUND));
+    }
+
     @ExceptionHandler({EmptyRelationException.class, RelationLinkNotFoundException.class})
     ResponseEntity<Problem> notFound() {
         return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_RELATION_ITEM)
@@ -356,6 +397,17 @@ public class ProblemDetailsExceptionHandler {
     @ExceptionHandler
     ResponseEntity<Problem> notFound(ContentNotFoundException exception) {
         return createResponse(problemFactory.createProblem(ProblemType.NOT_FOUND_CONTENT, exception.getEntityIdentity(), exception.getAttributeName().getValue())
+                .withStatus(HttpStatus.NOT_FOUND));
+    }
+
+    @ExceptionHandler
+    ResponseEntity<Problem> notFound(LinkNotFoundException exception) {
+        return createResponse(
+                problemFactory.createProblem(
+                        ProblemType.NOT_FOUND_LINK_ITEM,
+                        exception.getLinkRequest().getEntityName(),
+                        exception.getLinkRequest().getEntityId(),
+                        exception.getLinkRequest().getLinkIdentity())
                 .withStatus(HttpStatus.NOT_FOUND));
     }
 

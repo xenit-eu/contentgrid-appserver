@@ -16,6 +16,7 @@ import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLocalDate
 import com.contentgrid.appserver.rest.data.conversion.StringDataEntryToLongDataEntryConverter;
 import com.contentgrid.appserver.rest.entity.ContentRestController;
 import com.contentgrid.appserver.rest.entity.EntityRestController;
+import com.contentgrid.appserver.rest.entity.LinkRestController;
 import com.contentgrid.appserver.rest.entity.XToManyRelationRestController;
 import com.contentgrid.appserver.rest.entity.XToOneRelationRestController;
 import com.contentgrid.appserver.rest.entity.assembler.EntityDataRepresentationModelAssembler;
@@ -62,6 +63,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
         DefaultApplicationNameExtractor.class,
         EntityDataRepresentationModelAssembler.class,
         EntityRestController.class,
+        LinkRestController.class,
         ProfileEntityRepresentationModelAssembler.class,
         ProfileRestController.class,
         RequestInputDataJacksonModule.class,
