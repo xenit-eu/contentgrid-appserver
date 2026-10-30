@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
@@ -494,13 +495,14 @@ public class DatamodelApiImpl implements DatamodelApi {
 
         var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
+        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
             @NonNull EntityData entityData,
             @NonNull Application application,
             @NonNull EntityName entityName,
+            @NonNull LinkIdentity linkIdentity,
             @NonNull AttributePath attributePath) {
         var attributeData = entityData.getNestedAttributeByPath(attributePath);
         if (attributeData.isPresent()) {
@@ -510,11 +512,11 @@ public class DatamodelApiImpl implements DatamodelApi {
                     .getAttribute();
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
-                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() != null) {
+                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() instanceof String text) {
                         yield Optional.of(
                                 new TextValue(
-                                        (String) ((SimpleAttributeData<?>) attributeData.get()).getValue(),
-                                        entityData.getIdentity().getVersion()));
+                                        text,
+                                        TextLinkVersion.calculate(entityData.getIdentity(), linkIdentity, text)));
                     }
                     yield Optional.empty();
                 }
@@ -554,7 +556,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
 
         // An empty link has no value, and therefore no version
-        var linkVersion = mapAttributeDataToStoredValue(targetEntity, application, linkRequest.getEntityName(), storage)
+        var linkVersion = mapAttributeDataToStoredValue(targetEntity, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage)
                 .map(StoredLinkValue::getVersion)
                 .orElse(Version.nonExisting());
 
@@ -577,7 +579,7 @@ public class DatamodelApiImpl implements DatamodelApi {
 //        }
         var attributeData = updateResult
                 .getUpdated();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
@@ -613,8 +615,11 @@ public class DatamodelApiImpl implements DatamodelApi {
                     try {
                         var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
                         for (var nestedAttr : contentAttribute.getAttributes()) {
-                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
-                                    nestedAttr.getName().getValue())).getValue()));
+                            // Optional fields (e.g. filename) are absent from the upload result
+                            var nestedValue = mapDataEntry.get(nestedAttr.getName().getValue()) instanceof ScalarDataEntry scalarDataEntry
+                                    ? scalarDataEntry.getValue()
+                                    : null;
+                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), nestedValue));
                         }
                     } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
                         throw new RuntimeException(e);
@@ -703,7 +708,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 EntityData entityData,
                 EntityLink entityLink) {
             if (entityLink instanceof StoredEntityLink storedEntityLink) {
-                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
+                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getIdentity(), storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
                     return Optional.of(
                             new EntityLinkData(
