@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain.data.validation;
 
 import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.AlwaysSystemGeneratedFlag;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
@@ -25,6 +26,9 @@ public class TextSetValidator implements AttributeValidationDataMapper.Validator
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
+        if (attribute.hasFlag(AlwaysSystemGeneratedFlag.class)) {
+            return;
+        }
         if (attribute instanceof MultivalueAttribute multivalueAttribute
                 && dataEntry instanceof ListDataEntry listDataEntry) {
             validateSet(DataType.of(multivalueAttribute), listDataEntry.getItems());

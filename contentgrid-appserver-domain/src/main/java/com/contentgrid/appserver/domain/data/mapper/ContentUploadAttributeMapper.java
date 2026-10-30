@@ -5,28 +5,21 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
-import com.contentgrid.appserver.contentstore.api.ContentStore;
-import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.LongDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
-import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
-import com.contentgrid.appserver.domain.data.type.DataType;
-import java.io.IOException;
+import com.contentgrid.appserver.domain.data.mapper.ContentUploadInteractionManager.UploadResult;
 import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.springframework.util.InvalidMimeTypeException;
-import org.springframework.util.MimeType;
-import org.springframework.util.MimeTypeUtils;
 
 @RequiredArgsConstructor
 public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMapper {
 
-    private final ContentStore contentStore;
+    private final ContentUploadInteractionManager contentUploadManager;
 
     @Override
     protected Optional<DataEntry> mapSimpleAttribute(AttributePath path, SimpleAttribute simpleAttribute, DataEntry inputData) {
@@ -62,32 +55,18 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
     @Override
     protected Optional<DataEntry> mapCompositeAttributeUnsupportedDatatype(AttributePath path, CompositeAttribute attribute, DataEntry inputData) throws InvalidDataException {
         if(attribute instanceof ContentAttribute contentAttribute && inputData instanceof FileDataEntry fileDataEntry) {
-            MimeType mimeType;
-            try {
-                mimeType = MimeTypeUtils.parseMimeType(fileDataEntry.getContentType());
-                if(!mimeType.isConcrete()) {
-                    throw new InvalidMimeTypeException(fileDataEntry.getContentType(), "Must be concrete");
-                }
-            } catch (InvalidMimeTypeException invalidMimeTypeException) {
-                throw new InvalidDataFormatException(DataType.of(FileDataEntry.class), invalidMimeTypeException);
+            var uploadResultLazy = contentUploadManager.scheduleUpload(fileDataEntry::getInputStream);
+
+            var builder = MapDataEntry.builder();
+            builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(uploadResultLazy.map(uploadResult -> uploadResult.accessor().getReference().getValue())))
+                    .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(uploadResultLazy.map(UploadResult::size)))
+                    .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(fileDataEntry.getContentType()));
+
+            if(fileDataEntry.getFilename() != null) {
+                builder.item(contentAttribute.getFilename().getName().getValue(), new StringDataEntry(fileDataEntry.getFilename()));
             }
-            try {
-                var inputStream = new CountingInputStream(fileDataEntry.getInputStream());
-                var contentAccessor = contentStore.writeContent(inputStream);
 
-                var builder = MapDataEntry.builder();
-                builder.item(contentAttribute.getId().getName().getValue(), new StringDataEntry(contentAccessor.getReference().getValue()))
-                        .item(contentAttribute.getLength().getName().getValue(), new LongDataEntry(inputStream.getSize()))
-                        .item(contentAttribute.getMimetype().getName().getValue(), new StringDataEntry(mimeType.toString()));
-
-                if(fileDataEntry.getFilename() != null) {
-                    builder.item(contentAttribute.getFilename().getName().getValue(), new StringDataEntry(fileDataEntry.getFilename()));
-                }
-
-                return Optional.of(builder.build());
-            } catch (UnwritableContentException|IOException e) {
-                throw new RuntimeException(e);
-            }
+            return Optional.of(builder.build());
 
         }
         return Optional.of(inputData);

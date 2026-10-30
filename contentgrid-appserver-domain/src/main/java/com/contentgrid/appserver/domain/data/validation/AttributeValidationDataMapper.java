@@ -5,6 +5,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.CompositeAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.flags.AlwaysSystemGeneratedFlag;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
@@ -97,6 +98,9 @@ public class AttributeValidationDataMapper extends AbstractDescendingAttributeMa
         @Override
         public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
                 throws InvalidDataException {
+            if (attribute.hasFlag(AlwaysSystemGeneratedFlag.class)) {
+                return;
+            }
             var maybeConstraint = switch (attribute) {
                 case SimpleAttribute simpleAttribute ->
                         simpleAttribute.getConstraint(constraintValidator.getConstraintType());

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.Delegate;
 
 /**
  * Aggregator mapper that processes all attributes and relations from {@link RequestInputData} into {@link AttributeData} and {@link RelationData}
@@ -22,9 +23,12 @@ import lombok.RequiredArgsConstructor;
  * Validation errors are collected for all attributes and relations, and rethrown so all validation errors can be reported to the user at once
  */
 @RequiredArgsConstructor
-public class RequestInputDataMapper {
+public class RequestInputDataMapper implements ExternalInteractionManager {
     private final List<Attribute> attributes;
     private final Set<Relation> relations;
+
+    @Delegate
+    private final ExternalInteractionManager interactionManager;
 
     private final AttributeMapper<RequestInputData, Optional<AttributeData>> attributeMapper;
 

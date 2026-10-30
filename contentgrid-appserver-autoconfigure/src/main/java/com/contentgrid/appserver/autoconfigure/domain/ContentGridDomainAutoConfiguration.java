@@ -35,6 +35,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.AsyncTaskExecutor;
 
 @AutoConfiguration(after={ContentGridEventsAutoConfiguration.class})
 @ConditionalOnClass({DatamodelApiImpl.class})
@@ -72,7 +73,9 @@ public class ContentGridDomainAutoConfiguration {
             ObjectProvider<LinkUriProviderFactory> linkUriProviderFactory,
             ConfigurationPropertiesFactory configurationPropertiesFactory,
             CursorCodec cursorCodec,
-            Clock clock) {
+            AsyncTaskExecutor executor,
+            Clock clock
+    ) {
         return new DatamodelApiImpl(
                 queryEngine,
                 contentStoreResolver,
@@ -80,6 +83,7 @@ public class ContentGridDomainAutoConfiguration {
                 linkUriProviderFactory.getIfUnique(() -> app -> new NoneLinkUriProvider()),
                 configurationPropertiesFactory,
                 cursorCodec,
+                executor,
                 clock
         );
     }

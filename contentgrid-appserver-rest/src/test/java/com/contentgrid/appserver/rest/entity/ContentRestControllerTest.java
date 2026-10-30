@@ -730,6 +730,8 @@ class ContentRestControllerTest {
                             )
                     );
 
+            Mockito.verifyNoInteractions(contentStoreSpy);
+
             // No upload has happened
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))
                     .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
@@ -755,6 +757,8 @@ class ContentRestControllerTest {
                                     .withField("field", "content.filename")
                             )
                     );
+
+            Mockito.verifyNoInteractions(contentStoreSpy);
 
             // No upload has happened
             mockMvc.perform(get("/invoices/{instanceId}/content", invoiceId))

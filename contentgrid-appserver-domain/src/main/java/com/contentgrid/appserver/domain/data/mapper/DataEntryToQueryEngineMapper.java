@@ -53,7 +53,7 @@ public class DataEntryToQueryEngineMapper implements AttributeMapper<DataEntry, 
         try {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute -> mapSimpleAttribute(simpleAttribute, inputData)
-                        .map(entry -> new SimpleAttributeData<>(attribute.getName(), entry.getValue()));
+                        .map(entry -> SimpleAttributeData.ofLazy(attribute.getName(), entry::getValue));
                 case MultivalueAttribute multivalueAttribute ->
                         mapMultiValueAttribute(multivalueAttribute, inputData);
                 case CompositeAttribute compositeAttribute -> mapCompositeAttribute(compositeAttribute, inputData);

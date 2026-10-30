@@ -3,6 +3,7 @@ package com.contentgrid.appserver.application.model.attributes;
 import com.contentgrid.appserver.application.model.Constraint;
 import com.contentgrid.appserver.application.model.Constraint.RegexPatternConstraint;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.AlwaysSystemGeneratedFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.AttributeFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -102,6 +103,7 @@ public class ContentAttribute implements CompositeAttribute {
         this.id = SimpleAttribute.builder().name(AttributeName.of("id")).column(idColumn)
                 .type(Type.TEXT)
                 .flag(IgnoredFlag.INSTANCE)
+                .flag(AlwaysSystemGeneratedFlag.INSTANCE)
                 .build();
         this.filename = SimpleAttribute.builder().name(AttributeName.of("filename")).column(filenameColumn)
                 .translations(resourceBundleTranslations.withPrefix("filename.").asConfigurable())
@@ -117,6 +119,7 @@ public class ContentAttribute implements CompositeAttribute {
                 .translations(resourceBundleTranslations.withPrefix("length.").asConfigurable())
                 .type(Type.LONG)
                 .flag(ReadOnlyFlag.INSTANCE)
+                .flag(AlwaysSystemGeneratedFlag.INSTANCE)
                 .build();
 
         for (var flag : this.flags) {

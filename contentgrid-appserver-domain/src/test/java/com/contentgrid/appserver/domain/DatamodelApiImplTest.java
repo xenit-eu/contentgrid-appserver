@@ -114,6 +114,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -124,6 +125,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
@@ -217,6 +219,7 @@ class DatamodelApiImplTest {
                 application -> linkUriProvider,
                 application -> configurationProperties,
                 codec,
+                Runnable::run,
                 clock
         );
     }
@@ -927,6 +930,29 @@ class DatamodelApiImplTest {
                                 .build()
                 );
             });
+        }
+
+        @ParameterizedTest
+        @CsvSource({"number", "customer"})
+        void contentAttribute_no_upload_on_validation_error(String missingField) {
+            var personId = EntityId.of(UUID.randomUUID());
+
+            var inputMap = new HashMap<>(Map.of(
+                    "number", "1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "customer", new RelationDataEntry(PERSON.getName(), personId),
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(110))
+            ));
+
+            inputMap.remove(missingField);
+
+            assertThatThrownBy(() -> datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(inputMap), AuthorizationContext.allowAll()))
+                    .isInstanceOfSatisfying(InvalidPropertyDataException.class, e -> {
+                        assertThat(e.getPath()).hasToString(missingField);
+                    });
+
+            Mockito.verifyNoInteractions(contentStore, queryEngine);
         }
 
         @Test

@@ -4,6 +4,7 @@ import com.contentgrid.appserver.application.model.attributes.Attribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.attributes.flags.AlwaysSystemGeneratedFlag;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.ListDataEntry;
@@ -28,6 +29,9 @@ public class NulByteValidator implements AttributeValidationDataMapper.Validator
     @Override
     public void validate(AttributePath attributePath, Attribute attribute, DataEntry dataEntry)
             throws InvalidDataException {
+        if (attribute.hasFlag(AlwaysSystemGeneratedFlag.class)) {
+            return;
+        }
         switch (attribute) {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
                     validateEntry(DataType.of(simpleAttribute.getType()), dataEntry);

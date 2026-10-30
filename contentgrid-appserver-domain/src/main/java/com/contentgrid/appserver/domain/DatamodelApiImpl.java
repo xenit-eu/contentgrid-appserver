@@ -26,6 +26,7 @@ import com.contentgrid.appserver.domain.data.mapper.AttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper;
 import com.contentgrid.appserver.domain.data.mapper.AuditAttributeMapper.Mode;
 import com.contentgrid.appserver.domain.data.mapper.ContentUploadAttributeMapper;
+import com.contentgrid.appserver.domain.data.mapper.ContentUploadInteractionManager;
 import com.contentgrid.appserver.domain.data.mapper.DataEntryToQueryEngineMapper;
 import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
@@ -82,6 +83,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -97,20 +99,20 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final LinkUriProviderFactory linkUriProviderFactory;
     private final ConfigurationPropertiesFactory configurationPropertiesFactory;
     private final CursorCodec cursorCodec;
+    private final Executor asyncExecutor;
     private final Clock clock;
 
     private RequestInputDataMapper createInputDataMapper(
             @NonNull Application application,
             @NonNull EntityName entityName,
-            @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
-            @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
+            @NonNull AttributeAndRelationMapper<Optional<DataEntry>, Optional<DataEntry>, Optional<DataEntry>, Optional<DataEntry>> mapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
 
         var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
-        var contentStore = contentStoreResolver.resolve(application);
+        var uploadManager = new ContentUploadInteractionManager(contentStoreResolver.resolve(application), asyncExecutor);
 
         var constraintValidatingMapper = new OptionalFlatMapAdaptingMapper<>(
                 AttributeAndRelationMapper.from(
@@ -129,23 +131,23 @@ public class DatamodelApiImpl implements DatamodelApi {
                 )
         ));
         var combinedMapper = inputMapper
-                .andThen(new OptionalFlatMapAdaptingMapper<>(mapper))
-                .andThen(auditMapper)
-                // Validate constraints
-                .andThen(constraintValidatingMapper)
+                .andThen(mapper)
                 .andThen(new OptionalFlatMapAdaptingMapper<>(
                         AttributeAndRelationMapper.from(
-                                new ContentUploadAttributeMapper(contentStore),
+                                new ContentUploadAttributeMapper(uploadManager),
                                 (rel, value) -> Optional.of(value)
                         )
                 ))
-                // Validate constraints again, because content upload modifies fields that are validated
+                // Validate constraints after content has been uploaded,
+                // as content upload writes to the mimetype & filename fields,
+                // which still need to be validated
                 .andThen(constraintValidatingMapper)
                 .andThen(queryEngineMapper);
 
         return new RequestInputDataMapper(
                 entity.getAttributes(),
                 relations,
+                uploadManager,
                 combinedMapper,
                 combinedMapper
         );
@@ -261,7 +263,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 entityName,
                 // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
+                new OptionalFlatMapAdaptingMapper<>(FilterDataEntryMapper.missingAsNull())
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
@@ -269,7 +271,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, data) -> Optional.of(data)
                                 )
                         ))
-                , new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock)
+                        .andThen(new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -293,7 +295,10 @@ public class DatamodelApiImpl implements DatamodelApi {
         var outputMapper = createOutputDataMapper(application, entityName);
 
         CreateEventConsumer onCreate = new EventConsumerImpl(outputMapper);
-        return outputMapper.mapAttributes(queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
+
+        var createResult = inputMapper.ensureInteractions(() -> queryEngine.create(application, createData, authorizationContext.predicate(), onCreate));
+
+        return outputMapper.mapAttributes(createResult);
     }
 
 
@@ -307,15 +312,15 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 existingEntity.getIdentity().getEntityName(),
                 // All missing fields are regarded as null
-                FilterDataEntryMapper.missingAsNull()
+                new OptionalFlatMapAdaptingMapper<>(FilterDataEntryMapper.missingAsNull())
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
                                         new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
                                         (rel, d) -> Optional.of(d)
                                 )
-                        )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                        ))
+                        .andThen(new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -331,7 +336,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        var updateData = inputMapper.ensureInteractions(() -> queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate));
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -346,15 +352,15 @@ public class DatamodelApiImpl implements DatamodelApi {
                 application,
                 existingEntity.getIdentity().getEntityName(),
                 // Missing fields are omitted, so they are not updated
-                FilterDataEntryMapper.omitMissing()
+                new OptionalFlatMapAdaptingMapper<>(FilterDataEntryMapper.omitMissing())
                         // Validate that content attribute is not partially set
                         .andThen(new OptionalFlatMapAdaptingMapper<>(
                                 AttributeAndRelationMapper.from(
                                         new AttributeValidationDataMapper(new ContentAttributeModificationValidator(existingEntity)),
                                         (rel, d) -> Optional.of(d)
                                 )
-                        )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                        ))
+                        .andThen(new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -370,7 +376,8 @@ public class DatamodelApiImpl implements DatamodelApi {
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+
+        var updateData = inputMapper.ensureInteractions(() -> queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate));
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
