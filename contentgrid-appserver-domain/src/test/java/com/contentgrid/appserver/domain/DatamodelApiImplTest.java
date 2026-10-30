@@ -161,7 +161,6 @@ import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -2441,7 +2440,7 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2553,7 +2552,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_storesTextData_withVersionConstraint() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
@@ -2748,7 +2746,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
@@ -2777,7 +2774,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
