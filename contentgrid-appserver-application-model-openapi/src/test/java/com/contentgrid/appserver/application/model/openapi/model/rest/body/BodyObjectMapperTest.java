@@ -77,9 +77,9 @@ class BodyObjectMapperTest {
             PUT_JSON(BodyType.PUT, MediaType.JSON),
             PUT_JSON_FLAT(BodyType.PUT, MediaType.FLAT_JSON),
             PUT_FORM(BodyType.PUT, MediaType.FORM),
-            PATCH_JSON(BodyType.PUT, MediaType.JSON),
-            PATCH_JSON_FLAT(BodyType.PUT, MediaType.FLAT_JSON),
-            PATCH_FORM(BodyType.PUT, MediaType.FORM),
+            PATCH_JSON(BodyType.PATCH, MediaType.JSON),
+            PATCH_JSON_FLAT(BodyType.PATCH, MediaType.FLAT_JSON),
+            PATCH_FORM(BodyType.PATCH, MediaType.FORM),
             RESPONSE_JSON(BodyType.RESPONSE, MediaType.JSON),
             ;
             BodyType bodyType;
