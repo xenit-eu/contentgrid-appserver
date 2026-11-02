@@ -21,7 +21,6 @@ import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.User;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +32,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
 
     private final Mode mode;
     private final User user;
-    private final Clock clock;
+    private final Instant now;
 
     @Override
     public Optional<DataEntry> mapAttribute(Attribute attribute, Optional<DataEntry> inputData)
@@ -57,7 +56,7 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
     protected Optional<DataEntry> mapSimpleAttribute(SimpleAttribute simpleAttribute, Optional<DataEntry> inputData) {
         if ((simpleAttribute.hasFlag(CreatedDateFlag.class) && mode == Mode.CREATE)
                 || simpleAttribute.hasFlag(ModifiedDateFlag.class)) {
-            return Optional.of(new InstantDataEntry(Instant.now(clock)));
+            return Optional.of(new InstantDataEntry(now));
         }
         return inputData;
     }

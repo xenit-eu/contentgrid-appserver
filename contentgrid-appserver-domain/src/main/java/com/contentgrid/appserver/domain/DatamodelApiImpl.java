@@ -73,6 +73,7 @@ import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.net.URI;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -269,7 +270,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, data) -> Optional.of(data)
                                 )
                         ))
-                , new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), clock)
+                , new AuditAttributeMapper(Mode.CREATE, authorizationContext.user(), Instant.now(clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(requestData);
@@ -315,7 +316,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
@@ -354,7 +355,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                                         (rel, d) -> Optional.of(d)
                                 )
                         )),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), clock)
+                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock))
         );
 
         var usageTrackingRequestData = new UsageTrackingRequestInputData(data);
