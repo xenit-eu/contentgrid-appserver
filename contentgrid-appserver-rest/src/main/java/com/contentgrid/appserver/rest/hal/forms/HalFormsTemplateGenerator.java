@@ -17,6 +17,7 @@ import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyO
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyType;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.BodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.ContentBodyValue;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ContentPresence;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.ObjectBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.RelationBodyValue;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SimpleBodyValue;
@@ -82,8 +83,8 @@ public class HalFormsTemplateGenerator {
                 .build();
     }
 
-    public HalFormsTemplate generateUpdateTemplate(EntityName entityName) {
-        var body = BodyObjectMapper.forBody(new Context(application, BodyType.PUT, FLAT_JSON, userLocales), entityName);
+    public HalFormsTemplate generateUpdateTemplate(EntityName entityName, ContentPresence contentPresence) {
+        var body = BodyObjectMapper.forBodyOfInstance(new Context(application, BodyType.PUT, FLAT_JSON, userLocales), entityName, contentPresence);
         var properties = toHalFormsProperties(body);
         return HalFormsTemplate.builder()
                 .key(HalFormsTemplate.DEFAULT_KEY)

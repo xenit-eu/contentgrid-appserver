@@ -77,9 +77,9 @@ class BodyObjectMapperTest {
             PUT_JSON(BodyType.PUT, MediaType.JSON),
             PUT_JSON_FLAT(BodyType.PUT, MediaType.FLAT_JSON),
             PUT_FORM(BodyType.PUT, MediaType.FORM),
-            PATCH_JSON(BodyType.PUT, MediaType.JSON),
-            PATCH_JSON_FLAT(BodyType.PUT, MediaType.FLAT_JSON),
-            PATCH_FORM(BodyType.PUT, MediaType.FORM),
+            PATCH_JSON(BodyType.PATCH, MediaType.JSON),
+            PATCH_JSON_FLAT(BodyType.PATCH, MediaType.FLAT_JSON),
+            PATCH_FORM(BodyType.PATCH, MediaType.FORM),
             RESPONSE_JSON(BodyType.RESPONSE, MediaType.JSON),
             ;
             BodyType bodyType;
@@ -273,6 +273,30 @@ class BodyObjectMapperTest {
                     assertThat(maybeLength).isEmpty();
                 }
             }
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = SupportedCombination.class, names = {"PUT_JSON", "PUT_JSON_FLAT", "PUT_FORM",
+                "PATCH_JSON", "PATCH_JSON_FLAT", "PATCH_FORM"})
+        void contentPresence_removesContentAttribute(SupportedCombination combination) {
+            var context = new Context(APPLICATION, combination.bodyType(), combination.mediaType(), ENGLISH);
+            var result = BodyObjectMapper.forBodyOfInstance(context, INVOICE.getName(), attributePath -> !"content".equals(attributePath.getFirst().getValue()));
+
+            // The content attribute should not be in the result, because it matches the `contentPresence` check.
+            assertThat(result.getField("content")).isEmpty();
+            assertThat(result.getField("content.filename")).isEmpty();
+            assertThat(result.getField("content.mimetype")).isEmpty();
+            // Other attributes are unaffected
+            assertThat(result.getField("number")).isPresent();
+        }
+
+        @Test
+        void contentPresence_contentAttributeShowsOnMultipartUpload() {
+            var context = new Context(APPLICATION, BodyType.POST, MediaType.MULTIPART_FORM, ENGLISH);
+            var result = BodyObjectMapper.forBodyOfInstance(context, INVOICE.getName(), attributePath -> !"content".equals(attributePath.getFirst().getValue()));
+
+            assertThat(result.getField("content")).hasValueSatisfying(value ->
+                    assertThat(value).isInstanceOf(ContentBodyValue.class));
         }
 
         @ParameterizedTest

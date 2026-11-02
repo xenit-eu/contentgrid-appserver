@@ -9,6 +9,8 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.ContentPresence;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter;
 import com.contentgrid.appserver.application.model.searchfilters.AttributeSearchFilter.Operation;
 import com.contentgrid.appserver.application.model.sortable.SortableField;
@@ -19,7 +21,6 @@ import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.application.model.values.FilterName;
 import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.SortableName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.appserver.domain.values.EntityId;
@@ -284,7 +285,7 @@ class HalFormsTemplateGeneratorTest {
 
     @Test
     void generateUpdateTemplate() {
-        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName());
+        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName(), ContentPresence.ALWAYS);
 
         assertThat(template.getProperties()).satisfiesExactly(
                 number -> {
@@ -371,6 +372,16 @@ class HalFormsTemplateGeneratorTest {
         );
 
         assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
+    }
+
+    @Test
+    void generateUpdateTemplate_excludeContent() {
+        var template = generator.generateUpdateTemplate(ModelTestFixtures.INVOICE.getName(), attributePath -> !"content".equals(attributePath.getFirst().getValue()));
+
+        assertThat(template.getProperties())
+                .extracting(HalFormsProperty::getName)
+                .containsExactly("number", "amount", "received", "pay_before", "pay_timestamp", "is_paid",
+                        "confidentiality", "labels");
     }
 
     @Test

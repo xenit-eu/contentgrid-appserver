@@ -13,6 +13,7 @@ import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
 import com.contentgrid.appserver.application.model.i18n.UserLocales;
+import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.AttributeSourceType;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.EntitySourceType;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.RelationSourceType;
 import com.contentgrid.appserver.application.model.openapi.model.rest.body.SourceType.SearchFilterSourceType;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AccessLevel;
+import lombok.NonNull;
 import lombok.With;
 
 /**
@@ -75,7 +77,8 @@ public final class BodyObjectMapper {
                     var value = getBodyValue(
                             context,
                             new SearchFilterSourceType(entityName, searchFilter.getName()),
-                            attribute
+                            attribute,
+                            ContentPresence.ALWAYS
                     );
                     yield searchValue(value);
                 }
@@ -127,24 +130,38 @@ public final class BodyObjectMapper {
     }
 
     /**
-     * Maps an entity's attribute structure to an {@link ObjectBodyValue}.
+     * Maps an entity type's attribute structure to an {@link ObjectBodyValue}.
      *
      * @param context the context for the mapping
      * @param entityName      the entity to map
      */
     public static ObjectBodyValue forBody(Context context, EntityName entityName) {
+        return forBodyOfInstance(context, entityName, ContentPresence.ALWAYS);
+    }
+
+    /**
+     * Maps an entity instance's attribute structure to an {@link ObjectBodyValue}.
+     * <p>
+     * Content attributes without stored content are left out of bodies that can't upload content,
+     * because their sub-attributes (filename, mimetype) can't be set without content.
+     *
+     * @param context the context for the mapping
+     * @param entityName      the entity to map
+     * @param contentPresence whether the instance has content stored in a content attribute
+     */
+    public static ObjectBodyValue forBodyOfInstance(Context context, EntityName entityName, @NonNull ContentPresence contentPresence) {
         var entity = context.application().getRequiredEntityByName(entityName);
         var entityTranslations = entity.getTranslations(context.userLocales());
 
         var fields = new LinkedHashMap<String, BodyValue>();
         if (context.bodyType() == BodyType.RESPONSE) {
             // For responses, the primary key is also included
-            mapAttribute(context, new EntitySourceType(entityName), entity.getPrimaryKey(), fields);
+            mapAttribute(context, new EntitySourceType(entityName), entity.getPrimaryKey(), fields, contentPresence);
             // Update primary key field to mark it as not nullable (as it's always present in the response)
             fields.compute(entity.getPrimaryKey().getName().getValue(), (k, v) -> v.withMandatory(true).withNullable(false));
         }
         for (var attribute : entity.getAttributes()) {
-            mapAttribute(context, new EntitySourceType(entityName), attribute, fields);
+            mapAttribute(context, new EntitySourceType(entityName), attribute, fields, contentPresence);
         }
 
         if (context.bodyType() == BodyType.POST) {
@@ -258,7 +275,7 @@ public final class BodyObjectMapper {
      * Converts a single {@link Attribute} to a {@link BodyValue} and adds it to {@code fields}.
      * Ignored attributes and {@link UserAttribute}s are silently skipped.
      */
-    private static void mapAttribute(Context context, SourceType sourceType, Attribute attribute, Map<String, BodyValue> fields) {
+    private static void mapAttribute(Context context, SourceType sourceType, Attribute attribute, Map<String, BodyValue> fields, ContentPresence contentPresence) {
         if (attribute.hasFlag(IgnoredFlag.class)) {
             return;
         }
@@ -270,7 +287,8 @@ public final class BodyObjectMapper {
         var value = getBodyValue(
                 context,
                 sourceType.nested(attribute.getName()),
-                attribute
+                attribute,
+                contentPresence
         );
 
         if (value != null) {
@@ -278,7 +296,7 @@ public final class BodyObjectMapper {
         }
     }
 
-    private static BodyValue getBodyValue(Context context, SourceType sourceType, Attribute attribute) {
+    private static BodyValue getBodyValue(Context context, SourceType sourceType, Attribute attribute, ContentPresence contentPresence) {
         var bodyValue = switch (attribute) {
             case SimpleAttribute sa -> SimpleBodyValue.builder()
                     .sourceType(sourceType)
@@ -314,8 +332,11 @@ public final class BodyObjectMapper {
                             .nullable(true)
                             .build();
                 }
-                if (context.bodyType() == BodyType.POST) {
-                    // For non-multipart POST forms, the content never exists, so filename/mimetype can't be specified
+                if (context.bodyType() == BodyType.POST
+                        || (sourceType instanceof AttributeSourceType attributeSourceType
+                        && !contentPresence.hasContent(attributeSourceType.getAttributePath()))) {
+                    // Without stored content, filename and mimetype are rejected (ContentMissingInvalidDataException),
+                    // so leave the content attribute out. A non-multipart POST never has content: the entity doesn't exist yet.
                     yield null;
                 }
                 // For JSON / FORM media types, treat content as an object so that
@@ -323,9 +344,10 @@ public final class BodyObjectMapper {
                 Map<String, BodyValue> fields = new LinkedHashMap<>();
 
                 fields.put("filename",
-                        getBodyValue(context, sourceType.nested(ca.getFilename().getName()), ca.getFilename()));
+                        getBodyValue(context, sourceType.nested(ca.getFilename().getName()), ca.getFilename(), contentPresence));
                 // If the content object is present, the mimetype must always be set as well
-                fields.put("mimetype", getBodyValue(context, sourceType.nested(ca.getMimetype().getName()), ca.getMimetype())
+                fields.put("mimetype",
+                        getBodyValue(context, sourceType.nested(ca.getMimetype().getName()), ca.getMimetype(), contentPresence)
                         .withNullable(false)
                         // Mandatory, except when using PATCH, as everything is optional when using PATCH
                         .withMandatory(context.bodyType() != BodyType.PATCH)
@@ -333,7 +355,7 @@ public final class BodyObjectMapper {
 
                 if (context.bodyType() == BodyType.RESPONSE) {
                     // Length is only sent in responses, it can't be set in requests
-                    fields.put("length", getBodyValue(context, sourceType.nested(ca.getLength().getName()), ca.getLength()).withNullable(false).withMandatory(true));
+                    fields.put("length", getBodyValue(context, sourceType.nested(ca.getLength().getName()), ca.getLength(), contentPresence).withNullable(false).withMandatory(true));
                 }
 
                 yield ObjectBodyValue.builder()
@@ -346,7 +368,7 @@ public final class BodyObjectMapper {
             case UserAttribute ua -> {
                 if(context.bodyType() == BodyType.RESPONSE) {
                     // For responses, this just is the user's name
-                    yield getBodyValue(context, sourceType.nested(ua.getUsername().getName()), ua.getUsername());
+                    yield getBodyValue(context, sourceType.nested(ua.getUsername().getName()), ua.getUsername(), contentPresence);
                 }
 
                 // For requests, it is not defined yet how to handle, so skip it
@@ -355,7 +377,7 @@ public final class BodyObjectMapper {
             case CompositeAttribute ca -> {
                 var nestedFields = new LinkedHashMap<String, BodyValue>();
                 for (var nestedAttr : ca.getAttributes()) {
-                    mapAttribute(context, sourceType, nestedAttr, nestedFields);
+                    mapAttribute(context, sourceType, nestedAttr, nestedFields, contentPresence);
                 }
                 yield ObjectBodyValue.builder()
                         .fields(Collections.unmodifiableMap(nestedFields))
