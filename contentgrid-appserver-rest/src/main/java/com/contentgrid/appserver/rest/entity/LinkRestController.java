@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApi;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
@@ -78,29 +79,38 @@ public class LinkRestController {
                 authorizationContext
         );
 
-        if (targetLink.orElse(null) instanceof ContentValue contentValue) {
-            var content = contentValue.getContent();
-            if (content.getMimeType() == null) {
-                throw new ContentNotFoundException(EntityIdentity.forEntity(entity.getName(), entityId),
-                        storedLink.getStorage().getLast());
-            }
+        return switch(targetLink.orElse(null)) {
+            case ContentValue contentValue -> {
+                var content = contentValue.getContent();
+                if (content.getMimeType() == null) {
+                    throw new ContentNotFoundException(EntityIdentity.forEntity(entity.getName(), entityId),
+                            storedLink.getStorage().getLast());
+                }
 
-            if (versionValidator.checkVersion(webRequest, versionConstraint, content.getVersion())) {
-                return null; // The response headers inside webRequest are modified as side effect
-            }
+                if (versionValidator.checkVersion(webRequest, versionConstraint, content.getVersion())) {
+                    yield null; // The response headers inside webRequest are modified as side effect
+                }
 
-            var disposition = ContentDisposition.attachment();
-            if (content.getFilename() != null) {
-                disposition.filename(content.getFilename(), StandardCharsets.UTF_8);
+                var disposition = ContentDisposition.attachment();
+                if (content.getFilename() != null) {
+                    disposition.filename(content.getFilename(), StandardCharsets.UTF_8);
+                }
+                yield ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(content.getMimeType()))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, disposition.build().toString())
+                        .eTag(versionValidator.calculateETag(content.getVersion()))
+                        .body(new InputStreamResource(content::getInputStream));}
+            case TextValue textValue -> {
+                if (versionValidator.checkVersion(webRequest, versionConstraint, textValue.getVersion())) {
+                    yield null;
+                }
+                yield ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .eTag(versionValidator.calculateETag(textValue.getVersion()))
+                        .body(textValue);
             }
-            return ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(content.getMimeType()))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, disposition.build().toString())
-                    .eTag(versionValidator.calculateETag(content.getVersion()))
-                    .body(new InputStreamResource(content::getInputStream));
-        }
-
-        return ResponseEntity.ok(targetLink);
+            case null -> ResponseEntity.ok(targetLink); // TODO ACC-3004 this empty optional / null handling is fugly. Find more graceful solution?
+        };
     }
 
     @SpecializedOnLinkType(type = StoredLinkType.TEXT, entityPathVariable = "entityName", linkPathVariable = "*linkPath")
