@@ -183,12 +183,13 @@ public class LinkRestControllerTest {
         @Test
         void testSuccessfullyGetTextLink() throws Exception {
             var personUrl = createPerson();
-            var internalStoredLinkValue = seedSummary(personUrl);
+            seedSummary(personUrl);
 
             mockMvc.perform(get(personUrl + SUMMARY_LINK_PATH))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.value").value("person summary"))
-                    .andExpect(jsonPath("$.version.version").value(((ExactlyVersion) internalStoredLinkValue.getVersion()).getValue()));
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
+                    .andExpect(content().string("person summary"));
         }
 
         @Test
