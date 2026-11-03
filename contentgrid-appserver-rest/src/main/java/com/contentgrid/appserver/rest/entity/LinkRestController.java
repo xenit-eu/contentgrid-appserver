@@ -23,6 +23,7 @@ import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType.StoredLinkType;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
@@ -88,8 +89,13 @@ public class LinkRestController {
                 return null; // The response headers inside webRequest are modified as side effect
             }
 
+            var disposition = ContentDisposition.attachment();
+            if (content.getFilename() != null) {
+                disposition.filename(content.getFilename(), StandardCharsets.UTF_8);
+            }
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(content.getMimeType()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, disposition.build().toString())
                     .eTag(versionValidator.calculateETag(content.getVersion()))
                     .body(new InputStreamResource(content::getInputStream));
         }
