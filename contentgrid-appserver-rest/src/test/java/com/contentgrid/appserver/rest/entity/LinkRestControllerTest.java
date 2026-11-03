@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.contentgrid.appserver.contentstore.api.ContentStore;
@@ -27,7 +26,6 @@ import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.LinkRequest;
-import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
@@ -336,7 +334,7 @@ public class LinkRestControllerTest {
         }
 
         @Test
-        void testUpdateLinkWithCorrectIfMatch() throws Exception {
+        void testUpdateContentLinkWithCorrectIfMatch() throws Exception {
             var personUrl = createPerson();
             seedPortrait(personUrl);
 
@@ -357,7 +355,7 @@ public class LinkRestControllerTest {
         }
 
         @Test
-        void testUpdateLinkWithIncorrectIfMatch() throws Exception {
+        void testUpdateContentLinkWithIncorrectIfMatch() throws Exception {
             var personUrl = createPerson();
             seedPortrait(personUrl);
 
