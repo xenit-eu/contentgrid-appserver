@@ -20,6 +20,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
+import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType.StoredLinkType;
@@ -32,6 +33,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -121,9 +123,14 @@ public class LinkRestController {
             @PathVariable EntityId entityId,
             @PathVariable PathSegmentName linkPath,
             VersionConstraint versionConstraint,
+            @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
             @RequestBody String requestBody,
             AuthorizationContext authorizationContext
-    ) {
+    ) throws ForbiddenRequestHeaderException {
+        if (StringUtils.hasText(contentRange)) {
+            // Partial PUT is not supported
+            throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
+        }
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
         var linkRequest = LinkRequest.forLink(
@@ -152,10 +159,15 @@ public class LinkRestController {
             @PathVariable PathSegmentName linkPath,
             @RequestHeader(HttpHeaders.CONTENT_TYPE) MediaType contentType,
             VersionConstraint versionConstraint,
-            @RequestBody(required = false) InputStreamResource requestBody,
             @RequestHeader(value = HttpHeaders.CONTENT_DISPOSITION, required = false) String contentDisposition,
+            @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
+            @RequestBody(required = false) InputStreamResource requestBody,
             AuthorizationContext authorizationContext
-    ) {
+    ) throws ForbiddenRequestHeaderException {
+        if (StringUtils.hasText(contentRange)) {
+            // Partial PUT is not supported
+            throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
+        }
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
         var linkRequest = LinkRequest.forLink(
