@@ -571,17 +571,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
-        var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
-        // TODO ACC-3004 wrap queryengineExceptions?
-//        UpdateResult updateResult = null;
-//        try {
-//            queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
-//        } catch (QueryEngineException qEEx) {
-//            handleQueryEngineException(qEEx);
-//        }
-        var attributeData = updateResult
-                .getUpdated();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
+        //TODO ACC-2447 wrap queryengineExceptions?
+        var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer).getUpdated();
+        return mapAttributeDataToStoredValue(updateResult, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
@@ -638,25 +630,6 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
         writeLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
     }
-
-// TODO ACC-3004 Wrap queryEngineExceptions in DomainExceptions?
-
-//    private void handleQueryEngineException(QueryEngineException queryEngineException) {
-//        switch(queryEngineException) {
-//            case com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException unsatisfiedVersionQEException ->
-//                    throw new UnsatisfiedVersionException(unsatisfiedVersionQEException.getActualVersion(), unsatisfiedVersionQEException.getRequestedVersion(), unsatisfiedVersionQEException);
-//            // !! Preserve order of relationTargetNotFound > entityIdNotFound or switch will break. RTNF extends EINF.
-//            case com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException relationTargetNotFoundQEException ->
-//                    throw new RelationTargetNotFoundException(
-//                            relationTargetNotFoundQEException.getEntityName(),
-//                            relationTargetNotFoundQEException.getId(),
-//                            relationTargetNotFoundQEException.getRelation(),
-//                            relationTargetNotFoundQEException);
-//            case com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException entityIdNotFoundQEException ->
-//                    throw new EntityIdNotFoundException(entityIdNotFoundQEException.getEntityName(), entityIdNotFoundQEException.getId(), entityIdNotFoundQEException);
-//            default -> throw new DomainException("QueryEngineException could not be handled at domain layer.", queryEngineException);
-//        }
-//    }
 
     @RequiredArgsConstructor
     private class ResponseOutputDataMapper {
