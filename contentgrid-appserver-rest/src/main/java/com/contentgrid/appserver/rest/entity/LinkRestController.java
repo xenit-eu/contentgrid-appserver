@@ -17,6 +17,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.LinkRequest;
+import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
@@ -79,9 +80,9 @@ public class LinkRestController {
                 application,
                 linkRequest,
                 authorizationContext
-        );
+        ).orElseThrow(() -> new LinkNotFoundException(linkRequest));
 
-        return switch(targetLink.orElse(null)) {
+        return switch(targetLink) {
             case ContentValue contentValue -> {
                 var content = contentValue.getContent();
                 if (content.getMimeType() == null) {
@@ -111,7 +112,6 @@ public class LinkRestController {
                         .eTag(versionValidator.calculateETag(textValue.getVersion()))
                         .body(textValue.getValue());
             }
-            case null -> ResponseEntity.ok(targetLink); // TODO ACC-3004 this empty optional / null handling is fugly. Find more graceful solution?
         };
     }
 
