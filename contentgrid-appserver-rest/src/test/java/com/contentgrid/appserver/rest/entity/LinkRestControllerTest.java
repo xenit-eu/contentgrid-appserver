@@ -28,7 +28,6 @@ import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
-import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
@@ -55,9 +54,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "spring.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
@@ -67,13 +66,16 @@ import tools.jackson.databind.json.JsonMapper;
 public class LinkRestControllerTest {
 
     private static final String PORTRAIT_LINK_PATH = "/_links/16-9-hash123/portrait";
+    private static final MockMultipartFile PORTRAIT_CONTENT_FILE = new MockMultipartFile(
+            "content",
+            "portrait.jpeg",
+            MediaType.IMAGE_JPEG_VALUE,
+            "portrait data".getBytes(StandardCharsets.UTF_8)
+    );
     private static final String SUMMARY_LINK_PATH = "/_links/summary-hash123";
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private JsonMapper jsonMapper;
 
     @Autowired
     private DatamodelApi datamodelApi;
@@ -82,7 +84,8 @@ public class LinkRestControllerTest {
     private ContentStoreResolver contentStoreResolverMock;
 
     @AutoClose
-    private final ContentStore contentStore = new MockContentStore();
+    private final ContentStore mockContentStore = new MockContentStore();
+    private ContentStore contentStoreSpy;
 
     @TestConfiguration
     static class TestConfig {
@@ -99,7 +102,8 @@ public class LinkRestControllerTest {
     @BeforeEach
     void setup() {
         tableCreator.createTables(APPLICATION);
-        Mockito.when(contentStoreResolverMock.resolve(Mockito.any())).thenReturn(contentStore);
+        contentStoreSpy = Mockito.spy(mockContentStore);
+        Mockito.when(contentStoreResolverMock.resolve(Mockito.any())).thenReturn(contentStoreSpy);
     }
 
     @AfterEach
@@ -409,6 +413,45 @@ public class LinkRestControllerTest {
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
                     );
+        }
+
+        @Test
+        void testUpdateContentLinkPutPartialNotSupported() throws Exception {
+            var personUrl = createPerson();
+            seedPortrait(personUrl);
+
+            mockMvc.perform(
+                            put(personUrl + PORTRAIT_LINK_PATH)
+                                    .contentType(PORTRAIT_CONTENT_FILE.getContentType())
+                                    .header(HttpHeaders.CONTENT_RANGE, "bytes 0-3")
+                                    .content("updated"))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request/forbidden-header")
+                            .withTitle("Forbidden request header")
+                            .withDetail("Request header 'Content-Range' is not allowed")
+                            .withField("header", "Content-Range")
+                    );
+            // TODO ACC-3004 ContentController checks the contentstore spy for interactions here. required?
+        }
+
+        @Test
+        void testUpdateTextLinkPutPartialNotSupported() throws Exception {
+            var personUrl = createPerson();
+
+            mockMvc.perform(
+                    put(personUrl + SUMMARY_LINK_PATH)
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .header(HttpHeaders.CONTENT_RANGE, "bytes 0-3")
+                            .content("\"updated summary\""))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.BAD_REQUEST)
+                            .withType("https://contentgrid.cloud/problems/invalid-request/forbidden-header")
+                            .withTitle("Forbidden request header")
+                            .withDetail("Request header 'Content-Range' is not allowed")
+                            .withField("header", "Content-Range")
+                    );
+            // TODO ACC-3004 ContentController checks the contentstore spy for interactions here. required?
         }
     }
 
