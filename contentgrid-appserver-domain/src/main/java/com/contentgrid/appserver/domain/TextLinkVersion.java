@@ -6,7 +6,7 @@ import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.Version;
 import lombok.NonNull;
 
-public final class TextLinkVersion {
+public final class TextLinkVersion extends AbstractHashbasedVersion {
 
     private TextLinkVersion() {
     }
@@ -20,12 +20,12 @@ public final class TextLinkVersion {
         // An unnamed link has no name, which is represented as an empty string
         var linkName = linkIdentity instanceof NamedLink namedLink ? namedLink.name() : "";
 
-        return Version.exactly(ContentVersion.hash(
+        return Version.exactly(hash(
                 entityIdentity.getEntityName().getValue(),
                 entityIdentity.getEntityId().getValue().toString(),
                 linkIdentity.rel().toString(),
                 linkName,
-                ContentVersion.hash(value)
+                hash(value)
         ));
     }
 }
