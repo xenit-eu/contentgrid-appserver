@@ -27,6 +27,8 @@ import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.LinkRequest;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
 import com.contentgrid.appserver.rest.entity.EntityRestControllerTest.TestConfig;
 import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
@@ -177,11 +179,12 @@ public class LinkRestControllerTest {
         @Test
         void testSuccessfullyGetTextLink() throws Exception {
             var personUrl = createPerson();
-            seedSummary(personUrl);
+            var internalStoredLinkValue = seedSummary(personUrl);
 
             mockMvc.perform(get(personUrl + SUMMARY_LINK_PATH))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.value").value("person summary"));
+                    .andExpect(jsonPath("$.value").value("person summary"))
+                    .andExpect(jsonPath("$.version.version").value(((ExactlyVersion) internalStoredLinkValue.getVersion()).getValue()));
         }
 
         @Test
