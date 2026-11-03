@@ -139,6 +139,7 @@ public class LinkRestController {
                 storedLink.getIdentity(),
                 versionConstraint
         );
+        // TODO ACC-3319
         var newValue = datamodelApi.updateLink(
                 application,
                 linkRequest,
@@ -186,7 +187,7 @@ public class LinkRestController {
             }
         }
         InputStreamSupplier inputStreamSupplier = requestBody != null ? requestBody::getInputStream : InputStream::nullInputStream;
-
+        // TODO ACC-3319
         var newValue = datamodelApi.updateLink(
                 application,
                 linkRequest,
@@ -215,6 +216,7 @@ public class LinkRestController {
                 storedLink.getIdentity(),
                 versionConstraint
         ) ;
+        // TODO ACC-3319
         datamodelApi.deleteLink(
                 application,
                 linkRequest,
