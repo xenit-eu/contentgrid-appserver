@@ -107,9 +107,9 @@ public class LinkRestController {
                     yield null;
                 }
                 yield ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.TEXT_PLAIN)
                         .eTag(versionValidator.calculateETag(textValue.getVersion()))
-                        .body(textValue);
+                        .body(textValue.getValue());
             }
             case null -> ResponseEntity.ok(targetLink); // TODO ACC-3004 this empty optional / null handling is fugly. Find more graceful solution?
         };
