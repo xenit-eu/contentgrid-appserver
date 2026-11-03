@@ -9,7 +9,11 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import java.net.URI;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class TextLinkVersionTest {
 
@@ -23,42 +27,23 @@ class TextLinkVersionTest {
                 .isEqualTo(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"));
     }
 
-    @Test
-    void differentValue_differentVersion() {
-        assertThat(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"))
-                .isNotEqualTo(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "other value"));
+    @ParameterizedTest
+    @MethodSource("provideInputsForDifferentVersion")
+    void differentVersionPerCalculationComponent(EntityIdentity inputEntityIdentity, NamedLink inputLinkIdentity, String inputValue) {
+        var baselineVersion = TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value");
+        var testVersion = TextLinkVersion.calculate(inputEntityIdentity, inputLinkIdentity, inputValue);
+        assertThat(baselineVersion).isNotEqualTo(testVersion);
+        assertThat(baselineVersion.isSatisfiedBy(testVersion)).isFalse();
     }
 
-    @Test
-    void differentEntityName_differentVersion() {
-        var otherEntity = EntityIdentity.forEntity(EntityName.of("invoice"), ENTITY.getEntityId());
-
-        assertThat(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"))
-                .isNotEqualTo(TextLinkVersion.calculate(otherEntity, NAMED_LINK, "value"));
-    }
-
-    @Test
-    void differentEntityId_differentVersion() {
-        var otherEntity = EntityIdentity.forEntity(ENTITY.getEntityName(), EntityId.of(UUID.randomUUID()));
-
-        assertThat(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"))
-                .isNotEqualTo(TextLinkVersion.calculate(otherEntity, NAMED_LINK, "value"));
-    }
-
-    @Test
-    void differentRel_differentVersion() {
-        var otherLink = new NamedLink(URI.create("https://example.com/other-rel"), NAMED_LINK.name());
-
-        assertThat(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"))
-                .isNotEqualTo(TextLinkVersion.calculate(ENTITY, otherLink, "value"));
-    }
-
-    @Test
-    void differentName_differentVersion() {
-        var otherLink = new NamedLink(NAMED_LINK.rel(), "other-name");
-
-        assertThat(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"))
-                .isNotEqualTo(TextLinkVersion.calculate(ENTITY, otherLink, "value"));
+    private static Stream<Arguments> provideInputsForDifferentVersion() {
+        return Stream.of(
+                Arguments.of(ENTITY, NAMED_LINK, "other value"),
+                Arguments.of(EntityIdentity.forEntity(EntityName.of("invoice"), ENTITY.getEntityId()), NAMED_LINK, "value"),
+                Arguments.of(EntityIdentity.forEntity(ENTITY.getEntityName(), EntityId.of(UUID.randomUUID())), NAMED_LINK, "value"),
+                Arguments.of(ENTITY, new NamedLink(URI.create("https://example.com/other-rel"), NAMED_LINK.name()), "value"),
+                Arguments.of(ENTITY, new NamedLink(NAMED_LINK.rel(), "other-name"), "value")
+        );
     }
 
     @Test
