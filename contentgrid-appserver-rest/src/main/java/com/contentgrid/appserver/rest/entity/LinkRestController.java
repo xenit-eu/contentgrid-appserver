@@ -20,6 +20,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
+import com.contentgrid.appserver.rest.entity.util.EmptyContentResourceProxy;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactoryProvider;
@@ -29,7 +30,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -41,6 +44,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 
@@ -57,8 +62,43 @@ public class LinkRestController {
                 .orElseThrow(() -> new EntityDefinitionNotFoundException(entityName.getValue()));
     }
 
+    /*
+     * Doing a custom implementation for HEAD here instead of the default that calls the GET method and
+     * discards the body.
+     *
+     * HEAD requests are supposed to be a 'cheap' way to check what would be the answer to a GET request,
+     * without retrieving the body.
+     * Since no body is being written, and we have all the metadata stored in our database,
+     * we can avoid retrieving the content from the ContentStore at all, which saves some processing time and data transfer.
+     * We can completely avoid doing some of the work by not making any request to the ContentStore to receive content.
+     * Note that we still do need to return a properly-sized InputStream, because Spring does read the body.
+     * Especially when servicing Range requests, Spring will want to skip a certain number of bytes, and will throw
+     * when that doesn't happen.
+     * It's only Tomcat, after the whole Spring stack has finished, that copies the InputStream to a discard OutputStream
+     * (instead of the actual HTTP response body as done for a GET).
+     */
+    @RequestMapping(value ="/{entityName}/{entityId}/{*linkPath}", method = {RequestMethod.HEAD})
+    public ResponseEntity<Object> headLink(
+            Application application,
+            @PathVariable PathSegmentName entityName,
+            @PathVariable EntityId entityId,
+            @PathVariable PathSegmentName linkPath,
+            VersionConstraint versionConstraint,
+            WebRequest webRequest,
+            AuthorizationContext authorizationContext,
+            LinkFactoryProvider linkFactoryProvider
+            ) {
+        var response = getLink(application, entityName, entityId, linkPath, versionConstraint, webRequest, authorizationContext, linkFactoryProvider);
+        if (response == null) {
+            return null;
+        }
+        return ResponseEntity.status(response.getStatusCode())
+                .headers(response.getHeaders())
+                .body(new EmptyContentResourceProxy(response.getBody()));
+    }
+
     @GetMapping("/{entityName}/{entityId}/{*linkPath}")
-    public ResponseEntity<Object> getLink(
+    public ResponseEntity<Resource> getLink(
             Application application,
             @PathVariable PathSegmentName entityName,
             @PathVariable EntityId entityId,
@@ -110,7 +150,7 @@ public class LinkRestController {
                 yield ResponseEntity.ok()
                         .contentType(MediaType.TEXT_PLAIN)
                         .eTag(versionValidator.calculateETag(textValue.getVersion()))
-                        .body(textValue.getValue());
+                        .body(new ByteArrayResource(textValue.getValue().getBytes()));
             }
         };
     }
