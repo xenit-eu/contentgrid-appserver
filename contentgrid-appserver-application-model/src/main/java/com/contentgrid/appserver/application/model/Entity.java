@@ -162,6 +162,7 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
 
         attributes.stream()
                 .flatMap(attr -> attr instanceof ContentAttribute contentAttribute?Stream.of(contentAttribute):Stream.empty())
+                .filter(contentAttribute -> !contentAttribute.isIgnored())
                 .forEach(attribute -> {
                     if (this.contentAttributes.put(attribute.getPathSegment(), attribute) != null) {
                         throw new DuplicateElementException("Duplicate content with path segment %s".formatted(attribute.getPathSegment()));
