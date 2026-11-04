@@ -657,10 +657,6 @@ class ProfileRestControllerTest {
                                                 }
                                             ]
                                         }
-                                    },
-                                    {
-                                        name: "portrait",
-                                        title: "portrait"
                                     }
                                 ],
                                 "blueprint:relation": [

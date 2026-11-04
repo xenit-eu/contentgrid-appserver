@@ -744,14 +744,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
                         new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
-                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of()),
-                        CompositeAttributeData.builder()
-                                .name(PERSON_PORTRAIT.getName())
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getId().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getFilename().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getMimetype().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getLength().getName(), null))
-                                .build()
+                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of())
                 );
 
                 assertThat(createData.getRelations()).isEmpty();

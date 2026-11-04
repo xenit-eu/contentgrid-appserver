@@ -121,12 +121,11 @@ public class ModelTestFixtures {
 
     public static final ContentAttribute PERSON_PORTRAIT = ContentAttribute.builder()
             .name(AttributeName.of("portrait"))
-            .pathSegment(PathSegmentName.of("portrait"))
-            .linkName(LinkName.of("portrait"))
             .idColumn(ColumnName.of("portrait"))
             .filenameColumn(ColumnName.of("_portrait__filename"))
             .mimetypeColumn(ColumnName.of("portrait__mimetype"))
             .lengthColumn(ColumnName.of("portrait__length"))
+            .flag(IgnoredFlag.INSTANCE)
             .build();
 
     public static final SimpleAttribute PERSON_SUMMARY = SimpleAttribute.builder()
@@ -875,16 +874,6 @@ public class ModelTestFixtures {
                     .build())
             .build();
 
-    public static final Entity STORE = Entity.builder()
-            .name(EntityName.of("store"))
-            .table(TableName.of("store"))
-            .pathSegment(PathSegmentName.of("stores"))
-            .linkName(LinkName.of("store"))
-            .primaryKey(STORE_ID)
-            .attribute(STORE_NAME)
-            .attribute(STORE_RATING)
-            .build();
-
     public static final SimpleAttribute EMPTY_WITHOUT_ETAG_ID = SimpleAttribute.builder()
             .name(AttributeName.of("empty_without_etag_id"))
             .column(ColumnName.of("empty_without_etag_id"))
@@ -1050,7 +1039,6 @@ public class ModelTestFixtures {
             .entity(PERSON)
             .entity(PRODUCT)
             .entity(ORDER)
-            .entity(STORE)
             .entity(EMPTY_WITHOUT_ETAG)
             .entity(EMPTY_WITH_ETAG)
             .relation(INVOICE_CUSTOMER)
