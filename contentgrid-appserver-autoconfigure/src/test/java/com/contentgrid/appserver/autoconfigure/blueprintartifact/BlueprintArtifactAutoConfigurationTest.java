@@ -9,10 +9,16 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactR
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
 import com.contentgrid.appserver.autoconfigure.s3.S3BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
+import com.contentgrid.appserver.registry.UnsupportedBlueprintFormatVersionException;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -46,9 +52,28 @@ class BlueprintArtifactAutoConfigurationTest {
     @ValueSource(strings = {
             "classpath:my/location",
             "file:/my/path",
-            "zip:/my/blueprint-artifact.zip",
     })
     void withLocationProperty(String reference) {
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=" + reference)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(BlueprintArtifact.class);
+                    assertThat(context).getBean(BlueprintArtifact.class).satisfies(blueprintArtifact ->
+                            assertThat(blueprintArtifact.getReference()).hasToString(reference));
+                });
+    }
+
+    @Test
+    void withZipLocationProperty(@TempDir Path directory) throws IOException {
+        // The blueprint format version is validated on startup, so the zip file has to exist
+        var zipFile = directory.resolve("blueprint-artifact.zip");
+        try (var zip = new ZipOutputStream(Files.newOutputStream(zipFile))) {
+            zip.putNextEntry(new ZipEntry("application-model.json"));
+            zip.closeEntry();
+        }
+        var reference = "zip:" + zipFile;
+
         contextRunner
                 .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=" + reference)
                 .run(context -> {
@@ -69,6 +94,22 @@ class BlueprintArtifactAutoConfigurationTest {
         contextRunner
                 .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=" + reference)
                 .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void withUnsupportedBlueprintFormatVersion(@TempDir Path directory) throws IOException {
+        Files.writeString(directory.resolve("manifest.json"), """
+                { "format_version": 99999 }
+                """);
+
+        contextRunner
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=file:" + directory)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context).getFailure()
+                            .rootCause()
+                            .isInstanceOf(UnsupportedBlueprintFormatVersionException.class);
+                });
     }
 
     @Test
