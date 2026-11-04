@@ -5,6 +5,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT_LINK;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_SUMMARY_LINK;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
@@ -105,7 +106,7 @@ public class LinkRestControllerTest {
     void setup() {
         tableCreator.createTables(APPLICATION);
         contentStoreSpy = Mockito.spy(mockContentStore);
-        Mockito.when(contentStoreResolverMock.resolve(Mockito.any())).thenReturn(contentStoreSpy);
+        Mockito.when(contentStoreResolverMock.resolve(any())).thenReturn(contentStoreSpy);
     }
 
     @AfterEach
@@ -190,6 +191,7 @@ public class LinkRestControllerTest {
                             String.valueOf(PORTRAIT_CONTENT_BYTES.length)))
                     .andExpect(content().contentType(PORTRAIT_CONTENT_FILE.getContentType()))
                     .andExpect(content().bytes(new byte[PORTRAIT_CONTENT_BYTES.length]));
+            Mockito.verify(contentStoreSpy, Mockito.never()).getReader(any(), any());
         }
 
         @Test
@@ -205,6 +207,7 @@ public class LinkRestControllerTest {
                             String.valueOf(SUMMARY_BYTES.length)))
                     .andExpect(content().contentType(MediaType.TEXT_PLAIN))
                     .andExpect(content().bytes(new byte[SUMMARY_BYTES.length]));
+            Mockito.verifyNoInteractions(contentStoreSpy);
         }
     }
 
@@ -476,6 +479,7 @@ public class LinkRestControllerTest {
                             .withDetail("Request header 'Content-Range' is not allowed")
                             .withField("header", "Content-Range")
                     );
+            Mockito.verify(contentStoreSpy, Mockito.atMostOnce()).writeContent(any()); // Allow one write to seed, but no more
         }
 
         @Test
@@ -494,6 +498,7 @@ public class LinkRestControllerTest {
                             .withDetail("Request header 'Content-Range' is not allowed")
                             .withField("header", "Content-Range")
                     );
+            Mockito.verifyNoInteractions(contentStoreSpy);
         }
     }
 
