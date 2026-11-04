@@ -5,6 +5,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT_LINK;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_SUMMARY_LINK;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -252,6 +253,11 @@ public class LinkRestControllerTest {
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
                     );
+        }
+
+        @Test
+        void testHeadLinkReturnsOkWithoutContent() {
+            fail();
         }
     }
 
