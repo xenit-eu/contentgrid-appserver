@@ -15,22 +15,20 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
+import com.contentgrid.appserver.rest.entity.util.ContentResource;
 import com.contentgrid.appserver.rest.entity.util.EmptyContentResourceProxy;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
-import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -308,36 +306,5 @@ public class ContentRestController {
         );
 
         return ResponseEntity.noContent().build();
-    }
-
-
-    @EqualsAndHashCode(callSuper = false)
-    private static class ContentResource extends AbstractResource {
-        @NonNull
-        private final Content content;
-
-        public ContentResource(Content content) {
-            this.content = content;
-        }
-
-        @Override
-        public long contentLength() {
-            return content.getLength();
-        }
-
-        @Override
-        public String getDescription() {
-            return content.getDescription();
-        }
-
-        @Override
-        public InputStream getInputStream() throws IOException {
-            return content.getInputStream();
-        }
-
-        @Override
-        public boolean exists() {
-            return true;
-        }
     }
 }

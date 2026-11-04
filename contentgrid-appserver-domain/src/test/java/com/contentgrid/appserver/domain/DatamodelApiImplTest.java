@@ -17,7 +17,6 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_GENDER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_TAGS;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
