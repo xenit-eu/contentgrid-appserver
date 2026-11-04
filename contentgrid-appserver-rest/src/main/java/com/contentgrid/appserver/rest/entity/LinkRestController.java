@@ -20,6 +20,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
+import com.contentgrid.appserver.rest.entity.util.ContentResource;
 import com.contentgrid.appserver.rest.entity.util.EmptyContentResourceProxy;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
@@ -142,7 +143,8 @@ public class LinkRestController {
                         .contentType(MediaType.parseMediaType(content.getMimeType()))
                         .header(HttpHeaders.CONTENT_DISPOSITION, disposition.build().toString())
                         .eTag(versionValidator.calculateETag(content.getVersion()))
-                        .body(new InputStreamResource(content::getInputStream));}
+                        .body(new ContentResource(content));
+            }
             case TextValue textValue -> {
                 if (versionValidator.checkVersion(webRequest, versionConstraint, textValue.getVersion())) {
                     yield null;

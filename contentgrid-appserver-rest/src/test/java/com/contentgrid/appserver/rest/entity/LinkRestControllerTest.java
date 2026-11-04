@@ -5,9 +5,9 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT_LINK;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_SUMMARY_LINK;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -50,6 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -65,13 +66,15 @@ import org.springframework.test.web.servlet.MockMvc;
 public class LinkRestControllerTest {
 
     private static final String PORTRAIT_LINK_PATH = "/_links/16-9-hash123/portrait";
+    private static final byte[] PORTRAIT_CONTENT_BYTES = "portrait data".getBytes(StandardCharsets.UTF_8);
     private static final MockMultipartFile PORTRAIT_CONTENT_FILE = new MockMultipartFile(
             "content",
-            "portrait.jpeg",
-            MediaType.IMAGE_JPEG_VALUE,
-            "portrait data".getBytes(StandardCharsets.UTF_8)
+            "portrait.png",
+            MediaType.IMAGE_PNG_VALUE,
+            PORTRAIT_CONTENT_BYTES
     );
     private static final String SUMMARY_LINK_PATH = "/_links/summary-hash123";
+    private static final byte[] SUMMARY_BYTES = "person summary".getBytes(StandardCharsets.UTF_8);
 
     @Autowired
     private MockMvc mockMvc;
@@ -138,7 +141,7 @@ public class LinkRestControllerTest {
         return datamodelApi.updateLink(
                 APPLICATION,
                 summaryLinkRequest(personUrl),
-                new StringDataEntry("person summary"),
+                new StringDataEntry(new String(SUMMARY_BYTES, StandardCharsets.UTF_8)),
                 AuthorizationContext.allowAll()
         );
     }
@@ -151,8 +154,10 @@ public class LinkRestControllerTest {
         return datamodelApi.updateLink(
                 APPLICATION,
                 portraitLinkRequest(personUrl),
-                new FileDataEntry("portrait.png", "image/png",
-                        () -> new ByteArrayInputStream("portrait data".getBytes(StandardCharsets.UTF_8))),
+                new FileDataEntry(
+                        PORTRAIT_CONTENT_FILE.getOriginalFilename(),
+                        PORTRAIT_CONTENT_FILE.getContentType(),
+                        () -> new ByteArrayInputStream(PORTRAIT_CONTENT_BYTES)),
                 AuthorizationContext.allowAll()
         );
     }
@@ -162,6 +167,45 @@ public class LinkRestControllerTest {
                 .map(ContentValue.class::cast)
                 .map(ContentValue::getContent)
                 .orElseThrow();
+    }
+
+    @Nested
+    class HeadLink {
+
+        @Test
+        void testHeadContentLinkReturnsOkWithoutContent() throws Exception {
+            var personUrl = createPerson();
+            seedPortrait(personUrl);
+
+            mockMvc.perform(head(personUrl + PORTRAIT_LINK_PATH))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment()
+                                    .filename(PORTRAIT_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8)
+                                    .build().toString()))
+                    .andExpect(header().string(
+                            HttpHeaders.CONTENT_LENGTH,
+                            String.valueOf(PORTRAIT_CONTENT_BYTES.length)))
+                    .andExpect(content().contentType(PORTRAIT_CONTENT_FILE.getContentType()))
+                    .andExpect(content().bytes(new byte[PORTRAIT_CONTENT_BYTES.length]));
+        }
+
+        @Test
+        void testHeadTextLinkReturnsOkWithoutContent() throws Exception {
+            var personUrl = createPerson();
+            seedSummary(personUrl);
+
+            mockMvc.perform(head(personUrl + SUMMARY_LINK_PATH))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(
+                            HttpHeaders.CONTENT_LENGTH,
+                            String.valueOf(SUMMARY_BYTES.length)))
+                    .andExpect(content().contentType(MediaType.TEXT_PLAIN))
+                    .andExpect(content().bytes(new byte[SUMMARY_BYTES.length]));
+        }
     }
 
     @Nested
@@ -253,11 +297,6 @@ public class LinkRestControllerTest {
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
                     );
-        }
-
-        @Test
-        void testHeadLinkReturnsOkWithoutContent() {
-            fail();
         }
     }
 
