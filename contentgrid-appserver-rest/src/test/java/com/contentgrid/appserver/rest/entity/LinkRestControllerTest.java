@@ -476,7 +476,6 @@ public class LinkRestControllerTest {
                             .withDetail("Request header 'Content-Range' is not allowed")
                             .withField("header", "Content-Range")
                     );
-            // TODO ACC-3004 ContentController checks the contentstore spy for interactions here. required?
         }
 
         @Test
@@ -495,7 +494,6 @@ public class LinkRestControllerTest {
                             .withDetail("Request header 'Content-Range' is not allowed")
                             .withField("header", "Content-Range")
                     );
-            // TODO ACC-3004 ContentController checks the contentstore spy for interactions here. required?
         }
     }
 
