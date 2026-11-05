@@ -185,7 +185,7 @@ class DatamodelApiImplTest {
     @Spy
     private CursorCodec codec = new RequestIntegrityCheckCursorCodec(new SimplePageBasedCursorCodec());
 
-    private DatamodelApi datamodelApi;
+    private DatamodelApiImpl datamodelApi;
 
     private final LinkUriProvider linkUriProvider = new LinkUriProvider() {
         @Override
