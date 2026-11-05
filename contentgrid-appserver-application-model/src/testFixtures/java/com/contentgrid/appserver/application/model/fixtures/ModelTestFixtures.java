@@ -769,26 +769,6 @@ public class ModelTestFixtures {
                     .build())
             .build();
 
-    public static final SimpleAttribute STORE_ID = SimpleAttribute.builder()
-            .name(AttributeName.of("store_id"))
-            .column(ColumnName.of("store_id"))
-            .type(Type.UUID)
-            .flag(ReadOnlyFlag.INSTANCE)
-            .build();
-
-    public static final SimpleAttribute STORE_NAME = SimpleAttribute.builder()
-            .name(AttributeName.of("name"))
-            .column(ColumnName.of("name"))
-            .type(Type.TEXT)
-            .constraint(Constraint.required())
-            .build();
-
-    public static final SimpleAttribute STORE_RATING = SimpleAttribute.builder()
-            .name(AttributeName.of("rating"))
-            .column(ColumnName.of("rating"))
-            .type(Type.LONG)
-            .build();
-
     public static final SimpleAttribute ORDER_ID = SimpleAttribute.builder()
             .name(AttributeName.of("order_id"))
             .column(ColumnName.of("order_id"))
