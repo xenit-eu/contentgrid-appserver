@@ -108,7 +108,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @Slf4j
-public class DatamodelApiImpl implements DatamodelApi {
+public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
     private final QueryEngine queryEngine;
     private final ContentStoreResolver contentStoreResolver;
