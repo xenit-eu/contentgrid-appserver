@@ -29,6 +29,6 @@ class CompositeAttributePathTest {
     @ParameterizedTest
     @MethodSource
     void testGetAsList(AttributePath in, List<AttributePath> expected) {
-        assertThat(in.getAsList()).containsExactlyInAnyOrder(expected.toArray(expected.toArray(new AttributePath[0])));
+        assertThat(in.getAsList()).containsExactly(expected.toArray(expected.toArray(new AttributePath[0])));
     }
 }
