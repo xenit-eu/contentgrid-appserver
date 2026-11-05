@@ -845,10 +845,6 @@ class ProfileRestControllerTest {
                                             prompt: "Tags"
                                         },
                                         {
-                                            name: "portrait",
-                                            prompt: "portrait"
-                                        },
-                                        {
                                             name: "invoices",
                                             prompt: "invoices"
                                         },
@@ -874,9 +870,9 @@ class ProfileRestControllerTest {
 
     @Test
     void getProfileEntity_withoutContent() throws Exception {
-        mockMvc.perform(get("/profile/stores").accept(MediaTypes.HAL_FORMS_JSON))
+        mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._templates.create-form.contentType").value("multipart/form-data"));
+                .andExpect(jsonPath("$._templates.create-form.contentType").value("application/json"));
     }
 
     @Test
