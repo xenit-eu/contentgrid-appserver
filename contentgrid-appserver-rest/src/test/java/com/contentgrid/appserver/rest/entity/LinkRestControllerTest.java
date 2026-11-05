@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStore;
 import com.contentgrid.appserver.domain.ContentApi.Content;
-import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.StoredLinkValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
@@ -81,7 +81,7 @@ public class LinkRestControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private DatamodelApi datamodelApi;
+    private DatamodelApiImpl datamodelApi;
 
     @MockitoBean
     private ContentStoreResolver contentStoreResolverMock;

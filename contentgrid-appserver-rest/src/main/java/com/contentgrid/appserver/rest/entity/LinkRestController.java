@@ -7,7 +7,7 @@ import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.exceptions.EntityDefinitionNotFoundException;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
-import com.contentgrid.appserver.domain.DatamodelApi;
+import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -55,7 +55,7 @@ import org.springframework.web.context.request.WebRequest;
 @SpecializedOnLinkType(entityPathVariable = "entityName", linkPathVariable = "*linkPath")
 public class LinkRestController {
 
-    private final DatamodelApi datamodelApi;
+    private final DatamodelApiImpl datamodelApi;
     private final VersionValidator versionValidator;
 
     private Entity getEntityOrThrow(Application application, PathSegmentName entityName) {
