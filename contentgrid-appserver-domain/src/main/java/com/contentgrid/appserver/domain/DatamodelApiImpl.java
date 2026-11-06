@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
@@ -666,6 +667,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 EntityName entityName,
                 EntityData entityData,
                 EntityLink entityLink) {
+
+            // If this is a StoredEntityLink, linkUriProvider will render the appropriate href. early return
             if (entityLink instanceof StoredEntityLink storedEntityLink) {
                 var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
@@ -678,70 +681,87 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                     );
                 }
             }
+
             // Whether the link references the %{owner.value} variable
-            var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
+            var hasOwnerValueVariable = entityLink.getFallbackTemplate()
+                    .map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE))
+                    .orElse(false);
             if(hasOwnerValueVariable) {
                 // Whether the owner has data stored
-                var ownerHasData = entityLink.getOwner().map(owner -> {
-                    try {
-                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
-                                SimpleAttributeData.class).orElseThrow().getValue() != null;
-                    } catch (InvalidPropertyPathException e) {
-                        throw new IllegalStateException(e);
-                    }
-                }).orElse(true);
+                var ownerHasData = entityLink.getOwner()
+                        .map(owner -> {
+                            try {
+                                return entityData.getNestedAttributeByPath(owner.as(AttributePath.class), SimpleAttributeData.class).orElseThrow().getValue() != null;
+                            } catch (InvalidPropertyPathException e) {
+                                throw new IllegalStateException(e);
+                            }})
+                        .orElse(true);
                 if(!ownerHasData) {
-                    // If the owner value is referenced and it doesn't have data; don't render the link
+                    // If the owner value is referenced and it doesn't have data; don't render the link. early return
                     return Optional.empty();
                 }
             }
-            return entityLink.getFallbackTemplate().flatMap(template -> {
-                var linkHref = template.getTemplate().expand(substitutionVariable -> switch (substitutionVariable) {
-                    case APPLICATION_ID -> configurationProperties.getApplicationId();
-                    case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
-                    case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
-                    case ENTITY_NAME -> entityData.getName().getValue();
-                    case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
-                    case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
-                        try {
-                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
-                                    SimpleAttributeData.class).orElseThrow().getValue(), null);
-                        } catch (InvalidPropertyPathException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }).orElseThrow();
-                    case OWNER_LINK -> entityLink.getOwner().map(owner -> switch (owner) {
-                        case SimpleAttributePath simpleAttributePath -> linkUriProvider.createAttributeLink(entityData.getIdentity(), simpleAttributePath.getFirst());
-                        case SimpleRelationPath simpleRelationPath -> linkUriProvider.createRelationLink(entityData.getIdentity(), simpleRelationPath.getFirst());
-                        default -> throw new IllegalStateException("Can not create a link to owner property path '%s'".formatted(owner));
-                    }).orElseThrow();
-                });
-                if (template instanceof AutomationUriTemplateDefinition automationUriTemplateDefinition) {
-                    var maybeBasePath = configurationProperties.getAutomationSystemBaseUrl(
+            return entityLink.getFallbackTemplate().flatMap(template -> createEntityLinkDataWithRenderedFallbackTemplate(template, entityData, entityLink));
+        }
+
+        private Optional<EntityLinkData> createEntityLinkDataWithRenderedFallbackTemplate(
+                UriTemplateDefinition template,
+                EntityData entityData,
+                EntityLink entityLink
+        ) {
+            var linkHref = template.getTemplate().expand(substitutionVariable -> expandTemplateWithVariables(substitutionVariable, entityData, entityLink));
+            if (template instanceof AutomationUriTemplateDefinition automationUriTemplateDefinition) {
+                var maybeBasePath = configurationProperties.getAutomationSystemBaseUrl(
+                        automationUriTemplateDefinition.getAutomationSystem(),
+                        automationUriTemplateDefinition.getBasePathName()
+                ).map(URI::toASCIIString);
+
+                if (maybeBasePath.isEmpty()) {
+                    // If the automation is not registered, omit the link
+                    log.warn(
+                            "Automation system '{}' base path '{}' is not registered: link {} omitted",
                             automationUriTemplateDefinition.getAutomationSystem(),
-                            automationUriTemplateDefinition.getBasePathName()
-                    ).map(URI::toASCIIString);
-
-                    if (maybeBasePath.isEmpty()) {
-                        // If the automation is not registered, omit the link
-                        log.warn(
-                                "Automation system '{}' base path '{}' is not registered: link {} omitted",
-                                automationUriTemplateDefinition.getAutomationSystem(),
-                                automationUriTemplateDefinition.getBasePathName(),
-                                entityLink.getIdentity()
-                        );
-                        return Optional.empty();
-                    }
-
-                    linkHref = maybeBasePath.get() + linkHref;
+                            automationUriTemplateDefinition.getBasePathName(),
+                            entityLink.getIdentity()
+                    );
+                    return Optional.empty();
                 }
 
-                return Optional.of(new EntityLinkData(
-                        entityLink.getIdentity(),
-                        entityLink.getProfile().orElse(null),
-                        linkHref
-                ));
-            });
+                linkHref = maybeBasePath.get() + linkHref;
+            }
+
+            return Optional.of(new EntityLinkData(
+                    entityLink.getIdentity(),
+                    entityLink.getProfile().orElse(null),
+                    linkHref
+            ));
+        }
+
+        private String expandTemplateWithVariables(
+                EntityLinkSubstitutionVariables substitutionVariable,
+                EntityData entityData,
+                EntityLink entityLink
+        ) {
+            return switch (substitutionVariable) {
+                case APPLICATION_ID -> configurationProperties.getApplicationId();
+                case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
+                case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
+                case ENTITY_NAME -> entityData.getName().getValue();
+                case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
+                case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
+                    try {
+                        return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                SimpleAttributeData.class).orElseThrow().getValue(), null);
+                    } catch (InvalidPropertyPathException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }).orElseThrow();
+                case OWNER_LINK -> entityLink.getOwner().map(owner -> switch (owner) {
+                    case SimpleAttributePath simpleAttributePath -> linkUriProvider.createAttributeLink(entityData.getIdentity(), simpleAttributePath.getFirst());
+                    case SimpleRelationPath simpleRelationPath -> linkUriProvider.createRelationLink(entityData.getIdentity(), simpleRelationPath.getFirst());
+                    default -> throw new IllegalStateException("Can not create a link to owner property path '%s'".formatted(owner));
+                }).orElseThrow();
+            };
         }
     }
 
