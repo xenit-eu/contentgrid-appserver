@@ -50,6 +50,9 @@ Most properties are prefixed with `contentgrid.appserver`. System identity and e
 |---|---|---|---|
 | `contentgrid.appserver.blueprint-artifact.location` | Location of the blueprint artifact that contains the blueprint files. Accepts `classpath:`, `file:`, `zip:` and `s3:` URIs. | `classpath:.` | No |
 
+Appserver will crash on startup when the blueprint artifact contains a `format_version` that's greater than the version appserver supports. This is to avoid running into problems with breaking changes in the format of a blueprint.
+Increment `BlueprintFormatVersionValidator.SUPPORTED_BLUEPRINT_FORMAT_VERSION` when you update appserver to make it compatible with such a breaking change.
+
 ### Content store
 
 The content store type is selected with `contentgrid.appserver.content-store.type`.
