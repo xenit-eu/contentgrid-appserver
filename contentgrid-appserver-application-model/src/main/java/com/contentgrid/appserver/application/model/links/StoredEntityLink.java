@@ -5,14 +5,13 @@ import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.net.URI;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Getter
-@SuperBuilder
 final public class StoredEntityLink extends EntityLink {
 
     @NonNull
@@ -21,6 +20,7 @@ final public class StoredEntityLink extends EntityLink {
     @NonNull
     AttributePath storage;
 
+    @Builder
     public StoredEntityLink(
             @NonNull LinkIdentity identity,
             URI profile,

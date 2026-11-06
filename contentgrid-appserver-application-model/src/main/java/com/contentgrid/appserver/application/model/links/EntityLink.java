@@ -8,11 +8,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor(access = AccessLevel.PACKAGE)
-@SuperBuilder
 public abstract sealed class EntityLink permits PlainEntityLink, StoredEntityLink {
 
     @Getter
