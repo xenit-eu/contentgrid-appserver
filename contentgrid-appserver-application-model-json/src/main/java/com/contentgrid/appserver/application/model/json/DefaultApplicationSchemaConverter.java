@@ -2,6 +2,8 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
 import com.contentgrid.appserver.application.model.Entity.EntityTranslations;
 import com.contentgrid.appserver.application.model.attributes.Attribute.AttributeTranslations;
@@ -94,6 +96,7 @@ import com.contentgrid.hateoas.uritemplate.InvalidUriTemplateException;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplate;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
 import java.util.EnumSet;
+import java.util.Optional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -352,8 +355,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         return ATTRIBUTE_TRANSLATIONS.mapInto(ca, com.contentgrid.appserver.application.model.attributes.ContentAttribute.builder())
                 .name(AttributeName.of(ca.getName()))
                 .flags(fromJsonAttributeFlags(ca.getFlags()))
-                .pathSegment(PathSegmentName.of(ca.getPathSegment()))
-                .linkName(LinkName.of(ca.getLinkName()))
+                .pathSegment(Optional.ofNullable(ca.getPathSegment()).map(PathSegmentName::of).orElse(null))
+                .linkName(Optional.ofNullable(ca.getLinkName()).map(LinkName::of).orElse(null))
                 .idColumn(ColumnName.of(ca.getIdColumn()))
                 .filenameColumn(ColumnName.of(ca.getFileNameColumn()))
                 .mimetypeColumn(ColumnName.of(ca.getMimeTypeColumn()))
@@ -574,13 +577,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                     new UriTemplateDefinition.SimpleUriTemplateDefinition(parameterizedUriTemplate);
         }
 
-        return new EntityLink(
-                identity,
-                entityLink.getProfile(),
-                entityLink.getOwner() != null?fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class):null,
-                entityLink.getStorage() != null?fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class):null,
-                templateDefinition
-        );
+        var owner = entityLink.getOwner() != null ? fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class) : null;
+        if (entityLink.getStorage() != null) {
+            return new StoredEntityLink(identity, entityLink.getProfile(), owner,
+                    fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class),
+                    PathSegmentName.of(entityLink.getPathSegment()), templateDefinition);
+        }
+        return new PlainEntityLink(identity, entityLink.getProfile(), owner, templateDefinition);
     }
 
 
@@ -721,8 +724,8 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
             com.contentgrid.appserver.application.model.attributes.ContentAttribute ca) {
         var jsonAttr = new ContentAttribute();
         jsonAttr.setFlags(ca.getFlags().stream().map(this::toJsonAttribute).toList());
-        jsonAttr.setPathSegment(ca.getPathSegment().getValue());
-        jsonAttr.setLinkName(ca.getLinkName().getValue());
+        jsonAttr.setPathSegment(Optional.ofNullable(ca.getPathSegment()).map(PathSegmentName::getValue).orElse(null));
+        jsonAttr.setLinkName(Optional.ofNullable(ca.getLinkName()).map(LinkName::getValue).orElse(null));
         jsonAttr.setIdColumn(ca.getId().getColumn().getValue());
         jsonAttr.setFileNameColumn(ca.getFilename().getColumn().getValue());
         jsonAttr.setMimeTypeColumn(ca.getMimetype().getColumn().getValue());
@@ -827,9 +830,18 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
         entityLink.getOwner()
                 .map(this::toJsonPropertyPath)
                 .ifPresent(jsonEntityLink::setOwner);
-        entityLink.getStorage()
-                .map(this::toJsonPropertyPath)
-                .ifPresent(jsonEntityLink::setStorage);
+
+        switch (entityLink) {
+            case PlainEntityLink plainEntityLink -> {
+                // nothing additional to do
+            }
+            case StoredEntityLink storedEntityLink -> {
+                jsonEntityLink.setStorage(
+                        toJsonPropertyPath(storedEntityLink.getStorage())
+                );
+                jsonEntityLink.setPathSegment(storedEntityLink.getPathSegment().getValue());
+            }
+        }
 
         switch (entityLink.getFallbackTemplate().orElse(null)) {
             case SimpleUriTemplateDefinition simple -> jsonEntityLink.setFallbackTemplate(new com.contentgrid.appserver.application.model.json.model.EntityLink.UriTemplateDefinition(null, null, simple.getTemplate().toTemplate()));
