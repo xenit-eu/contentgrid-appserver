@@ -8,4 +8,5 @@ dependencies {
     api project(':contentgrid-appserver-application-model')
     api project(':contentgrid-appserver-domain-values')
     api 'com.contentgrid.thunx:thunx-model'
+    testImplementation 'org.assertj:assertj-core'
 }
