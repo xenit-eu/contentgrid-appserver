@@ -2151,11 +2151,6 @@ class DatamodelApiImplTest {
                 .storage(PDF_LINK_PATH)
                 .fallbackTemplate(automationTemplate("my-automation", "api", "/rendition?document=%{owner.link}"))
                 .build();
-        private static final EntityLinkData PDF_ENTITY_LINK = new EntityLinkData(
-                PDF_RENDITION_NAMEDLINK,
-                null,
-                "https://automation.example/my-automation/rendition?document=http://localhost/document/efaee931-bd01-4a25-a3c3-7eb96327e553/attachment"
-        );
         private static final StoredEntityLink FTS_LINK = StoredEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fts"))
                 .owner(ATTACHMENT_PATH)
@@ -2685,7 +2680,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
+        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), argThat((EntityRequest er) -> er.getEntityId().equals(entityId)), any()))
