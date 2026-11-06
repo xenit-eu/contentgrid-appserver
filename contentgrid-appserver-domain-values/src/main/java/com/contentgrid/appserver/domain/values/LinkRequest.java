@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain.values;
 import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
+import java.io.Serializable;
 import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import lombok.With;
  */
 @Value
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class LinkRequest {
+public class LinkRequest implements Serializable {
     @NonNull
     EntityName entityName;
 
