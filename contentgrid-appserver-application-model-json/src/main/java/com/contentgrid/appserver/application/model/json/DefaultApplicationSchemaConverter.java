@@ -2,7 +2,6 @@ package com.contentgrid.appserver.application.model.json;
 
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Constraint;
-import com.contentgrid.appserver.application.model.links.EntityLink.EntityLinkBuilder;
 import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.Entity.ConfigurableEntityTranslations;
@@ -578,21 +577,13 @@ public class DefaultApplicationSchemaConverter implements ApplicationSchemaConve
                     new UriTemplateDefinition.SimpleUriTemplateDefinition(parameterizedUriTemplate);
         }
 
-        EntityLinkBuilder<EntityLink, ?> builder;
+        var owner = entityLink.getOwner() != null ? fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class) : null;
         if (entityLink.getStorage() != null) {
-            builder = (EntityLinkBuilder<EntityLink, ?>) StoredEntityLink.builder()
-                    .storage(fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class))
-                    .pathSegment(PathSegmentName.of(entityLink.getPathSegment()));
-        } else {
-            builder = (EntityLinkBuilder<EntityLink, ?>) PlainEntityLink.builder();
+            return new StoredEntityLink(identity, entityLink.getProfile(), owner,
+                    fromJsonPropertyPath(entityLink.getStorage(), AttributePath.class),
+                    PathSegmentName.of(entityLink.getPathSegment()), templateDefinition);
         }
-
-        return builder
-                .identity(identity)
-                .profile(entityLink.getProfile())
-                .owner(entityLink.getOwner() != null?fromJsonPropertyPath(entityLink.getOwner(), PropertyPath.class):null)
-                .fallbackTemplate(templateDefinition)
-                .build();
+        return new PlainEntityLink(identity, entityLink.getProfile(), owner, templateDefinition);
     }
 
 
