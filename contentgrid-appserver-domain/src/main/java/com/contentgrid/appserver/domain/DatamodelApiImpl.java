@@ -9,6 +9,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
+import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
@@ -66,7 +67,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
-import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -82,7 +83,7 @@ import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.InvalidThunkExpressionException;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
@@ -177,6 +178,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         return new ResponseOutputDataMapper(
+                application,
+                entityName,
                 entity.getAttributes(),
                 entity.getLinks(),
                 linkUriProviderFactory.createLinkUriProvider(application),
@@ -265,8 +268,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             @NonNull AuthorizationContext authorizationContext
     ) {
         var outputMapper = createOutputDataMapper(application, entityRequest.getEntityName());
-        return queryEngine.findById(application, entityRequest, authorizationContext.predicate())
-                .map(outputMapper::mapAttributes);
+        var queryResult = queryEngine.findById(application, entityRequest, authorizationContext.predicate());
+        return queryResult.map(outputMapper::mapAttributes);
     }
 
     @Override
@@ -490,30 +493,47 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
 
-        return queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
-                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()))
-                .getNestedAttributeByPath(storage)
-                .map(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
-                        linkRequest.getEntityName(), storage));
+        var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
+        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
     }
 
-    private StoredLinkValue mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
-            @NonNull EntityName entityName, @NonNull AttributePath attributePath) {
-        var attribute = application
-                .getPropertyPathResolver()
-                .resolveAttribute(entityName, attributePath)
-                .getAttribute();
-        return switch (attribute) {
-            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified());
-            case ContentAttribute contentAttribute -> {
-                var contentStore = contentStoreResolver.resolve(application);
-                yield new ContentValue(
-                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData)));
-            }
-            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
-             + " to a stored link value");
-        };
+    private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
+            @NonNull EntityData entityData,
+            @NonNull Application application,
+            @NonNull EntityName entityName,
+            @NonNull AttributePath attributePath) {
+        var attributeData = entityData.getNestedAttributeByPath(attributePath);
+        if (attributeData.isPresent()) {
+            var attribute = application
+                    .getPropertyPathResolver()
+                    .resolveAttribute(entityName, attributePath)
+                    .getAttribute();
+            return switch (attribute) {
+                case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
+                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() != null) {
+                        yield Optional.of(
+                                new TextValue(
+                                        (String) ((SimpleAttributeData<?>) attributeData.get()).getValue(),
+                                        entityData.getIdentity().getVersion()));
+                    }
+                    yield Optional.empty();
+                }
+                case ContentAttribute contentAttribute -> {
+                    var contentStore = contentStoreResolver.resolve(application);
+                    yield Optional.of(
+                            new ContentValue(
+                                    new AttributeDataContent(
+                                            contentStore,
+                                            contentAttribute,
+                                            ((CompositeAttributeData) attributeData.get()))));
+                }
+                default -> throw new ApplicationModelException(
+                        "Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
+                                + " to a stored link value");
+            };
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -525,6 +545,14 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
 
+        var targetEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+        var targetEntity = this.findLink(application, linkRequest, authorizationContext)
+                .orElseThrow(() -> new EntityIdNotFoundException(targetEntityRequest));
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(targetEntity.getVersion())) {
+            throw new UnsatisfiedVersionException(targetEntity.getVersion(), linkRequest.getVersionConstraint());
+        }
+
         var entityData = new EntityData(
                 EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
                 List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
@@ -532,10 +560,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
         var attributeData = updateResult
-                .getUpdated()
-                .getNestedAttributeByPath(storage)
-                .orElseThrow();
-        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
+                .getUpdated();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage).orElseThrow();
     }
 
     // Reversed walkthrough of the attributePath to create the AttributeData tree.
@@ -591,7 +617,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     }
 
     @RequiredArgsConstructor
-    private static class ResponseOutputDataMapper {
+    private class ResponseOutputDataMapper {
+        private final Application application;
+        private final EntityName entityName;
         private final List<Attribute> attributes;
         private final Collection<EntityLink> links;
         private final LinkUriProvider linkUriProvider;
@@ -622,7 +650,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             var linkData = new ArrayList<EntityLinkData>(links.size());
 
             for (var entityLink : links) {
-                createLink(entityData, entityLink)
+                createLink(application, entityName, entityData, entityLink)
                         .ifPresent(linkData::add);
             }
 
@@ -634,72 +662,106 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             );
         }
 
-        private Optional<EntityLinkData> createLink(EntityData entityData, EntityLink entityLink) {
-            // TODO: Handle links with storage (ACC-3004), and return link to the stored data instead of fallback template
+        private Optional<EntityLinkData> createLink(
+                Application application,
+                EntityName entityName,
+                EntityData entityData,
+                EntityLink entityLink) {
+
+            // If this is a StoredEntityLink, linkUriProvider will render the appropriate href. early return
+            if (entityLink instanceof StoredEntityLink storedEntityLink) {
+                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
+                if (maybeStoredLinkValue.isPresent()) {
+                    return Optional.of(
+                            new EntityLinkData(
+                                    entityLink.getIdentity(),
+                                    entityLink.getProfile().orElse(null),
+                                    linkUriProvider.createStoredDataLinkLink(entityData.getIdentity(), entityLink.getIdentity())
+                            )
+                    );
+                }
+            }
+
             // Whether the link references the %{owner.value} variable
-            var hasOwnerValueVariable = entityLink.getFallbackTemplate().map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE)).orElse(false);
+            var hasOwnerValueVariable = entityLink.getFallbackTemplate()
+                    .map(t -> t.getTemplate().getSubstitutionVariables().contains(EntityLinkSubstitutionVariables.OWNER_VALUE))
+                    .orElse(false);
             if(hasOwnerValueVariable) {
                 // Whether the owner has data stored
-                var ownerHasData = entityLink.getOwner().map(owner -> {
-                    try {
-                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
-                                SimpleAttributeData.class).orElseThrow().getValue() != null;
-                    } catch (InvalidPropertyPathException e) {
-                        throw new IllegalStateException(e);
-                    }
-                }).orElse(true);
+                var ownerHasData = entityLink.getOwner()
+                        .map(owner -> {
+                            try {
+                                return entityData.getNestedAttributeByPath(owner.as(AttributePath.class), SimpleAttributeData.class).orElseThrow().getValue() != null;
+                            } catch (InvalidPropertyPathException e) {
+                                throw new IllegalStateException(e);
+                            }})
+                        .orElse(true);
                 if(!ownerHasData) {
-                    // If the owner value is referenced and it doesn't have data; don't render the link
+                    // If the owner value is referenced and it doesn't have data; don't render the link. early return
                     return Optional.empty();
                 }
             }
-            return entityLink.getFallbackTemplate().flatMap(template -> {
-                var linkHref = template.getTemplate().expand(substitutionVariable -> switch (substitutionVariable) {
-                    case APPLICATION_ID -> configurationProperties.getApplicationId();
-                    case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
-                    case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
-                    case ENTITY_NAME -> entityData.getName().getValue();
-                    case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
-                    case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
-                        try {
-                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
-                                    SimpleAttributeData.class).orElseThrow().getValue(), null);
-                        } catch (InvalidPropertyPathException e) {
-                            throw new IllegalStateException(e);
-                        }
-                    }).orElseThrow();
-                    case OWNER_LINK -> entityLink.getOwner().map(owner -> switch (owner) {
-                        case SimpleAttributePath simpleAttributePath -> linkUriProvider.createAttributeLink(entityData.getIdentity(), simpleAttributePath.getFirst());
-                        case SimpleRelationPath simpleRelationPath -> linkUriProvider.createRelationLink(entityData.getIdentity(), simpleRelationPath.getFirst());
-                        default -> throw new IllegalStateException("Can not create a link to owner property path '%s'".formatted(owner));
-                    }).orElseThrow();
-                });
-                if (template instanceof AutomationUriTemplateDefinition automationUriTemplateDefinition) {
-                    var maybeBasePath = configurationProperties.getAutomationSystemBaseUrl(
+            return entityLink.getFallbackTemplate().flatMap(template -> createEntityLinkDataWithRenderedFallbackTemplate(template, entityData, entityLink));
+        }
+
+        private Optional<EntityLinkData> createEntityLinkDataWithRenderedFallbackTemplate(
+                UriTemplateDefinition template,
+                EntityData entityData,
+                EntityLink entityLink
+        ) {
+            var linkHref = template.getTemplate().expand(substitutionVariable -> expandTemplateWithVariables(substitutionVariable, entityData, entityLink));
+            if (template instanceof AutomationUriTemplateDefinition automationUriTemplateDefinition) {
+                var maybeBasePath = configurationProperties.getAutomationSystemBaseUrl(
+                        automationUriTemplateDefinition.getAutomationSystem(),
+                        automationUriTemplateDefinition.getBasePathName()
+                ).map(URI::toASCIIString);
+
+                if (maybeBasePath.isEmpty()) {
+                    // If the automation is not registered, omit the link
+                    log.warn(
+                            "Automation system '{}' base path '{}' is not registered: link {} omitted",
                             automationUriTemplateDefinition.getAutomationSystem(),
-                            automationUriTemplateDefinition.getBasePathName()
-                    ).map(URI::toASCIIString);
-
-                    if (maybeBasePath.isEmpty()) {
-                        // If the automation is not registered, omit the link
-                        log.warn(
-                                "Automation system '{}' base path '{}' is not registered: link {} omitted",
-                                automationUriTemplateDefinition.getAutomationSystem(),
-                                automationUriTemplateDefinition.getBasePathName(),
-                                entityLink.getIdentity()
-                        );
-                        return Optional.empty();
-                    }
-
-                    linkHref = maybeBasePath.get() + linkHref;
+                            automationUriTemplateDefinition.getBasePathName(),
+                            entityLink.getIdentity()
+                    );
+                    return Optional.empty();
                 }
 
-                return Optional.of(new EntityLinkData(
-                        entityLink.getIdentity(),
-                        entityLink.getProfile().orElse(null),
-                        linkHref
-                ));
-            });
+                linkHref = maybeBasePath.get() + linkHref;
+            }
+
+            return Optional.of(new EntityLinkData(
+                    entityLink.getIdentity(),
+                    entityLink.getProfile().orElse(null),
+                    linkHref
+            ));
+        }
+
+        private String expandTemplateWithVariables(
+                EntityLinkSubstitutionVariables substitutionVariable,
+                EntityData entityData,
+                EntityLink entityLink
+        ) {
+            return switch (substitutionVariable) {
+                case APPLICATION_ID -> configurationProperties.getApplicationId();
+                case ENTITY_ID -> entityData.getIdentity().getEntityId().getValue().toString();
+                case ENTITY_LINK -> linkUriProvider.createEntityLink(entityData.getIdentity());
+                case ENTITY_NAME -> entityData.getName().getValue();
+                case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
+                case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
+                    try {
+                        return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                SimpleAttributeData.class).orElseThrow().getValue(), null);
+                    } catch (InvalidPropertyPathException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }).orElseThrow();
+                case OWNER_LINK -> entityLink.getOwner().map(owner -> switch (owner) {
+                    case SimpleAttributePath simpleAttributePath -> linkUriProvider.createAttributeLink(entityData.getIdentity(), simpleAttributePath.getFirst());
+                    case SimpleRelationPath simpleRelationPath -> linkUriProvider.createRelationLink(entityData.getIdentity(), simpleRelationPath.getFirst());
+                    default -> throw new IllegalStateException("Can not create a link to owner property path '%s'".formatted(owner));
+                }).orElseThrow();
+            };
         }
     }
 
