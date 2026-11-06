@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.rest.mapping.specialized;
 
 import com.contentgrid.appserver.application.model.Application;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -45,5 +46,12 @@ public class CompositeSpecializationHandler<T> implements SpecializationHandler<
                 }
                 return completedStream;
             }
+
+        @Override
+        public void handleMatch(Application application, HttpServletRequest request) {
+            for (var specializer : specializers) {
+                specializer.handleMatch(application, request);
+            }
         }
+    }
 }
