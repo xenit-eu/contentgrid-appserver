@@ -15,25 +15,21 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
+import com.contentgrid.appserver.rest.entity.util.ContentResource;
+import com.contentgrid.appserver.rest.entity.util.EmptyContentResourceProxy;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.exception.UnsatisfiableRangeHttpException;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Delegate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.InputStreamSource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -311,97 +307,4 @@ public class ContentRestController {
 
         return ResponseEntity.noContent().build();
     }
-
-
-    @EqualsAndHashCode(callSuper = false)
-    private static class ContentResource extends AbstractResource {
-        @NonNull
-        private final Content content;
-
-        public ContentResource(Content content) {
-            this.content = content;
-        }
-
-        @Override
-        public long contentLength() {
-            return content.getLength();
-        }
-
-        @Override
-        public String getDescription() {
-            return content.getDescription();
-        }
-
-        @Override
-        public InputStream getInputStream() throws IOException {
-            return content.getInputStream();
-        }
-
-        @Override
-        public boolean exists() {
-            return true;
-        }
-    }
-
-    @RequiredArgsConstructor
-    private static class EmptyContentResourceProxy implements Resource {
-        @Delegate(types = Resource.class, excludes = InputStreamSource.class)
-        @NonNull
-        private final Resource delegate;
-
-        @Override
-        public InputStream getInputStream() throws IOException {
-            return new ZeroInputStream(delegate.contentLength());
-        }
-
-        /**
-         * InputStream that emulates the same length as the original content object, but filled with NUL-bytes instead of
-         * the actual file contents.
-         * <p>
-         * We can't use {@link InputStream#nullInputStream()} instead, because that is a stream with a length of 0 bytes,
-         * which doesn't match the size of the original input stream closely enough to make Content-Length and byte-ranges work properly
-         */
-        @RequiredArgsConstructor
-        private static class ZeroInputStream extends InputStream {
-            private final long size;
-            private long currentPosition = 0;
-
-            @Override
-            public int read() {
-                if(currentPosition < size) {
-                    currentPosition++;
-                    return 0;
-                }
-                return -1;
-            }
-
-            @Override
-            public int available() {
-                return (int)Math.min(Integer.MAX_VALUE, size - currentPosition);
-            }
-
-            @Override
-            public int read(byte[] b, int off, int len) {
-                Objects.checkFromIndexSize(off, len, b.length);
-                if(currentPosition >= size) {
-                    return -1;
-                }
-                var skipped = (int)skip(len);
-                for(int i = off; i<skipped;i++)
-                    b[i] = 0;
-                return skipped;
-            }
-
-            @Override
-            public long skip(long n) {
-                if(n<=0) {
-                    return 0;
-                }
-                var toSkip = Math.min(n, available());
-                currentPosition+=toSkip;
-                return toSkip;
-            }
-        }
-    }
-
 }

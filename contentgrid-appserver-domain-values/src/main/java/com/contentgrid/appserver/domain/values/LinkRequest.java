@@ -40,7 +40,7 @@ public class LinkRequest implements Serializable {
     }
 
     public EntityRequest toEntityRequest() {
-        return EntityRequest.forEntity(getEntityName(), getEntityId(), getVersionConstraint());
+        return EntityRequest.forEntity(getEntityName(), getEntityId());
     }
 
     public String toString() {

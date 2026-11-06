@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NonNull;
 
 @Getter
-public class UnsatisfiedVersionException extends RuntimeException { //TODO ACC-3004 change to checked exception
+public class UnsatisfiedVersionException extends RuntimeException { //TODO ACC-2447
     @NonNull
     private final Version actualVersion;
     @NonNull
@@ -16,9 +16,23 @@ public class UnsatisfiedVersionException extends RuntimeException { //TODO ACC-3
             @NonNull Version actualVersion,
             @NonNull VersionConstraint requestedVersion
     ) {
-        super("Requested version constraint '%s' can not be satisfied (actual version %s)".formatted(requestedVersion,
-                actualVersion));
+        super(formatMessage(actualVersion, requestedVersion));
         this.actualVersion = actualVersion;
         this.requestedVersion = requestedVersion;
+    }
+
+    public UnsatisfiedVersionException(
+            @NonNull Version actualVersion,
+            @NonNull VersionConstraint requestedVersion,
+            @NonNull Throwable cause
+    ) {
+        super(formatMessage(actualVersion, requestedVersion), cause);
+        this.actualVersion = actualVersion;
+        this.requestedVersion = requestedVersion;
+    }
+
+    public static String formatMessage(Version actualVersion, VersionConstraint requestedVersion) {
+        return "Requested version constraint '%s' can not be satisfied (actual version %s)".formatted(requestedVersion,
+                actualVersion);
     }
 }
