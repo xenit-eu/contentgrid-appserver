@@ -1,6 +1,7 @@
 package com.contentgrid.appserver.registry;
 
 import static com.contentgrid.appserver.registry.BlueprintFormatVersionValidator.SUPPORTED_BLUEPRINT_FORMAT_VERSIONS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -10,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -65,13 +65,11 @@ class BlueprintFormatVersionValidatorTest {
                 """.formatted(formatVersion));
 
         assertThatThrownBy(() -> validator.validate(blueprintArtifact))
-                .isInstanceOf(UnsupportedBlueprintFormatVersionException.class)
-                .hasMessage("Blueprint manifest has blueprint format version %d, but this appserver only supports "
-                                + "blueprint format versions [%s]. Upgrade the appserver to a version that supports "
-                                + "blueprint format version %d.", formatVersion,
-                        SUPPORTED_BLUEPRINT_FORMAT_VERSIONS.stream().sorted().map(String::valueOf)
-                                .collect(Collectors.joining(", ")),
-                        formatVersion);
+                .isInstanceOfSatisfying(UnsupportedBlueprintFormatVersionException.class, e -> {
+                    assertThat(e.getFormatVersion()).isEqualTo(formatVersion);
+                    assertThat(e.getSupportedFormatVersions())
+                            .containsExactlyInAnyOrderElementsOf(SUPPORTED_BLUEPRINT_FORMAT_VERSIONS);
+                });
     }
 
     @ParameterizedTest
