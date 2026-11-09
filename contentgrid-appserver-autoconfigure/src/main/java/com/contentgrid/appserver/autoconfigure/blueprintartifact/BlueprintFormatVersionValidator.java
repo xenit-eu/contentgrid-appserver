@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.registry;
+package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;

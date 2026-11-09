@@ -9,7 +9,6 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactR
 import com.contentgrid.appserver.blueprintartifact.impl.fs.classpath.ClassPathBlueprintArtifact;
 import com.contentgrid.appserver.autoconfigure.s3.S3BlueprintArtifactAutoConfiguration;
 import com.contentgrid.appserver.blueprintartifact.impl.s3.S3BlueprintArtifactReferenceResolver;
-import com.contentgrid.appserver.registry.UnsupportedBlueprintFormatVersionException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

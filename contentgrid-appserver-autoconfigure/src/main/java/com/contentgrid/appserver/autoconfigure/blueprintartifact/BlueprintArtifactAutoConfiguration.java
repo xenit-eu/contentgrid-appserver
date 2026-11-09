@@ -9,7 +9,6 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactI
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
-import com.contentgrid.appserver.registry.BlueprintFormatVersionValidator;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -25,7 +24,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @AutoConfiguration
@@ -94,28 +92,23 @@ public class BlueprintArtifactAutoConfiguration {
         return resolver.resolve(BlueprintArtifactReference.of(properties.location()));
     }
 
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(BlueprintFormatVersionValidator.class)
-    static class BlueprintFormatVersionConfiguration {
-
-        // Validate every blueprint artifact as soon as it is created, before anything else reads from it.
-        // Otherwise, a blueprint artifact with an unsupported format would fail with a confusing error elsewhere.
-        @Bean
-        static BeanPostProcessor blueprintFormatVersionValidatingPostProcessor() {
-            var validator = new BlueprintFormatVersionValidator();
-            return new BeanPostProcessor() {
-                @Override
-                public Object postProcessAfterInitialization(Object bean, String beanName) {
-                    if (bean instanceof BlueprintArtifact blueprintArtifact) {
-                        try {
-                            validator.validate(blueprintArtifact);
-                        } catch (BlueprintArtifactException | BlueprintArtifactItemUnreadableException e) {
-                            throw new BeanInitializationException(e.getMessage(), e);
-                        }
+    // Validate every blueprint artifact as soon as it is created, before anything else reads from it.
+    // Otherwise, a blueprint artifact with an unsupported format would fail with a confusing error elsewhere.
+    @Bean
+    static BeanPostProcessor blueprintFormatVersionValidatingPostProcessor() {
+        var validator = new BlueprintFormatVersionValidator();
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if (bean instanceof BlueprintArtifact blueprintArtifact) {
+                    try {
+                        validator.validate(blueprintArtifact);
+                    } catch (BlueprintArtifactException | BlueprintArtifactItemUnreadableException e) {
+                        throw new BeanInitializationException(e.getMessage(), e);
                     }
-                    return bean;
                 }
-            };
-        }
+                return bean;
+            }
+        };
     }
 }

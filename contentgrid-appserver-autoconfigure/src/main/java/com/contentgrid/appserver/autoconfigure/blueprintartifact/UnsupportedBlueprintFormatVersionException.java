@@ -1,4 +1,4 @@
-package com.contentgrid.appserver.registry;
+package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
 import java.util.Set;
 import lombok.Getter;

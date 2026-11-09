@@ -1,6 +1,6 @@
-package com.contentgrid.appserver.registry;
+package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
-import static com.contentgrid.appserver.registry.BlueprintFormatVersionValidator.SUPPORTED_BLUEPRINT_FORMAT_VERSIONS;
+import static com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintFormatVersionValidator.SUPPORTED_BLUEPRINT_FORMAT_VERSIONS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,7 +41,7 @@ class BlueprintFormatVersionValidatorTest {
     }
 
     @ParameterizedTest
-    @FieldSource("com.contentgrid.appserver.registry.BlueprintFormatVersionValidator#SUPPORTED_BLUEPRINT_FORMAT_VERSIONS")
+    @FieldSource("com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintFormatVersionValidator#SUPPORTED_BLUEPRINT_FORMAT_VERSIONS")
     void withSupportedFormatVersion(int formatVersion) throws IOException {
         var blueprintArtifact = blueprintArtifactWithManifest("""
                 { "format_version": %d }

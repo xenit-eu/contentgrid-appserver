@@ -3,7 +3,7 @@ package com.contentgrid.appserver.example;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contentgrid.appserver.application.model.json.exceptions.SchemaValidationException;
-import com.contentgrid.appserver.registry.UnsupportedBlueprintFormatVersionException;
+import com.contentgrid.appserver.autoconfigure.blueprintartifact.UnsupportedBlueprintFormatVersionException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
