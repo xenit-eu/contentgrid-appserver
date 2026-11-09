@@ -514,13 +514,11 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                     .getAttribute();
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
-                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() instanceof String text) {
-                        yield Optional.of(
+                    String text = ((SimpleAttributeData<String>) attributeData.get()).getValue();
+                    yield Optional.of(
                                 new TextValue(
                                         text,
                                         TextLinkVersion.calculate(entityData.getIdentity(), linkIdentity, text)));
-                    }
-                    yield Optional.empty();
                 }
                 case ContentAttribute contentAttribute -> {
                     var contentStore = contentStoreResolver.resolve(application);
