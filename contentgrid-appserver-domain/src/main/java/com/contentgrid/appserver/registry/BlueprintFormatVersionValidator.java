@@ -7,6 +7,8 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactI
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Optional;
+import java.util.Set;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -14,42 +16,31 @@ import tools.jackson.databind.json.JsonMapper;
 public class BlueprintFormatVersionValidator {
 
     // Update this when appserver becomes compatible with a new blueprint format. See BLUEPRINT_FORMAT_VERSION in Scribe.
-    public static final int SUPPORTED_BLUEPRINT_FORMAT_VERSION = 1;
+    // 0 is a special case that refers to blueprints _without_ a `format_version` field (or without a manifest.json).
+    public static final Set<Integer> SUPPORTED_BLUEPRINT_FORMAT_VERSIONS = Set.of(0, 1);
 
     private static final String FORMAT_VERSION_FIELD = "format_version";
     private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
-    public void validate(BlueprintArtifact blueprintArtifact) {
-        try {
-            blueprintArtifact.load(Path.of("manifest.json")).ifPresent(this::validate);
-        } catch (BlueprintArtifactException e) {
-            throw new IllegalStateException(e.getMessage(), e);
+    public void validate(BlueprintArtifact blueprintArtifact)
+            throws BlueprintArtifactException, BlueprintArtifactItemUnreadableException {
+        var manifest = blueprintArtifact.load(Path.of("manifest.json"));
+        int version = 0;
+        if (manifest.isPresent()) {
+            version = readFormatVersionField(manifest.get()).orElse(0);
+        }
+        if (!SUPPORTED_BLUEPRINT_FORMAT_VERSIONS.contains(version)) {
+            throw new UnsupportedBlueprintFormatVersionException(version, SUPPORTED_BLUEPRINT_FORMAT_VERSIONS);
         }
     }
 
-    private void validate(BlueprintArtifactItem manifest) {
-        var formatVersion = readTree(manifest).get(FORMAT_VERSION_FIELD);
-        if (formatVersion == null) {
-            return;
-        }
-        int version;
-        try {
-            version = formatVersion.intValue();
-        } catch (JacksonException e) {
-            throw new IllegalStateException("Blueprint manifest.json is malformed: '%s' must be an integer: %s"
-                    .formatted(FORMAT_VERSION_FIELD, e.getOriginalMessage()), e);
-        }
-        if (version > SUPPORTED_BLUEPRINT_FORMAT_VERSION) {
-            throw new UnsupportedBlueprintFormatVersionException(version, SUPPORTED_BLUEPRINT_FORMAT_VERSION);
-        }
-    }
-
-    private static JsonNode readTree(BlueprintArtifactItem manifest) {
+    private static Optional<Integer> readFormatVersionField(BlueprintArtifactItem manifest)
+            throws BlueprintArtifactItemUnreadableException {
         JsonNode tree;
         try (InputStream input = manifest.getInputStream()) {
             tree = JSON_MAPPER.readTree(input);
-        } catch (BlueprintArtifactItemUnreadableException | IOException e) {
-            throw new IllegalStateException(e.getMessage(), e);
+        } catch (IOException e) {
+            throw new BlueprintArtifactItemUnreadableException(manifest.getItemReference(), e);
         } catch (JacksonException e) {
             throw new IllegalStateException("Blueprint artifact item %s is malformed: %s"
                     .formatted(manifest.getItemReference(), e.getOriginalMessage()), e);
@@ -58,6 +49,15 @@ public class BlueprintFormatVersionValidator {
             throw new IllegalStateException("Blueprint artifact item %s is malformed: expected a JSON object"
                     .formatted(manifest.getItemReference()));
         }
-        return tree;
+        var formatVersion = tree.get(FORMAT_VERSION_FIELD);
+        if (formatVersion == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(formatVersion.intValue());
+        } catch (JacksonException e) {
+            throw new IllegalStateException("Blueprint manifest.json is malformed: '%s' must be an integer: %s"
+                    .formatted(FORMAT_VERSION_FIELD, e.getOriginalMessage()), e);
+        }
     }
 }

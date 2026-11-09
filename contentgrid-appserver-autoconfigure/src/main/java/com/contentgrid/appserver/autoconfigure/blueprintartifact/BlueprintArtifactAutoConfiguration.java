@@ -4,6 +4,8 @@ import com.contentgrid.appserver.autoconfigure.blueprintartifact.BlueprintArtifa
 import com.contentgrid.appserver.autoconfigure.s3.S3ConfigurationProperties;
 import com.contentgrid.appserver.blueprintartifact.impl.fs.FilesystemBlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactException;
+import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactItemUnreadableException;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReference;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolver;
 import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifactReferenceResolverRegistry;
@@ -13,6 +15,7 @@ import java.time.Duration;
 import java.util.List;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -104,7 +107,11 @@ public class BlueprintArtifactAutoConfiguration {
                 @Override
                 public Object postProcessAfterInitialization(Object bean, String beanName) {
                     if (bean instanceof BlueprintArtifact blueprintArtifact) {
-                        validator.validate(blueprintArtifact);
+                        try {
+                            validator.validate(blueprintArtifact);
+                        } catch (BlueprintArtifactException | BlueprintArtifactItemUnreadableException e) {
+                            throw new BeanInitializationException(e.getMessage(), e);
+                        }
                     }
                     return bean;
                 }

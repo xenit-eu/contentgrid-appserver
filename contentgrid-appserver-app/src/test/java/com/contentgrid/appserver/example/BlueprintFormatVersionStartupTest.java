@@ -40,7 +40,7 @@ class BlueprintFormatVersionStartupTest {
         assertThatThrownBy(this::startApplication)
                 .rootCause()
                 .isInstanceOf(UnsupportedBlueprintFormatVersionException.class)
-                .hasMessageContaining("has blueprint format version 99999, but this appserver only supports blueprint format versions up to");
+                .hasMessageContaining("has blueprint format version 99999, but this appserver only supports blueprint format versions [");
     }
 
     @Test

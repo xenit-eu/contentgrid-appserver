@@ -1,6 +1,6 @@
 package com.contentgrid.appserver.registry;
 
-import static com.contentgrid.appserver.registry.BlueprintFormatVersionValidator.SUPPORTED_BLUEPRINT_FORMAT_VERSION;
+import static com.contentgrid.appserver.registry.BlueprintFormatVersionValidator.SUPPORTED_BLUEPRINT_FORMAT_VERSIONS;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -9,9 +9,14 @@ import com.contentgrid.appserver.domain.spi.blueprintartifact.BlueprintArtifact;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.FieldSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class BlueprintFormatVersionValidatorTest {
@@ -36,7 +41,7 @@ class BlueprintFormatVersionValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {SUPPORTED_BLUEPRINT_FORMAT_VERSION - 1, SUPPORTED_BLUEPRINT_FORMAT_VERSION})
+    @FieldSource("com.contentgrid.appserver.registry.BlueprintFormatVersionValidator#SUPPORTED_BLUEPRINT_FORMAT_VERSIONS")
     void withSupportedFormatVersion(int formatVersion) throws IOException {
         var blueprintArtifact = blueprintArtifactWithManifest("""
                 { "format_version": %d }
@@ -45,9 +50,16 @@ class BlueprintFormatVersionValidatorTest {
         assertThatCode(() -> validator.validate(blueprintArtifact)).doesNotThrowAnyException();
     }
 
-    @Test
-    void withUnsupportedFormatVersion() throws IOException {
-        var formatVersion = SUPPORTED_BLUEPRINT_FORMAT_VERSION + 1;
+    static IntStream unsupportedFormatVersions() {
+        var newest = Collections.max(SUPPORTED_BLUEPRINT_FORMAT_VERSIONS);
+        var oldest = Collections.min(SUPPORTED_BLUEPRINT_FORMAT_VERSIONS);
+        // Newer than the newest supported version, and older than the oldest one that is still supported
+        return IntStream.of(newest + 1, oldest - 1);
+    }
+
+    @ParameterizedTest
+    @MethodSource("unsupportedFormatVersions")
+    void withUnsupportedFormatVersion(int formatVersion) throws IOException {
         var blueprintArtifact = blueprintArtifactWithManifest("""
                 { "format_version": %d }
                 """.formatted(formatVersion));
@@ -55,8 +67,10 @@ class BlueprintFormatVersionValidatorTest {
         assertThatThrownBy(() -> validator.validate(blueprintArtifact))
                 .isInstanceOf(UnsupportedBlueprintFormatVersionException.class)
                 .hasMessage("Blueprint manifest has blueprint format version %d, but this appserver only supports "
-                                + "blueprint format versions up to %d. Upgrade the appserver to a version that supports "
-                                + "blueprint format version %d.", formatVersion, SUPPORTED_BLUEPRINT_FORMAT_VERSION,
+                                + "blueprint format versions [%s]. Upgrade the appserver to a version that supports "
+                                + "blueprint format version %d.", formatVersion,
+                        SUPPORTED_BLUEPRINT_FORMAT_VERSIONS.stream().sorted().map(String::valueOf)
+                                .collect(Collectors.joining(", ")),
                         formatVersion);
     }
 
