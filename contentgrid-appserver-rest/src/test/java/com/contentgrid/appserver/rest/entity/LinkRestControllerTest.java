@@ -21,6 +21,7 @@ import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.StoredLinkValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.NullValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
@@ -239,7 +240,18 @@ public class LinkRestControllerTest {
         }
 
         @Test
-        void testGetLinkWithoutContent() throws Exception {
+        void testGetTextLinkWithoutContent() throws Exception {
+            var personUrl = createPerson();
+
+            mockMvc.perform(get(personUrl + SUMMARY_LINK_PATH))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/content")
+                            .withTitle("Content not found"));
+        }
+
+        @Test
+        void testGetContentLinkWithoutContent() throws Exception {
             var personUrl = createPerson();
 
             mockMvc.perform(get(personUrl + PORTRAIT_LINK_PATH))
@@ -364,14 +376,10 @@ public class LinkRestControllerTest {
 
             mockMvc.perform(put(personUrl + SUMMARY_LINK_PATH)
                             .contentType(MediaType.TEXT_PLAIN))
-                    .andExpect(status().isNoContent())
-                    .andExpect(header().exists(HttpHeaders.ETAG));
+                    .andExpect(status().isNoContent());
 
             // Verify link value was updated
-            assertThat(findSummary(personUrl))
-                    .get()
-                    .isInstanceOfSatisfying(TextValue.class,
-                            textValue -> assertThat(textValue.getValue()).isEqualTo(""));
+            assertThat(findSummary(personUrl).get()).isInstanceOf(NullValue.class);
         }
 
         @Test
@@ -461,12 +469,12 @@ public class LinkRestControllerTest {
             var personUrl = createPerson();
 
             mockMvc.perform(put(personUrl + SUMMARY_LINK_PATH)
-                            .contentType(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.IMAGE_JPEG)
                             .content("\"updated summary\""))
                     .andExpect(status().isUnsupportedMediaType());
 
             // Verify link value was not set
-            assertThat(findSummary(personUrl)).isEmpty();
+            assertThat(findSummary(personUrl).get()).isInstanceOf(NullValue.class);
         }
 
         @Test
@@ -539,7 +547,7 @@ public class LinkRestControllerTest {
     class DeleteLink {
 
         @Test
-        void testSuccessfullyDeleteLink() throws Exception {
+        void testSuccessfullyDeleteContentLink() throws Exception {
             var personUrl = createPerson();
             seedPortrait(personUrl);
 
@@ -561,7 +569,7 @@ public class LinkRestControllerTest {
                     .andExpect(status().isNoContent());
 
             // Verify link value was cleared
-            assertThat(findSummary(personUrl)).isEmpty();
+            assertThat(findSummary(personUrl).get()).isInstanceOf(NullValue.class);
         }
 
         @Test

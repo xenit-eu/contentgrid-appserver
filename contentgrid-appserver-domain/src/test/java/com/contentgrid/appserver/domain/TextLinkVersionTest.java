@@ -3,7 +3,6 @@ package com.contentgrid.appserver.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
-import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
@@ -44,15 +43,5 @@ class TextLinkVersionTest {
                 Arguments.of(ENTITY, new NamedLink(URI.create("https://example.com/other-rel"), NAMED_LINK.name()), "value"),
                 Arguments.of(ENTITY, new NamedLink(NAMED_LINK.rel(), "other-name"), "value")
         );
-    }
-
-    @Test
-    void unnamedLink_usesEmptyName() {
-        var unnamedLink = new UnnamedLink(NAMED_LINK.rel());
-        var emptyNamedLink = new NamedLink(NAMED_LINK.rel(), "");
-
-        assertThat(TextLinkVersion.calculate(ENTITY, unnamedLink, "value"))
-                .isEqualTo(TextLinkVersion.calculate(ENTITY, emptyNamedLink, "value"))
-                .isNotEqualTo(TextLinkVersion.calculate(ENTITY, NAMED_LINK, "value"));
     }
 }

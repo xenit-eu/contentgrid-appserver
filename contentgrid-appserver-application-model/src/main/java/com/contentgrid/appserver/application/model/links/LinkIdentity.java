@@ -17,6 +17,12 @@ public sealed interface LinkIdentity {
 
     record NamedLink(@NonNull URI rel, @NonNull String name) implements LinkIdentity, Serializable {
 
+        public NamedLink {
+            if (name.isBlank()) {
+                throw new IllegalArgumentException(String.format("NamedLink cannot have a Blank name component."));
+            }
+        }
+
         @Override
         public String toString() {
             return "NamedLink(" + rel + ", name=" + name + ")";

@@ -9,10 +9,12 @@ import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.NullValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
+import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
@@ -150,9 +152,14 @@ public class LinkRestController {
                     yield null;
                 }
                 yield ResponseEntity.ok()
-                        .contentType(MediaType.TEXT_PLAIN)
                         .eTag(versionValidator.calculateETag(textValue.getVersion()))
+                        .contentType(MediaType.TEXT_PLAIN)
                         .body(new ByteArrayResource(textValue.getValue().getBytes()));
+            }
+            case NullValue nullValue -> {
+                throw new ContentNotFoundException(
+                        EntityIdentity.forEntity(entity.getName(), entityId),
+                        storedLink.getStorage().getLast());
             }
         };
     }
@@ -173,9 +180,6 @@ public class LinkRestController {
             // Partial PUT is not supported
             throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
         }
-        if (requestBody == null) {
-            requestBody = "";
-        }
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
         var linkRequest = LinkRequest.forLink(
@@ -188,7 +192,7 @@ public class LinkRestController {
         var newValue = datamodelApi.updateLink(
                 application,
                 linkRequest,
-                new StringDataEntry(requestBody),
+                requestBody != null ? new StringDataEntry(requestBody) : NullDataEntry.INSTANCE,
                 authorizationContext
         );
         return ResponseEntity.noContent()
