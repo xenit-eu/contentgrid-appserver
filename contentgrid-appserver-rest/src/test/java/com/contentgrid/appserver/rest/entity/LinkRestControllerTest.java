@@ -342,6 +342,39 @@ public class LinkRestControllerTest {
         }
 
         @Test
+        void testSuccessfullyUpdateContentLinkWithoutRequestBody() throws Exception {
+            var personUrl = createPerson();
+
+            mockMvc.perform(put(personUrl + PORTRAIT_LINK_PATH)
+                            .contentType(MediaType.IMAGE_JPEG)
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"new.jpg\""))
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().exists(HttpHeaders.ETAG));
+
+            // Verify link content was updated
+            var portrait = findPortrait(personUrl);
+            assertThat(portrait.getFilename()).isEqualTo("new.jpg");
+            assertThat(portrait.getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
+            assertThat(portrait.getInputStream()).hasSameContentAs(ByteArrayInputStream.nullInputStream());
+        }
+
+        @Test
+        void testSuccessfullyUpdateTextLinkWithoutRequestBody() throws Exception {
+            var personUrl = createPerson();
+
+            mockMvc.perform(put(personUrl + SUMMARY_LINK_PATH)
+                            .contentType(MediaType.TEXT_PLAIN))
+                    .andExpect(status().isNoContent())
+                    .andExpect(header().exists(HttpHeaders.ETAG));
+
+            // Verify link value was updated
+            assertThat(findSummary(personUrl))
+                    .get()
+                    .isInstanceOfSatisfying(TextValue.class,
+                            textValue -> assertThat(textValue.getValue()).isEqualTo(""));
+        }
+
+        @Test
         void testUpdateTextLinkWithIfMatch() throws Exception {
             var personUrl = createPerson();
 

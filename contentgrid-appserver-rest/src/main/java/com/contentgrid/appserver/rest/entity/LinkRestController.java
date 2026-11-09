@@ -166,12 +166,15 @@ public class LinkRestController {
             @PathVariable PathSegmentName linkPath,
             VersionConstraint versionConstraint,
             @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
-            @RequestBody String requestBody,
+            @RequestBody(required = false) String requestBody,
             AuthorizationContext authorizationContext
     ) throws ForbiddenRequestHeaderException {
         if (StringUtils.hasText(contentRange)) {
             // Partial PUT is not supported
             throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
+        }
+        if (requestBody == null) {
+            requestBody = "";
         }
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
