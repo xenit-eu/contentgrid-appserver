@@ -19,6 +19,7 @@ import com.contentgrid.appserver.application.model.propertypath.SimpleAttributeP
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.NullValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
@@ -513,6 +514,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
                     String text = ((SimpleAttributeData<String>) attributeData.get()).getValue();
+                    if (text == null) {
+                        yield Optional.of(new NullValue());
+                    }
                     yield Optional.of(
                                 new TextValue(
                                         text,
