@@ -39,13 +39,19 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.AutoClose;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,6 +65,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 @SpringBootTest(classes = {TestApplication.class, TestConfig.class}, properties = {
         "spring.servlet.encoding.enabled=false", // disables mock-mvc enforcing charset in request
@@ -174,123 +181,81 @@ public class LinkRestControllerTest {
     @Nested
     class HeadLink {
 
-        @Test
-        void testHeadContentLinkReturnsOkWithoutContent() throws Exception {
+        @ParameterizedTest
+        @MethodSource("headLinkRespond204WithoutContentstoreArguments")
+        void testHeadLinkRespond204WithoutContentstore(String endpoint, List<ResultMatcher> expectations)
+                throws Exception {
             var personUrl = createPerson();
-            seedPortrait(personUrl);
-
-            mockMvc.perform(head(personUrl + PORTRAIT_LINK_PATH))
-                    .andExpect(status().isOk())
-                    .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(header().string(
-                            HttpHeaders.CONTENT_DISPOSITION,
-                            ContentDisposition.attachment()
-                                    .filename(PORTRAIT_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8)
-                                    .build().toString()))
-                    .andExpect(header().string(
-                            HttpHeaders.CONTENT_LENGTH,
-                            String.valueOf(PORTRAIT_CONTENT_BYTES.length)))
-                    .andExpect(content().contentType(PORTRAIT_CONTENT_FILE.getContentType()))
-                    .andExpect(content().bytes(new byte[PORTRAIT_CONTENT_BYTES.length]));
+            if (endpoint.equals(SUMMARY_LINK_PATH)) {
+                seedSummary(personUrl);
+            } else {
+                seedPortrait(personUrl);
+            }
+            mockMvc.perform(head(personUrl + endpoint))
+                    .andExpectAll(expectations.toArray(new ResultMatcher[0]));
             Mockito.verify(contentStoreSpy, Mockito.never()).getReader(any(), any());
         }
 
-        @Test
-        void testHeadTextLinkReturnsOkWithoutContent() throws Exception {
-            var personUrl = createPerson();
-            seedSummary(personUrl);
+        static Stream<Arguments> headLinkRespond204WithoutContentstoreArguments() {
+            return Stream.of(
+                    Arguments.argumentSet(
+                            "textLinkReturnsWithoutContent",
+                            SUMMARY_LINK_PATH,
+                            List.of(
+                                    status().isOk(),
+                                    header().exists(HttpHeaders.ETAG),
+                                    header().string(HttpHeaders.CONTENT_LENGTH, String.valueOf(SUMMARY_BYTES.length)),
+                                    content().contentType(MediaType.TEXT_PLAIN),
+                                    content().bytes(new byte[SUMMARY_BYTES.length]))
+                    ),
+                    Arguments.argumentSet(
+                            "contentLinkReturnsWithoutContent",
+                            PORTRAIT_LINK_PATH,
+                            List.of(
+                                    status().isOk(),
+                                    header().exists(HttpHeaders.ETAG),
+                                    header().string(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(PORTRAIT_CONTENT_FILE.getOriginalFilename(), StandardCharsets.UTF_8).build().toString()),
+                                    header().string(HttpHeaders.CONTENT_LENGTH, String.valueOf(PORTRAIT_CONTENT_BYTES.length)),
+                                    content().contentType(PORTRAIT_CONTENT_FILE.getContentType()),
+                                    content().bytes(new byte[PORTRAIT_CONTENT_BYTES.length]))
+                    )
+            );
+        }
 
-            mockMvc.perform(head(personUrl + SUMMARY_LINK_PATH))
-                    .andExpect(status().isOk())
-                    .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(header().string(
-                            HttpHeaders.CONTENT_LENGTH,
-                            String.valueOf(SUMMARY_BYTES.length)))
-                    .andExpect(content().contentType(MediaType.TEXT_PLAIN))
-                    .andExpect(content().bytes(new byte[SUMMARY_BYTES.length]));
-            Mockito.verifyNoInteractions(contentStoreSpy);
+        @ParameterizedTest
+        @MethodSource("headLinkRespond404WithoutContentstoreArguments")
+        void testHeadLinkRespond404WithoutContentstore(String endpoint, List<ResultMatcher> expectations)
+                throws Exception {
+            var personUrl = createPerson();
+            mockMvc.perform(head(personUrl + endpoint))
+                    .andExpectAll(expectations.toArray(new ResultMatcher[0]));
+            Mockito.verify(contentStoreSpy, Mockito.never()).getReader(any(), any());
+        }
+
+        static Stream<Arguments> headLinkRespond404WithoutContentstoreArguments() {
+            var problemDetailsResultMatcher =
+                    ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/content")
+                            .withTitle("Content not found");
+
+            return Stream.of(
+                    Arguments.argumentSet(
+                            "textLinkEmptyReturns404",
+                            SUMMARY_LINK_PATH,
+                            List.of(problemDetailsResultMatcher)
+                    ),
+                    Arguments.argumentSet(
+                            "contentLinkEmptyReturns404",
+                            PORTRAIT_LINK_PATH,
+                            List.of(problemDetailsResultMatcher)
+                    )
+            );
         }
     }
 
     @Nested
     class GetLink {
-
-        @Test
-        void testSuccessfullyGetLink() throws Exception {
-            var personUrl = createPerson();
-            seedPortrait(personUrl);
-
-            mockMvc.perform(get(personUrl + PORTRAIT_LINK_PATH))
-                    .andExpect(status().isOk())
-                    .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "image/png"))
-                    .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(content().string("portrait data"));
-        }
-
-        @Test
-        void testSuccessfullyGetTextLink() throws Exception {
-            var personUrl = createPerson();
-            seedSummary(personUrl);
-
-            mockMvc.perform(get(personUrl + SUMMARY_LINK_PATH))
-                    .andExpect(status().isOk())
-                    .andExpect(header().exists(HttpHeaders.ETAG))
-                    .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
-                    .andExpect(content().string("person summary"));
-        }
-
-        @Test
-        void testGetTextLinkWithoutContent() throws Exception {
-            var personUrl = createPerson();
-
-            mockMvc.perform(get(personUrl + SUMMARY_LINK_PATH))
-                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                            .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/content")
-                            .withTitle("Content not found"));
-        }
-
-        @Test
-        void testGetContentLinkWithoutContent() throws Exception {
-            var personUrl = createPerson();
-
-            mockMvc.perform(get(personUrl + PORTRAIT_LINK_PATH))
-                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                            .withStatusCode(HttpStatus.NOT_FOUND)
-                            .withType("https://contentgrid.cloud/problems/not-found/content")
-                            .withTitle("Content not found")
-                    );
-        }
-
-        @Test
-        void testGetLink_ifNoneMatchUnmodified() throws Exception {
-            var personUrl = createPerson();
-            seedPortrait(personUrl);
-
-            var etag = mockMvc.perform(get(personUrl + PORTRAIT_LINK_PATH))
-                    .andExpect(status().isOk())
-                    .andReturn()
-                    .getResponse()
-                    .getHeader(HttpHeaders.ETAG);
-
-            mockMvc.perform(get(personUrl + PORTRAIT_LINK_PATH)
-                            .header(HttpHeaders.IF_NONE_MATCH, etag))
-                    .andExpect(status().isNotModified());
-        }
-
-        @Test
-        void testGetLinkWithIncorrectIfMatch() throws Exception {
-            var personUrl = createPerson();
-            seedPortrait(personUrl);
-
-            mockMvc.perform(get(personUrl + PORTRAIT_LINK_PATH)
-                            .header(HttpHeaders.IF_MATCH, "\"some-other-etag\""))
-                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
-                            .withStatusCode(HttpStatus.PRECONDITION_FAILED)
-                            .withType("https://contentgrid.cloud/problems/unsatisfied-version")
-                            .withTitle("Object has changed")
-                    );
-        }
 
         @Test
         void testGetNonExistingLink() throws Exception {
@@ -312,6 +277,94 @@ public class LinkRestControllerTest {
                             .withType("https://contentgrid.cloud/problems/not-found/entity-item")
                             .withTitle("Entity item not found")
                     );
+        }
+
+        @ParameterizedTest
+        @MethodSource("path_contentType_contentBytes_arguments")
+        void testGetLink_success(String endpoint, String contentType, String contents) throws Exception {
+            var personUrl = createPerson();
+            if (endpoint.equals(SUMMARY_LINK_PATH)) {
+                seedSummary(personUrl);
+            } else {
+                seedPortrait(personUrl);
+            }
+            mockMvc.perform(get(personUrl + endpoint))
+                    .andExpect(status().isOk())
+                    .andExpect(header().exists(HttpHeaders.ETAG))
+                    .andExpect(header().string(HttpHeaders.CONTENT_TYPE, contentType))
+                    .andExpect(content().string(contents));
+        }
+
+        @ParameterizedTest
+        @MethodSource("path_arguments")
+        void testGetLink_withoutContent_returns404ProblemDetails(String endpoint) throws Exception {
+            var personUrl = createPerson();
+            mockMvc.perform(get(personUrl + endpoint))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.NOT_FOUND)
+                            .withType("https://contentgrid.cloud/problems/not-found/content")
+                            .withTitle("Content not found"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("path_etagHeaderName_arguments")
+        void testGetLink_withConditionalEtagHeaderAndCorrectEtag_returns304Unmodified(String endpoint, String etagHeaderName) throws Exception {
+            var personUrl = createPerson();
+            if (endpoint.equals(SUMMARY_LINK_PATH)) {
+                seedSummary(personUrl);
+            } else {
+                seedPortrait(personUrl);
+            }
+
+            var etag = mockMvc.perform(get(personUrl + endpoint))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.ETAG);
+
+            mockMvc.perform(get(personUrl + endpoint)
+                            .header(etagHeaderName, etag))
+                    .andExpect(status().isNotModified());
+        }
+
+        @ParameterizedTest
+        @MethodSource("path_arguments")
+        void testGetLink_withIfMatchAndIncorrectEtag_returns412PreconditionFailedProblemDetails(String endpoint) throws Exception {
+            var personUrl = createPerson();
+            if (endpoint.equals(SUMMARY_LINK_PATH)) {
+                seedSummary(personUrl);
+            } else {
+                seedPortrait(personUrl);
+            }
+
+            mockMvc.perform(get(personUrl + endpoint)
+                            .header(HttpHeaders.IF_MATCH, "\"some-other-etag\""))
+                    .andExpect(ProblemDetailsMockMvcMatchers.problemDetails()
+                            .withStatusCode(HttpStatus.PRECONDITION_FAILED)
+                            .withType("https://contentgrid.cloud/problems/unsatisfied-version")
+                            .withTitle("Object has changed")
+                    );
+        }
+
+        static Stream<Arguments> path_contentType_contentBytes_arguments() {
+            return Stream.of(
+                    Arguments.argumentSet("getTextLink", SUMMARY_LINK_PATH,  "text/plain", "person summary"),
+                    Arguments.argumentSet("getContentLink", PORTRAIT_LINK_PATH, "image/png", "portrait data")
+            );
+        }
+
+        static Stream<Arguments> path_etagHeaderName_arguments() {
+            return Stream.of(
+                    Arguments.argumentSet("getTextLink_ifNoneMatch", SUMMARY_LINK_PATH, HttpHeaders.IF_NONE_MATCH),
+                    Arguments.argumentSet("getContentLink_ifNoneMatch", PORTRAIT_LINK_PATH, HttpHeaders.IF_NONE_MATCH)
+            );
+        }
+
+        static Stream<Arguments> path_arguments() {
+            return Stream.of(
+                    Arguments.argumentSet("getTextLink", SUMMARY_LINK_PATH),
+                    Arguments.argumentSet("getContentLink", PORTRAIT_LINK_PATH)
+            );
         }
     }
 
