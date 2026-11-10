@@ -16,7 +16,7 @@ public class UnsatisfiedVersionException extends RuntimeException { //TODO ACC-2
             @NonNull Version actualVersion,
             @NonNull VersionConstraint requestedVersion
     ) {
-        super(formatMessage(actualVersion, requestedVersion));
+        super();
         this.actualVersion = actualVersion;
         this.requestedVersion = requestedVersion;
     }
@@ -26,12 +26,13 @@ public class UnsatisfiedVersionException extends RuntimeException { //TODO ACC-2
             @NonNull VersionConstraint requestedVersion,
             @NonNull Throwable cause
     ) {
-        super(formatMessage(actualVersion, requestedVersion), cause);
+        super(cause);
         this.actualVersion = actualVersion;
         this.requestedVersion = requestedVersion;
     }
 
-    public static String formatMessage(Version actualVersion, VersionConstraint requestedVersion) {
+    @Override
+    public String getMessage() {
         return "Requested version constraint '%s' can not be satisfied (actual version %s)".formatted(requestedVersion,
                 actualVersion);
     }
