@@ -25,10 +25,6 @@ public class ExactlyVersion implements Version {
         return "exactly '%s'".formatted(version);
     }
 
-    public String getValue() {
-        return version;
-    }
-
     @Override
     public boolean isSatisfiedBy(@NonNull Version otherVersion) {
         return otherVersion instanceof ExactlyVersion exactlyEntityVersion
