@@ -1,17 +1,26 @@
-package com.contentgrid.appserver.example;
+package com.contentgrid.appserver.autoconfigure.blueprintartifact;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contentgrid.appserver.application.model.json.exceptions.SchemaValidationException;
-import com.contentgrid.appserver.autoconfigure.blueprintartifact.UnsupportedBlueprintFormatVersionException;
+import com.contentgrid.appserver.autoconfigure.json.schema.ApplicationResolverAutoConfiguration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class BlueprintFormatVersionStartupTest {
+
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withInitializer(ctx -> ctx.getBeanFactory().setConversionService(new ApplicationConversionService()))
+            .withConfiguration(AutoConfigurations.of(
+                    BlueprintArtifactAutoConfiguration.class,
+                    ApplicationResolverAutoConfiguration.class
+            ));
 
     // This is not the format that we expect (entities should be an array)
     private static final String MALFORMED_APPLICATION_MODEL = """
@@ -37,10 +46,10 @@ class BlueprintFormatVersionStartupTest {
                 { "format_version": 99999 }
                 """);
 
-        assertThatThrownBy(this::startApplication)
+        startApplication().run(context -> assertThat(context).getFailure()
                 .rootCause()
                 .isInstanceOf(UnsupportedBlueprintFormatVersionException.class)
-                .hasMessageContaining("has blueprint format version 99999, but this appserver only supports blueprint format versions [");
+                .hasMessageContaining("has blueprint format version 99999, but this appserver only supports blueprint format versions ["));
     }
 
     @Test
@@ -48,19 +57,13 @@ class BlueprintFormatVersionStartupTest {
         // Makes sure that the test above does not pass just because the application model is never read
         Files.writeString(blueprintArtifact.resolve("application-model.json"), MALFORMED_APPLICATION_MODEL);
 
-        assertThatThrownBy(this::startApplication)
+        startApplication().run(context -> assertThat(context).getFailure()
                 .rootCause()
-                .isInstanceOf(SchemaValidationException.class);
+                .isInstanceOf(SchemaValidationException.class));
     }
 
-    private void startApplication() {
-        new SpringApplicationBuilder(ContentgridApp.class)
-                .profiles("bootRun")
-                .run(
-                        "--contentgrid.appserver.blueprint-artifact.location=file:" + blueprintArtifact,
-                        "--server.port=0",
-                        "--management.server.port=0"
-                )
-                .close();
+    private ApplicationContextRunner startApplication() {
+        return contextRunner
+                .withPropertyValues("contentgrid.appserver.blueprint-artifact.location=file:" + blueprintArtifact);
     }
 }
