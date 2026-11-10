@@ -24,6 +24,7 @@ import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundExcepti
 import com.contentgrid.appserver.query.engine.api.exception.EntityLinkedByRequiredRelationException;
 import com.contentgrid.appserver.query.engine.api.exception.PermissionDeniedException;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.RequiredConstraintViolationException;
 import com.contentgrid.appserver.query.engine.api.exception.UniqueConstraintViolationException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
@@ -32,7 +33,6 @@ import com.contentgrid.appserver.rest.exception.InvalidRelationTargetException;
 import com.contentgrid.appserver.rest.exception.InvalidUriInListException;
 import com.contentgrid.appserver.rest.exception.MissingRelationTargetException;
 import com.contentgrid.appserver.rest.exception.MultipleRelationTargetsException;
-import com.contentgrid.appserver.domain.values.exception.RelationTargetNotFoundException;
 import com.contentgrid.appserver.rest.exception.ForbiddenRequestHeaderException;
 import com.contentgrid.appserver.rest.exception.ContentNotFoundException;
 import com.contentgrid.appserver.rest.hal.links.factory.LinkFactory;
@@ -164,23 +164,6 @@ public class ProblemDetailsExceptionHandler {
     @ExceptionHandler
     ResponseEntity<Problem> inputValidation(RelationTargetNotFoundException exception, LinkFactoryProvider linkFactoryProvider) {
         return createResponse(inputValidation(allExceptions(exception, RelationTargetNotFoundException.class)
-                .map(e -> {
-                    var identity = EntityIdentity.forEntity(e.getEntityName(), e.getId());
-                    return problemFactory.createProblem(ProblemType.INPUT_VALIDATION_MISSING_RELATION_TARGET, identity)
-                            .withStatus(HttpStatus.BAD_REQUEST)
-                            .withProperties(Map.of(
-                                    "field", e.getRelation().getRelationName().getValue(),
-                                    "missing_item", linkFactoryProvider.toItem(identity).toUri().toString()
-                            ));
-                })
-                .toList()
-        ));
-    }
-
-    // TODO ACC-2447 Deduplicate when aligning exceptions. domain-values, domain, and query engine exceptions have no sensible common superclass and do not have dependencies upon another atow
-    @ExceptionHandler
-    ResponseEntity<Problem> inputValidation(com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException exception, LinkFactoryProvider linkFactoryProvider) {
-        return createResponse(inputValidation(allExceptions(exception, com.contentgrid.appserver.query.engine.api.exception.RelationTargetNotFoundException.class)
                 .map(e -> {
                     var identity = EntityIdentity.forEntity(e.getEntityName(), e.getId());
                     return problemFactory.createProblem(ProblemType.INPUT_VALIDATION_MISSING_RELATION_TARGET, identity)
