@@ -6,12 +6,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import lombok.SneakyThrows;
 
-public abstract class AbstractHashbasedVersion {
+public sealed abstract class AbstractHashbasedVersion permits TextLinkVersion, ContentVersion {
 
     private static final int HASH_LENGTH_BYTES = 16;
 
     @SneakyThrows(NoSuchAlgorithmException.class)
-    static String hash(String... inputs) {
+    protected static String hash(String... inputs) {
         var md = MessageDigest.getInstance("SHA256");
 
         for (var input : inputs) {

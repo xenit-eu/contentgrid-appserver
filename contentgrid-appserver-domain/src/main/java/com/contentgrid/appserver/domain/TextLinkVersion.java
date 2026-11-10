@@ -5,11 +5,10 @@ import com.contentgrid.appserver.application.model.links.LinkIdentity.NamedLink;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.version.Version;
 import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 
-public final class TextLinkVersion extends AbstractHashbasedVersion {
-
-    private TextLinkVersion() {
-    }
+@UtilityClass
+public class TextLinkVersion extends AbstractHashbasedVersion {
 
     public static Version calculate(
             @NonNull EntityIdentity entityIdentity,

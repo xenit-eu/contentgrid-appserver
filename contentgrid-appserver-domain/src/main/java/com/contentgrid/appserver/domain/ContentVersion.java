@@ -6,11 +6,10 @@ import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import java.util.Optional;
+import lombok.experimental.UtilityClass;
 
-public final class ContentVersion extends AbstractHashbasedVersion {
-
-    private ContentVersion() {
-    }
+@UtilityClass
+public class ContentVersion extends AbstractHashbasedVersion {
 
     public static Optional<Version> calculate(
             ContentAttribute contentAttribute,
