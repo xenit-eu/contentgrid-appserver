@@ -125,6 +125,13 @@ public class LinkRestController {
                 authorizationContext
         ).orElseThrow(() -> new LinkNotFoundException(linkRequest));
 
+        if (versionValidator.checkVersion(webRequest, versionConstraint, targetLink.getVersion())) {
+            return null;
+        }
+
+        var responseEntityBuilder = ResponseEntity.ok()
+                .eTag(versionValidator.calculateETag(targetLink.getVersion()));
+
         return switch(targetLink) {
             case ContentValue contentValue -> {
                 var content = contentValue.getContent();
@@ -133,26 +140,17 @@ public class LinkRestController {
                             storedLink.getStorage().getLast());
                 }
 
-                if (versionValidator.checkVersion(webRequest, versionConstraint, content.getVersion())) {
-                    yield null; // The response headers inside webRequest are modified as side effect
-                }
-
                 var disposition = ContentDisposition.attachment();
                 if (content.getFilename() != null) {
                     disposition.filename(content.getFilename(), StandardCharsets.UTF_8);
                 }
-                yield ResponseEntity.ok()
+                yield responseEntityBuilder
                         .contentType(MediaType.parseMediaType(content.getMimeType()))
                         .header(HttpHeaders.CONTENT_DISPOSITION, disposition.build().toString())
-                        .eTag(versionValidator.calculateETag(content.getVersion()))
                         .body(new ContentResource(content));
             }
             case TextValue textValue -> {
-                if (versionValidator.checkVersion(webRequest, versionConstraint, textValue.getVersion())) {
-                    yield null;
-                }
-                yield ResponseEntity.ok()
-                        .eTag(versionValidator.calculateETag(textValue.getVersion()))
+                yield responseEntityBuilder
                         .contentType(MediaType.TEXT_PLAIN)
                         .body(new ByteArrayResource(textValue.getValue().getBytes()));
             }
