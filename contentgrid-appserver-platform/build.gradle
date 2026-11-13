@@ -10,7 +10,7 @@ javaPlatform {
 dependencies {
     api platform('org.springframework.boot:spring-boot-dependencies:4.1.2')
     api platform('com.contentgrid.thunx:thunx-bom:0.18.0')
-    api platform('software.amazon.awssdk:bom:2.57.6')
+    api platform('software.amazon.awssdk:bom:2.57.7')
 
     constraints {
         api 'org.hamcrest:hamcrest:3.0'
