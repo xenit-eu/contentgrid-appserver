@@ -274,14 +274,13 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @PathVariable String entityName,
                 @PathVariable String linkPath
         ) {
-            var link = getStoredEntityLink(entityName, linkPath);
+            var link = getStoredEntityLink(entityName, linkPath.substring(1));
             return ResponseEntity.ok("Get link %s".formatted(link.getIdentity()));
         }
 
         private StoredEntityLink getStoredEntityLink(String entityName, String linkPath) {
             return APPLICATION.getEntityByPathSegment(PathSegmentName.of(entityName)).orElseThrow()
-                    // SpecializedOnLinkType extracts *linkPath with leading '/', consistent with Spring pathparam extraction. Handle leading slash in controller
-                    .getStoredEntityLinkByPathSegments(PathSegmentName.of(linkPath.substring(1)))
+                    .getStoredEntityLinkByPathSegments(PathSegmentName.of(linkPath))
                     .orElseThrow();
         }
 
@@ -291,7 +290,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @PathVariable String entityName,
                 @PathVariable String linkPath
         ) {
-            var link = getStoredEntityLink(entityName, linkPath);
+            var link = getStoredEntityLink(entityName, linkPath.substring(1));
             return ResponseEntity.ok("PUT text link %s".formatted(link.getIdentity()));
         }
 
@@ -301,7 +300,7 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 @PathVariable String entityName,
                 @PathVariable String linkPath
         ) {
-            var link = getStoredEntityLink(entityName, linkPath);
+            var link = getStoredEntityLink(entityName, linkPath.substring(1));
             return ResponseEntity.ok("PUT content link %s".formatted(link.getIdentity()));
         }
 
