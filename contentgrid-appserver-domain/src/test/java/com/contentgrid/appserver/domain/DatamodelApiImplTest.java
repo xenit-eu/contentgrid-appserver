@@ -17,7 +17,6 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_GENDER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_TAGS;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
@@ -744,14 +743,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
                         new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
-                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of()),
-                        CompositeAttributeData.builder()
-                                .name(PERSON_PORTRAIT.getName())
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getId().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getFilename().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getMimetype().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getLength().getName(), null))
-                                .build()
+                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of())
                 );
 
                 assertThat(createData.getRelations()).isEmpty();
@@ -2219,6 +2211,10 @@ class DatamodelApiImplTest {
             return createDocumentData(id, Version.unspecified());
         }
 
+        private static Version ftsVersion(EntityId id, String text) {
+            return TextLinkVersion.calculate(EntityIdentity.forEntity(DOCUMENT.getName(), id), FTS_LINK.getIdentity(), text);
+        }
+
         private static EntityData createDocumentData(EntityId id, Version version) {
             return new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), id, version),
@@ -2398,7 +2394,7 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2484,8 +2480,9 @@ class DatamodelApiImplTest {
         @Test
         void updateLink_storesTextData_withVersionConstraint() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var mustMatchVersionConstraint = Version.exactly("MUST_MATCH");
-            var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
+            // The text link version is calculated from the link identity and the stored text, not the entity version
+            var mustMatchVersionConstraint = ftsVersion(entityId, EXTRACTION);
+            var entityData = createDocumentData(entityId);
             var updateResultEntityData = new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), entityId, Version.exactly("UPDATED_VERSION")),
                     List.of(buildLinksAttribute(
@@ -2675,7 +2672,8 @@ class DatamodelApiImplTest {
                     }
                 );
             assertEquals(
-                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version unspecified)",
+                    "Requested version constraint 'exactly 'MUST_MATCH'' can not be satisfied (actual version %s)"
+                            .formatted(ftsVersion(entityId, EXTRACTION)),
                     ex.getMessage());
         }
 

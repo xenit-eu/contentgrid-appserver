@@ -38,6 +38,16 @@
               "type": "simple",
               "dataType": "text",
               "columnName": "_links__test1"
+            },
+            {
+              "type": "content",
+              "name": "portrait",
+              "idColumn": "content__id",
+              "fileNameColumn": "content__filename",
+              "mimeTypeColumn": "content__mimetype",
+              "lengthColumn": "content__length",
+              "title": "Portrait",
+              "flags": ["ignored"]
             }
           ],
           "flags": [
@@ -344,6 +354,11 @@
           "fallbackTemplate": {
             "template": "https://calendar.example/people?me=%{entity.link}&meType=%{entity.name}&related=%{owner.link}&relatedType=%{owner.name}"
           }
+        },
+        {
+          "rel": "portrait",
+          "storage": [{"type": "attr", "name": "_links"},{"type": "attr","name": "portrait"}],
+          "pathSegment": "_links/portrait-hash123"
         }
       ]
     },
