@@ -51,9 +51,12 @@ public class CompositeAttributeImpl implements CompositeAttribute {
         });
         this.flags = flags;
         for (var attribute : attributes) {
-            if(attribute instanceof ContentAttribute) {
-                throw new InvalidAttributeTypeException("Composite attribute '%s' can not contain content attributes".formatted(name));
+            if (attribute instanceof ContentAttribute ca && !ca.isIgnored()) {
+                throw new InvalidAttributeTypeException(
+                        "Composite attribute '%s' can not contain content attributes, unless they are ignored".formatted(
+                                name));
             }
+
             if (this.attributes.put(attribute.getName(), attribute) != null) {
                 throw new DuplicateElementException("Duplicate attribute named %s".formatted(attribute.getName()));
             }
