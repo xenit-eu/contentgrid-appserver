@@ -478,7 +478,7 @@ class EntityTest {
 
         assertThatThrownBy(builder::build)
                 .isInstanceOf(DuplicateElementException.class)
-                .hasMessage("Duplicate EntityLink with pathSegment '_links/test'");
+                .hasMessage("Duplicate EntityLink with pathSegment '_links/test' on Entity 'entity'");
     }
 
     @Test
@@ -508,7 +508,7 @@ class EntityTest {
 
         assertThatThrownBy(builder::build)
                 .isInstanceOf(DuplicateElementException.class)
-                .hasMessage("EntityLink with pathSegment 'path-segment' conflicts with ContentAttribute 'test'");
+                .hasMessage("EntityLink with pathSegment 'path-segment' conflicts with ContentAttribute 'test' on Entity 'entity'");
     }
 
     @Test
