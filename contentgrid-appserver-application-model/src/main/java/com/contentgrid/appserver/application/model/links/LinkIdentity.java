@@ -1,9 +1,10 @@
 package com.contentgrid.appserver.application.model.links;
 
+import java.io.Serializable;
 import java.net.URI;
 import lombok.NonNull;
 
-public sealed interface LinkIdentity {
+public sealed interface LinkIdentity extends Serializable {
     URI rel();
 
     record UnnamedLink(@NonNull URI rel) implements LinkIdentity {
