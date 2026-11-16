@@ -5,12 +5,14 @@ import java.net.URI;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @AllArgsConstructor(access = AccessLevel.PACKAGE)
+@EqualsAndHashCode
 public abstract sealed class EntityLink permits PlainEntityLink, StoredEntityLink {
 
     @Getter

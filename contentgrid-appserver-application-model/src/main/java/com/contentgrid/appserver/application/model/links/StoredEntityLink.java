@@ -6,12 +6,14 @@ import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import java.net.URI;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Getter
+@EqualsAndHashCode
 final public class StoredEntityLink extends EntityLink {
 
     @NonNull
