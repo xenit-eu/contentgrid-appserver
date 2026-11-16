@@ -410,8 +410,11 @@ public class Application {
                                     case SimpleAttribute simpleAttribute ->
                                             supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_VALUE);
                                     // Content attributes have a link
-                                    case ContentAttribute contentAttribute ->
+                                    case ContentAttribute contentAttribute -> {
+                                        if (!contentAttribute.isIgnored()) {
                                             supportedVariables.add(EntityLinkSubstitutionVariables.OWNER_LINK);
+                                        }
+                                    }
                                     case MultivalueAttribute multivalueAttribute -> {
                                         // Multi-value attributes only have a name
                                     }
