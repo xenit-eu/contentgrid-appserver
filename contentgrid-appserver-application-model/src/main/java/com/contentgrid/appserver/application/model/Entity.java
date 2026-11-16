@@ -210,16 +210,20 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
                     // nothing do do here, it doesn't have a path segment
                 }
                 case StoredEntityLink storedEntityLink -> {
-                    var storedEntityLInkPathSegment = storedEntityLink.getPathSegment();
-                    if (!linkPathSegments.add(storedEntityLInkPathSegment.getValue())) {
+                    var storedEntityLinkPathSegment = storedEntityLink.getPathSegment();
+                    if (!linkPathSegments.add(storedEntityLinkPathSegment.getValue())) {
                         throw new DuplicateElementException(
-                                "Duplicate EntityLink with pathSegment '%s'".formatted(storedEntityLInkPathSegment.getValue()));
+                                "Duplicate EntityLink with pathSegment '%s' on Entity '%s'".formatted(
+                                        storedEntityLinkPathSegment.getValue(),
+                                        name));
                     }
-                    this.getContentByPathSegment(storedEntityLInkPathSegment)
+                    this.getContentByPathSegment(storedEntityLinkPathSegment)
                             .ifPresent(contentAttribute -> {
                                 throw new DuplicateElementException(
-                                        "EntityLink with pathSegment '%s' conflicts with ContentAttribute '%s'".formatted(
-                                                storedEntityLInkPathSegment.getValue(), contentAttribute.getName()));
+                                        "EntityLink with pathSegment '%s' conflicts with ContentAttribute '%s' on Entity '%s'".formatted(
+                                                storedEntityLinkPathSegment.getValue(),
+                                                contentAttribute.getName(),
+                                                name));
                             });
                 }
             }
