@@ -39,7 +39,12 @@ import com.contentgrid.appserver.registry.ApplicationResolver;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnLinkType.StoredLinkType;
 import com.contentgrid.appserver.rest.mapping.SpecializedOnPropertyType.PropertyType;
 import java.net.URI;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -50,6 +55,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -317,30 +323,21 @@ class DynamicDispatchApplicationHandlerMappingTest {
                 .andExpect(content().string("Entity test-entity"));
     }
 
-    @Test
-    void resolveDisambiguatedMethods() throws Exception {
-        mockMvc.perform(get("/test-entities/content"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Content content"));
+    @ParameterizedTest
+    @MethodSource("resolveDisambiguatedMethods_testArguments")
+    void resolveDisambiguatedMethods(String path, List<ResultMatcher> conditions) throws Exception {
+        mockMvc.perform(get(path)).andExpectAll(conditions.toArray(new ResultMatcher[0]));
+    }
 
-        mockMvc.perform(get("/test-entities/to-one-other"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Relation to_one_other"));
-
-        mockMvc.perform(get("/test-entities/to-many-other"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Relation to_many_other"));
-
-        mockMvc.perform(get("/test-entities/_links/my-link"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Get link UnnamedLink(https://example.com/rel)"));
-
-        mockMvc.perform(get("/test-entities/_links/text-link"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Get link UnnamedLink(https://example.com/text-rel)"));
-
-        mockMvc.perform(get("/non-existing/item"))
-                .andExpect(status().isNotFound());
+    static Stream<Arguments> resolveDisambiguatedMethods_testArguments() {
+        return Stream.of(
+                Arguments.argumentSet("getContent_200success", "/test-entities/content", List.of(status().isOk(), content().string("Content content"))),
+                Arguments.argumentSet("getRelationOneToOne_200success", "/test-entities/to-one-other", List.of(status().isOk(), content().string("Relation to_one_other"))),
+                Arguments.argumentSet("getRelationOneToMany_200success", "/test-entities/to-many-other", List.of(status().isOk(), content().string("Relation to_many_other"))),
+                Arguments.argumentSet("getUnnamedLink_200success", "/test-entities/_links/my-link", List.of(status().isOk(), content().string("Get link UnnamedLink(https://example.com/rel)"))),
+                Arguments.argumentSet("getUnnamedTextLink_200success", "/test-entities/_links/text-link", List.of(status().isOk(), content().string("Get link UnnamedLink(https://example.com/text-rel)"))),
+                Arguments.argumentSet("getNonExisting_404failure", "/non-existing/item", List.of(status().isNotFound()))
+        );
     }
 
     @Test
