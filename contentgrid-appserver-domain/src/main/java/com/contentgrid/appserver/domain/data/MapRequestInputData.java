@@ -58,7 +58,7 @@ public class MapRequestInputData implements RequestInputData {
                     .map(PlainDataEntry.class::cast)
                     .toList());
             case Map<?, ?> map -> new MapDataEntry(map.entrySet().stream()
-                    .map(entry -> Map.entry((String)entry.getKey(), (PlainDataEntry)convertValue(entry.getValue())))
+                    .map(entry -> Map.entry((String)entry.getKey(), convertValue(entry.getValue())))
                     .collect(Collectors.toUnmodifiableMap(Entry::getKey, Entry::getValue))
             );
             case DataEntry dataEntry -> dataEntry;

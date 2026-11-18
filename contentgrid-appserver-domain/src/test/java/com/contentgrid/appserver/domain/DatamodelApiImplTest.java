@@ -2204,7 +2204,17 @@ class DatamodelApiImplTest {
                                             "application/pdf"))
                                     .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
                                     .build())
-                            .build()
+                            .build(),
+                            SimpleAttributeData.builder().name(DOCUMENT_CATEGORY.getName()).build(),
+                            CompositeAttributeData.builder().name(DOCUMENT_ATTACHMENT.getName())
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getId().getName(),
+                                            "pdf-content-id"))
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getFilename().getName(),
+                                            "invoice.pdf"))
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getMimetype().getName(),
+                                            "application/pdf"))
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getLength().getName(), 1L))
+                                    .build()
                     ));
         }
 
@@ -2405,6 +2415,8 @@ class DatamodelApiImplTest {
         @Test
         void update_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
             assertThrows(LinkNotFoundException.class, () ->
                     datamodelApi.updateLink(DOCUMENT_APPLICATION,
                             LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
@@ -2412,10 +2424,11 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_storesTextData() {
+        void updateLink_storesTextData() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
             var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
@@ -2439,10 +2452,24 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_storesContentData() throws UnwritableContentException {
+        void updateLink_invalidDataEntry() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
+
+            assertThatThrownBy(() -> datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    new StringDataEntry("\0"), AuthorizationContext.allowAll()))
+                .isInstanceOf(InvalidPropertyDataException.class);
+        }
+
+        @Test
+        void updateLink_storesContentData() throws UnwritableContentException, InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
             var fileId = "my-file.bin";
@@ -2499,16 +2526,19 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing"));
             var allowAll = AuthorizationContext.allowAll();
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
             assertThrows(LinkNotFoundException.class, () -> datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll));
         }
 
         @Test
-        void deleteLink_deletesText() {
+        void deleteLink_deletesText() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
             var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity());
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 
@@ -2524,12 +2554,13 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void deleteLink_deletesContent_nullsAllContentFields() {
+        void deleteLink_deletesContent_nullsAllContentFields() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
             var linkRequest = LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity());
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 

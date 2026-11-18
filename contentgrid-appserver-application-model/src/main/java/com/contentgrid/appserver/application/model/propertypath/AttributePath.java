@@ -3,7 +3,6 @@ package com.contentgrid.appserver.application.model.propertypath;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.CrossesAttribute;
 import com.contentgrid.appserver.application.model.propertypath.PropertyPath.ResolvesToAttribute;
 import com.contentgrid.appserver.application.model.values.AttributeName;
-import java.util.List;
 import lombok.NonNull;
 
 /**
@@ -14,7 +13,5 @@ public sealed interface AttributePath extends CrossesAttribute, ResolvesToAttrib
     AttributeName getFirst();
     AttributePath getRest();
 
-    AttributeName getLast();
     AttributePath withSuffix(AttributeName attributeName);
-    List<AttributePath> getAsList();
 }

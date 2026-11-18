@@ -16,19 +16,15 @@ import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyP
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
-import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.ScalarDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
-import com.contentgrid.appserver.domain.data.InvalidDataFormatException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.RelationTarget;
 import com.contentgrid.appserver.domain.data.RequestInputData;
@@ -44,6 +40,7 @@ import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper;
+import com.contentgrid.appserver.domain.data.mapper.SingleDataEntryToDataEntryMapper;
 import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ContentAttributeModificationValidator;
@@ -88,7 +85,6 @@ import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException
 import com.contentgrid.hateoas.pagination.api.PaginationControls;
 import com.contentgrid.thunx.predicates.model.LogicalOperation;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
-import java.io.IOException;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
@@ -118,16 +114,16 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
-    private RequestInputDataMapper createInputDataMapper(
+    private <T> RequestInputDataMapper<T> createInputDataMapper(
             @NonNull Application application,
             @NonNull EntityName entityName,
+            @NonNull AttributeAndRelationMapper<T, Optional<DataEntry>, T, Optional<DataEntry>> inputMapper,
             @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
             @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
 
-        var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
         var contentStore = contentStoreResolver.resolve(application);
 
@@ -162,7 +158,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 .andThen(constraintValidatingMapper)
                 .andThen(queryEngineMapper);
 
-        return new RequestInputDataMapper(
+        return new RequestInputDataMapper<>(
                 entity.getAttributes(),
                 relations,
                 combinedMapper,
@@ -279,6 +275,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
+                AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper()),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -325,6 +322,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
+                AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper()),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -364,6 +362,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
+                AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper()),
                 // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
                         // Validate that content attribute is not partially set
@@ -517,17 +516,31 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     }
 
     @Override
-    public StoredLinkValue updateLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
-            @NonNull DataEntry value, @NonNull AuthorizationContext authorizationContext) {
-        var storage = application
-                .getRequiredEntityByName(linkRequest.getEntityName())
+    public StoredLinkValue updateLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
+            @NonNull DataEntry value,
+            @NonNull AuthorizationContext authorizationContext
+    ) throws InvalidPropertyDataException {
+        var existingEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+        var existingEntityInstance =  findById(application, existingEntityRequest, authorizationContext)
+                .orElseThrow(() -> new EntityIdNotFoundException(existingEntityRequest));
+        var targetEntity = application.getRequiredEntityByName(linkRequest.getEntityName());
+        var storage = targetEntity
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
                 .orElseThrow(() -> new LinkNotFoundException(linkRequest))
                 .getStorage();
+        var inputMapper = createInputDataMapper(
+                application,
+                targetEntity.getName(),
+                AttributeAndRelationMapper.from(new SingleDataEntryToDataEntryMapper(storage), (r, i) -> Optional.empty() ),
+                // Like updatePartial for entities, missing fields are ommited so they are not updated
+                FilterDataEntryMapper.omitMissing(),
+                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock)));
 
         var entityData = new EntityData(
                 EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
-                List.of(buildAttributeDataTree(storage, value, application, linkRequest.getEntityName())));
+                inputMapper.mapAttributes(value));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
@@ -538,55 +551,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
     }
 
-    // Reversed walkthrough of the attributePath to create the AttributeData tree.
-    // Create the leaf first, then the surrounding composites.
-    private AttributeData buildAttributeDataTree(@NonNull AttributePath attributePath, @NonNull DataEntry dataEntry,
-            @NonNull Application application, @NonNull EntityName entityName) {
-        var iterator = attributePath.getAsList().reversed().iterator();
-        var result = buildAttributeData(iterator.next(), dataEntry, application, entityName);
-        while (iterator.hasNext()) {
-            var currentAttributePath = iterator.next();
-            result = CompositeAttributeData.builder().name(currentAttributePath.getLast()).attribute(result).build();
-        }
-        return result;
-    }
-
-    private AttributeData buildAttributeData(@NonNull AttributePath attributePath, @NonNull DataEntry dataEntry,
-            @NonNull Application application, @NonNull EntityName entityName) {
-        var attributeName = attributePath.getLast();
-        var attribute = application
-                .getPropertyPathResolver()
-                .resolveAttribute(entityName, attributePath)
-                .getAttribute();
-        return switch (attribute) {
-            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new SimpleAttributeData<>(attributeName, ((ScalarDataEntry) dataEntry).getValue());
-            case ContentAttribute contentAttribute -> {
-                var builder = CompositeAttributeData.builder().name(attributeName);
-                if (dataEntry.equals(NullDataEntry.INSTANCE)) {
-                    for (var nestedAttr : contentAttribute.getAttributes()) {
-                        builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), null));
-                    }
-                } else {
-                    try {
-                        var mapDataEntry = ContentUploadAttributeMapper.uploadFileDataEntry(contentStoreResolver.resolve(application), ((ContentAttribute) attribute), ((FileDataEntry) dataEntry));
-                        for (var nestedAttr : contentAttribute.getAttributes()) {
-                            builder.attribute(new SimpleAttributeData<>(nestedAttr.getName(), ((ScalarDataEntry) mapDataEntry.get(
-                                    nestedAttr.getName().getValue())).getValue()));
-                        }
-                    } catch (InvalidDataFormatException | IOException | UnwritableContentException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                yield builder.build();
-            }
-            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
-                    + " to an AttributeData class");
-        };
-    }
-
     @Override
-    public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext) {
+    public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext)
+            throws InvalidPropertyDataException {
         updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
     }
 

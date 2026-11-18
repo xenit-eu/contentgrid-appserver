@@ -16,7 +16,6 @@ import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
@@ -83,14 +82,14 @@ public class AuditAttributeMapper implements AttributeMapper<Optional<DataEntry>
             for (var attribute : compositeAttribute.getAttributes()) {
                 Optional<DataEntry> entry = Optional.of(mapDataEntry.get(attribute.getName().getValue()));
                 mapAttribute(path.withSuffix(attribute.getName()), attribute, entry)
-                        .ifPresent(dataEntry -> builder.item(attribute.getName().getValue(), (PlainDataEntry) dataEntry));
+                        .ifPresent(dataEntry -> builder.item(attribute.getName().getValue(), dataEntry));
             }
             return Optional.of(builder.build());
         } else if (inputData.isPresent() && inputData.get() instanceof MissingDataEntry || inputData.isEmpty()) {
             var builder = MapDataEntry.builder();
             for (var attribute : compositeAttribute.getAttributes()) {
                 mapAttribute(path.withSuffix(attribute.getName()), attribute, Optional.empty())
-                        .ifPresent(dataEntry -> builder.item(attribute.getName().getValue(), (PlainDataEntry) dataEntry));
+                        .ifPresent(dataEntry -> builder.item(attribute.getName().getValue(),  dataEntry));
             }
             var res = builder.build();
             if (res.size() > 0) {

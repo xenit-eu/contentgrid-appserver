@@ -44,7 +44,7 @@ public class RequestInputDataJacksonModule extends SimpleModule {
                     gen.writeStartObject(mapDataEntry, mapDataEntry.getItems().size());
                     for (var entry : mapDataEntry.getItems().entrySet()) {
                         gen.writeName(entry.getKey());
-                        serialize(entry.getValue(), gen, ctxt);
+                        serialize((PlainDataEntry) entry.getValue(), gen, ctxt);
                     }
                     gen.writeEndObject();
                 }

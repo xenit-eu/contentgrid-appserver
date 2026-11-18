@@ -3,6 +3,7 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.data.DataEntry;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 import java.util.Optional;
 import lombok.NonNull;
@@ -20,11 +21,11 @@ public interface EntityLinkApi {
             @NonNull LinkRequest linkRequest,
             @NonNull DataEntry value,
             @NonNull AuthorizationContext authorizationContext
-    );
+    ) throws InvalidPropertyDataException;
 
     void deleteLink(
             @NonNull Application application,
             @NonNull LinkRequest linkRequest,
             @NonNull AuthorizationContext authorizationContext
-    );
+    ) throws InvalidPropertyDataException;
 }
