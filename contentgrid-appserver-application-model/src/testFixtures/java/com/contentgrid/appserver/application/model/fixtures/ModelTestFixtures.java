@@ -137,7 +137,7 @@ public class ModelTestFixtures {
             .build();
 
     public static final ContentAttribute PERSON_PORTRAIT_RENDITION = ContentAttribute.builder()
-            .name(AttributeName.of("portrait"))
+            .name(AttributeName.of("portrait_rendition"))
             .idColumn(ColumnName.of("_links__portrait__id"))
             .filenameColumn(ColumnName.of("_links__portrait__filename"))
             .mimetypeColumn(ColumnName.of("_links__portrait__mimetype"))
@@ -161,7 +161,8 @@ public class ModelTestFixtures {
     public static final StoredEntityLink PERSON_PORTRAIT_LINK = StoredEntityLink.builder()
             .identity(new NamedLink(URI.create("https://people.example/rel/portrait/16-9"), "portrait"))
             .pathSegment(PathSegmentName.of("_links/16-9-hash123/portrait"))
-            .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_PORTRAIT.getName())))
+            .storage(new CompositeAttributePath(PERSON_LINKS.getName(), new SimpleAttributePath(PERSON_PORTRAIT_RENDITION.getName())))
+            .owner(new SimpleAttributePath(PERSON_PORTRAIT.getName()))
             .build();
 
     private static UriTemplateDefinition linkTemplate(String template) {
