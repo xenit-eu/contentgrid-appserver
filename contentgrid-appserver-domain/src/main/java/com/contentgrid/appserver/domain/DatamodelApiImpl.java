@@ -21,7 +21,6 @@ import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
 import com.contentgrid.appserver.domain.data.EntityLinkData;
@@ -549,12 +548,6 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 .getNestedAttributeByPath(storage)
                 .orElseThrow();
         return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
-    }
-
-    @Override
-    public void deleteLink(@NonNull Application application, @NonNull LinkRequest linkRequest, @NonNull AuthorizationContext authorizationContext)
-            throws InvalidPropertyDataException {
-        updateLink(application, linkRequest, NullDataEntry.INSTANCE, authorizationContext);
     }
 
     @RequiredArgsConstructor
