@@ -72,7 +72,7 @@ public class ContentUploadAttributeMapper extends AbstractDescendingAttributeMap
         return Optional.of(inputData);
     }
 
-    public static @NonNull MapDataEntry uploadFileDataEntry(ContentStore contentStore,
+    protected static @NonNull MapDataEntry uploadFileDataEntry(ContentStore contentStore,
             ContentAttribute contentAttribute, FileDataEntry fileDataEntry)
             throws InvalidDataFormatException, IOException, UnwritableContentException {
         MimeType mimeType;
