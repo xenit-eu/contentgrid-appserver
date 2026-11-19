@@ -25,10 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -72,6 +70,7 @@ import com.contentgrid.appserver.contentstore.api.ContentAccessor;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
+import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
@@ -2384,19 +2383,22 @@ class DatamodelApiImplTest {
         @Test
         void findLink_throwsEntityIdNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
-            assertThrows(EntityIdNotFoundException.class,
+            assertThatThrownBy(
                     () -> datamodelApi.findLink(DOCUMENT_APPLICATION,
                             LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
-                            AuthorizationContext.allowAll()));
+                            AuthorizationContext.allowAll())
+            ).isInstanceOf(EntityIdNotFoundException.class);
         }
 
         @Test
         void findLink_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
-            assertThrows(LinkNotFoundException.class,
-                    () -> datamodelApi.findLink(DOCUMENT_APPLICATION,
-                            LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
-                            AuthorizationContext.allowAll()));
+            assertThatThrownBy(() -> datamodelApi.findLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId,
+                            new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
+                    AuthorizationContext.allowAll())
+            ).isInstanceOf(LinkNotFoundException.class);
         }
 
         @Test
@@ -2421,25 +2423,20 @@ class DatamodelApiImplTest {
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
                     AuthorizationContext.allowAll());
 
-            assertThat(result).isNotEmpty()
-                    .get()
-                    .isInstanceOf(ContentValue.class)
-                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
-                    .satisfies(contentValue -> {
-                        var content = contentValue.getContent();
-                        assertThat(content.getDescription()).isEqualTo(
-                                "ContentAttribute pdf: 'ContentReference(value=pdf-content-id)'");
-                        assertThat(content.getMimeType()).isEqualTo("application/pdf");
-                        assertThat(content.getFilename()).isEqualTo("invoice.pdf");
-                        assertThat(content.getLength()).isEqualTo(1);
-                        assertThat(content.getVersion()).isNotNull();
-                    });
+            assertThat(result).hasValueSatisfying(contentValue -> {
+                assertThat(contentValue).isInstanceOfSatisfying(ContentValue.class, content -> {
+                    assertThat(content.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value=pdf-content-id)'");
+                    assertThat(content.getContent().getMimeType()).isEqualTo("application/pdf");
+                    assertThat(content.getContent().getFilename()).isEqualTo("invoice.pdf");
+                    assertThat(content.getContent().getLength()).isEqualTo(1);
+                    assertThat(content.getVersion()).isNotNull();
+                });
+            });
         }
 
         @Test
         void updateLink_throwsEntityIdNotFoundException() {
-            assertThrows(
-                    EntityIdNotFoundException.class,
+            assertThatThrownBy(
                     () -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
@@ -2450,8 +2447,8 @@ class DatamodelApiImplTest {
                                 new StringDataEntry(EXTRACTION),
                                 AuthorizationContext.allowAll()
                         );
-                    }
-            );
+                    })
+                    .isInstanceOf(EntityIdNotFoundException.class);
         }
 
         @Test
@@ -2459,10 +2456,12 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
-            assertThrows(LinkNotFoundException.class, () ->
+            assertThatThrownBy(() ->
                     datamodelApi.updateLink(DOCUMENT_APPLICATION,
-                            LinkRequest.forLink(DOCUMENT.getName(), entityId, new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
-                            new StringDataEntry("Full text extraction"), AuthorizationContext.allowAll()));
+                            LinkRequest.forLink(DOCUMENT.getName(), entityId,
+                                    new LinkIdentity.NamedLink(URI.create(""), "non-existing")),
+                            new StringDataEntry("Full text extraction"), AuthorizationContext.allowAll())
+            ).isInstanceOf(LinkNotFoundException.class);
         }
 
         @Test
@@ -2537,7 +2536,7 @@ class DatamodelApiImplTest {
                     .asInstanceOf(instanceOfAssertFactory(TextValue.class))
                     .satisfies(textValue -> {
                                 assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
-                                assertFalse(textValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)); // Version must have been updated
+                                assertThat(textValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)).isFalse(); // Version must have been updated
                             }
                     );
 
@@ -2663,7 +2662,7 @@ class DatamodelApiImplTest {
                         assertThat(content.getFilename()).isEqualTo(fileName);
                         assertThat(content.getLength()).isEqualTo(150);
                         assertThat(content.getVersion()).isNotNull();
-                        assertFalse(content.getVersion().isSatisfiedBy(mustMatchVersionConstraint)); // Version must have been updated
+                        assertThat(content.getVersion().isSatisfiedBy(mustMatchVersionConstraint)).isFalse(); // Version must have been updated
                     });
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
@@ -2701,8 +2700,7 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
                     .thenReturn(Optional.of(entityData));
-            var ex = assertThrows(
-                    UnsatisfiedVersionException.class, () -> {
+            assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
                                 LinkRequest.forLink(
@@ -2714,8 +2712,13 @@ class DatamodelApiImplTest {
                                 AuthorizationContext.allowAll()
                         );
                     }
-            );
-            assertThat(ex).hasMessage("Requested version constraint 'exactly 'SHOULD_NOT_BE_SATISFIED'' can not be satisfied (actual version %s)".formatted(ftsVersion(entityId, EXTRACTION)));
+            ).isInstanceOfSatisfying(
+                    UnsatisfiedVersionException.class, ex -> {
+                        assertThat(ex).hasMessage(
+                                "Requested version constraint 'exactly 'SHOULD_NOT_BE_SATISFIED'' can not be satisfied (actual version %s)".formatted(
+                                        ftsVersion(entityId, EXTRACTION)));
+                    });
+
         }
 
         @Test
@@ -2727,8 +2730,7 @@ class DatamodelApiImplTest {
                     .thenReturn(Optional.of(entityData));
             var fileName = "invoice.pdf";
             var contentType = "application/pdf";
-            var ex = assertThrows(
-                    UnsatisfiedVersionException.class, () -> {
+            assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
                                 LinkRequest.forLink(
@@ -2740,8 +2742,12 @@ class DatamodelApiImplTest {
                                 AuthorizationContext.allowAll()
                         );
                     }
-            );
-            assertThat(ex).hasMessage("Requested version constraint 'exactly 'SHOULD_NOT_BE_SATISFIED'' can not be satisfied (actual version exactly '2rxsu95ym7wvmd6p1adhyytq')");
+            ).isInstanceOfSatisfying(
+                    UnsatisfiedVersionException.class, (ex) -> {
+                        assertThat(ex).hasMessage(
+                                "Requested version constraint 'exactly 'SHOULD_NOT_BE_SATISFIED'' can not be satisfied (actual version exactly '2rxsu95ym7wvmd6p1adhyytq')");
+                    });
+
         }
 
         @Test
@@ -2751,7 +2757,7 @@ class DatamodelApiImplTest {
             var allowAll = AuthorizationContext.allowAll();
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
-            assertThrows(LinkNotFoundException.class, () -> datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll));
+            assertThatThrownBy(() -> datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll)).isInstanceOf(LinkNotFoundException.class);
         }
 
         @Test
