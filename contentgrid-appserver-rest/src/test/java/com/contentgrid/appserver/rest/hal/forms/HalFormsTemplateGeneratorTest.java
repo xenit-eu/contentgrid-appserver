@@ -236,7 +236,6 @@ class HalFormsTemplateGeneratorTest {
                     assertThat(portrait.getName()).isEqualTo("portrait");
                     assertThat(portrait.getPrompt()).isEqualTo("portrait");
                     assertThat(portrait.isReadOnly()).isFalse();
-                    // A multi-value attribute can always be omitted (a missing value is the empty set)
                     assertThat(portrait.isRequired()).isFalse();
                     assertThat(portrait.getType()).isEqualTo(HtmlInputType.FILE_VALUE);
                 },

@@ -70,7 +70,6 @@ import com.contentgrid.appserver.contentstore.api.ContentAccessor;
 import com.contentgrid.appserver.contentstore.api.ContentReference;
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.api.UnwritableContentException;
-import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
