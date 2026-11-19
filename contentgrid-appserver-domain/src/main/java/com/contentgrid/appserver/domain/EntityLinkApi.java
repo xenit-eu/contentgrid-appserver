@@ -17,7 +17,7 @@ public interface EntityLinkApi {
             @NonNull AuthorizationContext authorizationContext
     );
 
-    StoredLinkValue updateLink(
+    Optional<StoredLinkValue> updateLink(
             @NonNull Application application,
             @NonNull LinkRequest linkRequest,
             @NonNull DataEntry value,

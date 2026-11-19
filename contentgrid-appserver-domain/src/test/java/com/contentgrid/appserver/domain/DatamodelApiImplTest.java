@@ -2196,9 +2196,14 @@ class DatamodelApiImplTest {
                 .build();
 
         private static CompositeAttributeData buildLinksAttribute(AttributeData... links) {
-            return CompositeAttributeData.builder()
+            if (links != null) {
+                return CompositeAttributeData.builder()
                     .name(LINKS_ATTRIBUTE.getName())
                     .attributes(Arrays.asList(links))
+                    .build();
+            }
+            return CompositeAttributeData.builder()
+                    .name(LINKS_ATTRIBUTE.getName())
                     .build();
         }
 
@@ -2212,13 +2217,20 @@ class DatamodelApiImplTest {
             return createDocumentData(id, Version.unspecified());
         }
 
+        private static EntityData createDocumentDataWithEmptyLinks(EntityId id) {
+            return new EntityData(
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id, Version.unspecified()),
+                    List.of(buildLinksAttribute(null))
+            );
+        }
+
         private static Version ftsVersion(EntityId id, String text) {
             return TextLinkVersion.calculate(EntityIdentity.forEntity(DOCUMENT.getName(), id), FTS_LINK.getIdentity(), text);
         }
 
-        private static EntityData createDocumentData(EntityId id, Version version) { // TODO ACC-3004 Check version here?
+        private static EntityData createDocumentData(EntityId id, Version entityVersion) {
             return new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), id),
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id, entityVersion),
                     List.of(buildLinksAttribute(
                             new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION),
                             PDF_COMPOSITE_ATTRIBUTE_DATA),
@@ -2271,6 +2283,12 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
                 var request = args.getArgument(1, EntityRequest.class);
                 return Optional.of(createDocumentData(request.getEntityId()));
+            });
+        }
+
+        private void setupDocumentLinksWithoutDataQuery() {
+            Mockito.when(queryEngine.findById(any(), any(), any())).then(args -> {
+                return Optional.of(createDocumentDataWithEmptyLinks(args.getArgument(1, EntityRequest.class).getEntityId()));
             });
         }
 
@@ -2434,6 +2452,34 @@ class DatamodelApiImplTest {
         }
 
         @Test
+        void findTextLink_withoutData_returnsEmptyOptional() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksWithoutDataQuery();
+
+            var result = datamodelApi.findLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    AuthorizationContext.allowAll()
+            );
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        void findContentLink_withoutData_returnsEmptyOptional() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksWithoutDataQuery();
+
+            var result = datamodelApi.findLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    AuthorizationContext.allowAll()
+            );
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
         void updateLink_throwsEntityIdNotFoundException() {
             assertThatThrownBy(
                     () -> {
@@ -2476,7 +2522,8 @@ class DatamodelApiImplTest {
                     new StringDataEntry(EXTRACTION), AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotNull()
+                    .isNotEmpty()
+                    .get()
                     .isInstanceOfSatisfying(TextValue.class, textValue -> {
                             assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
                         }
@@ -2531,7 +2578,8 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotNull()
+                    .isNotEmpty()
+                    .get()
                     .isInstanceOfSatisfying(TextValue.class, textValue -> {
                                 assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
                                 assertThat(textValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)).isFalse(); // Version must have been updated
@@ -2583,7 +2631,9 @@ class DatamodelApiImplTest {
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
 
-            assertThat(result).isNotNull()
+            assertThat(result)
+                    .isNotEmpty()
+                    .get()
                     .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
                         assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
                         assertThat(contentValue.getContent().getMimeType()).isEqualTo(contentType);
@@ -2644,7 +2694,8 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotNull()
+                    .isNotEmpty()
+                    .get()
                     .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
                         assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
                         assertThat(contentValue.getContent().getMimeType()).isEqualTo(contentType);

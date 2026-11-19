@@ -491,11 +491,11 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         return queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()))
                 .getNestedAttributeByPath(storage)
-                .map(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
+                .flatMap(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
                         linkRequest.getEntityName(), storage));
     }
 
-    private StoredLinkValue mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
+    private Optional<StoredLinkValue> mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
             @NonNull EntityName entityName, @NonNull AttributePath attributePath) {
         var attribute = application
                 .getPropertyPathResolver()
@@ -503,11 +503,11 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 .getAttribute();
         return switch (attribute) {
             case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
-                    new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified());
+                    Optional.of(new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified()));
             case ContentAttribute contentAttribute -> {
                 var contentStore = contentStoreResolver.resolve(application);
-                yield new ContentValue(
-                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData)));
+                yield Optional.of(new ContentValue(
+                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData))));
             }
             default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
              + " to a stored link value");
@@ -515,7 +515,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     }
 
     @Override
-    public StoredLinkValue updateLink(
+    public Optional<StoredLinkValue> updateLink(
             @NonNull Application application,
             @NonNull LinkRequest linkRequest,
             @NonNull DataEntry value,
