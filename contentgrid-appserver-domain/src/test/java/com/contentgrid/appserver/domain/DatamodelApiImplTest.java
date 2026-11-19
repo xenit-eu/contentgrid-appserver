@@ -2474,19 +2474,19 @@ class DatamodelApiImplTest {
             var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
                     new StringDataEntry(EXTRACTION), AuthorizationContext.allowAll());
-            assertThat(result).isNotNull()
-                    .isInstanceOf(TextValue.class)
-                    .asInstanceOf(instanceOfAssertFactory(TextValue.class))
-                    .satisfies(textValue -> {
-                        assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
-                            }
+
+            assertThat(result)
+                    .isNotNull()
+                    .isInstanceOfSatisfying(TextValue.class, textValue -> {
+                            assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
+                        }
                     );
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
-                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
-                    SimpleAttributeData.class))
+                            PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                            SimpleAttributeData.class))
                     .hasValueSatisfying(
                             simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo(EXTRACTION));
         }
@@ -2502,18 +2502,18 @@ class DatamodelApiImplTest {
             var updateResultEntityData = new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), entityId), // TODO ACC-3004 version?
                     List.of(buildLinksAttribute(
-                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"),
-                            PDF_COMPOSITE_ATTRIBUTE_DATA
+                                new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"),
+                                PDF_COMPOSITE_ATTRIBUTE_DATA
                             ),
-                    SimpleAttributeData.builder().name(DOCUMENT_CATEGORY.getName()).build(),
-                    CompositeAttributeData.builder().name(DOCUMENT_ATTACHMENT.getName())
-                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getId().getName(),
-                                    "pdf-content-id"))
-                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getFilename().getName(),
-                                    "invoice.pdf"))
-                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getMimetype().getName(),
-                                    "application/pdf"))
-                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getLength().getName(), 1L))
+                            SimpleAttributeData.builder().name(DOCUMENT_CATEGORY.getName()).build(),
+                            CompositeAttributeData.builder().name(DOCUMENT_ATTACHMENT.getName())
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getId().getName(),
+                                            "pdf-content-id"))
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getFilename().getName(),
+                                            "invoice.pdf"))
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getMimetype().getName(),
+                                            "application/pdf"))
+                                    .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getLength().getName(), 1L))
                             .build()));
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
@@ -2529,11 +2529,10 @@ class DatamodelApiImplTest {
                             mustMatchVersionConstraint),
                     new StringDataEntry("UPDATED_TEXT"),
                     AuthorizationContext.allowAll());
+
             assertThat(result)
                     .isNotNull()
-                    .isInstanceOf(TextValue.class)
-                    .asInstanceOf(instanceOfAssertFactory(TextValue.class))
-                    .satisfies(textValue -> {
+                    .isInstanceOfSatisfying(TextValue.class, textValue -> {
                                 assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
                                 assertThat(textValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)).isFalse(); // Version must have been updated
                             }
@@ -2542,8 +2541,8 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
-                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
-                    SimpleAttributeData.class))
+                            PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                            SimpleAttributeData.class))
                     .hasValueSatisfying(
                             simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo("UPDATED_TEXT"));
         }
@@ -2583,33 +2582,27 @@ class DatamodelApiImplTest {
                             PDF_RENDITION_LINK.getIdentity()),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
+
             assertThat(result).isNotNull()
-                    .isInstanceOf(ContentValue.class)
-                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
-                    .satisfies(contentValue -> {
-                        var content = contentValue.getContent();
-                        assertThat(content.getDescription()).isEqualTo(
-                                "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
-                        assertThat(content.getMimeType()).isEqualTo(contentType);
-                        assertThat(content.getFilename()).isEqualTo(fileName);
-                        assertThat(content.getLength()).isEqualTo(150);
-                        assertThat(content.getVersion()).isNotNull();
+                    .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                        assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
+                        assertThat(contentValue.getContent().getMimeType()).isEqualTo(contentType);
+                        assertThat(contentValue.getContent().getFilename()).isEqualTo(fileName);
+                        assertThat(contentValue.getContent().getLength()).isEqualTo(150);
+                        assertThat(contentValue.getVersion()).isNotNull();
                     });
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
-            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links"))).isNotEmpty()
+            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
+                    .isNotEmpty()
                     .get()
-                    .isInstanceOf(CompositeAttributeData.class)
-                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
-                    .satisfies(attributeData -> {
+                    .isInstanceOfSatisfying(CompositeAttributeData.class, attributeData -> {
                         assertThat(attributeData).isNotNull();
-                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf")))
+                                .isNotEmpty()
                                 .get()
-                                .isInstanceOf(CompositeAttributeData.class)
-                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
-                                        Assertions::assertThat))
-                                .satisfies(pdfAttribute ->
+                                .isInstanceOfSatisfying(CompositeAttributeData.class, pdfAttribute ->
                                         assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
                                                 new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
                                                         fileId),
@@ -2649,24 +2642,22 @@ class DatamodelApiImplTest {
                             ),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
+
             assertThat(result)
                     .isNotNull()
-                    .isInstanceOf(ContentValue.class)
-                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
-                    .satisfies(contentValue -> {
-                        var content = contentValue.getContent();
-                        assertThat(content.getDescription()).isEqualTo(
-                                "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
-                        assertThat(content.getMimeType()).isEqualTo(contentType);
-                        assertThat(content.getFilename()).isEqualTo(fileName);
-                        assertThat(content.getLength()).isEqualTo(150);
-                        assertThat(content.getVersion()).isNotNull();
-                        assertThat(content.getVersion().isSatisfiedBy(mustMatchVersionConstraint)).isFalse(); // Version must have been updated
+                    .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                        assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
+                        assertThat(contentValue.getContent().getMimeType()).isEqualTo(contentType);
+                        assertThat(contentValue.getContent().getFilename()).isEqualTo(fileName);
+                        assertThat(contentValue.getContent().getLength()).isEqualTo(150);
+                        assertThat(contentValue.getContent().getVersion()).isNotNull();
+                        assertThat(contentValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)).isFalse(); // Version must have been updated
                     });
 
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
-            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links"))).isNotEmpty()
+            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
+                    .isNotEmpty()
                     .get()
                     .isInstanceOf(CompositeAttributeData.class)
                     .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
@@ -2775,8 +2766,8 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
-                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
-                    SimpleAttributeData.class))
+                            PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                            SimpleAttributeData.class))
                     .hasValueSatisfying(
                             simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isNull());
         }
@@ -2797,8 +2788,8 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
-                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("pdf")),
-                    CompositeAttributeData.class))
+                            PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("pdf")),
+                            CompositeAttributeData.class))
                     .hasValueSatisfying(pdfAttribute ->
                             assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrderElementsOf(
                                     PDF_ATTRIBUTE.getAttributes().stream()
