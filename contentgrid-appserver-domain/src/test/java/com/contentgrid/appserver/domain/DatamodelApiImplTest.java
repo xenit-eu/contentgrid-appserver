@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -123,6 +124,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
@@ -157,6 +159,7 @@ import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -2135,8 +2138,9 @@ class DatamodelApiImplTest {
 
         // Stored Links
         private static final String EXTRACTION = "Invoice 2024-07, supplier Acme, total 15.95 EUR";
+        private static final NamedLink PDF_RENDITION_NAMEDLINK = new NamedLink(URI.create("https://links.example/rels/renditions/pdf"), "content");
         private static final StoredEntityLink PDF_RENDITION_LINK = StoredEntityLink.builder()
-                .identity(new NamedLink(URI.create("https://links.example/rels/renditions/pdf"), "content"))
+                .identity(PDF_RENDITION_NAMEDLINK)
                 .owner(ATTACHMENT_PATH)
                 .pathSegment(PathSegmentName.of(DOCUMENT_ATTACHMENT.getPathSegment().getValue()+"/_links/pdf"))
                 .storage(PDF_LINK_PATH)
@@ -2182,6 +2186,24 @@ class DatamodelApiImplTest {
                 .targetReference(ColumnName.of("author_id"))
                 .build();
 
+        private static final CompositeAttributeData PDF_COMPOSITE_ATTRIBUTE_DATA = CompositeAttributeData.builder()
+                .name(AttributeName.of("pdf"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                        "pdf-content-id"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                        "invoice.pdf"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                        "application/pdf"))
+                .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
+                .build();
+
+        private static CompositeAttributeData buildLinksAttribute(AttributeData... links) {
+            return CompositeAttributeData.builder()
+                    .name(LINKS_ATTRIBUTE.getName())
+                    .attributes(Arrays.asList(links))
+                    .build();
+        }
+
         private static final Application DOCUMENT_APPLICATION = Application.builder()
                 .name(ApplicationName.of("document-application"))
                 .entity(DOCUMENT)
@@ -2189,22 +2211,19 @@ class DatamodelApiImplTest {
                 .build();
 
         private static EntityData createDocumentData(EntityId id) {
+            return createDocumentData(id, Version.unspecified());
+        }
+
+        private static Version ftsVersion(EntityId id, String text) {
+            return TextLinkVersion.calculate(EntityIdentity.forEntity(DOCUMENT.getName(), id), FTS_LINK.getIdentity(), text);
+        }
+
+        private static EntityData createDocumentData(EntityId id, Version version) { // TODO ACC-3004 Check version here?
             return new EntityData(
                     EntityIdentity.forEntity(DOCUMENT.getName(), id),
-                    List.of(CompositeAttributeData.builder()
-                            .name(LINKS_ATTRIBUTE.getName())
-                            .attribute(new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION))
-                            .attribute(CompositeAttributeData.builder()
-                                    .name(PDF_ATTRIBUTE.getName())
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
-                                            "pdf-content-id"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
-                                            "invoice.pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
-                                            "application/pdf"))
-                                    .attribute(new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 1L))
-                                    .build())
-                            .build(),
+                    List.of(buildLinksAttribute(
+                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION),
+                            PDF_COMPOSITE_ATTRIBUTE_DATA),
                             SimpleAttributeData.builder().name(DOCUMENT_CATEGORY.getName()).build(),
                             CompositeAttributeData.builder().name(DOCUMENT_ATTACHMENT.getName())
                                     .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getId().getName(),
@@ -2240,8 +2259,13 @@ class DatamodelApiImplTest {
                 var request = args.getArgument(1, EntityRequest.class);
                 return Optional.of(new EntityData(
                         EntityIdentity.forEntity(request.getEntityName(), request.getEntityId()),
-                        List.of(new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), categoryValue))
-                ));
+                        List.of(
+                                new SimpleAttributeData<>(DOCUMENT_CATEGORY.getName(), categoryValue),
+                                CompositeAttributeData.builder()
+                                        .name(AttributeName.of("_links"))
+                                        .attribute(PDF_COMPOSITE_ATTRIBUTE_DATA)
+                                        .build())
+                                ));
             });
         }
 
@@ -2413,7 +2437,25 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void update_throwsLinkNotFound() {
+        void updateLink_throwsEntityIdNotFoundException() {
+            assertThrows(
+                    EntityIdNotFoundException.class,
+                    () -> {
+                        datamodelApi.updateLink(
+                                DOCUMENT_APPLICATION,
+                                LinkRequest.forLink(
+                                        DOCUMENT.getName(),
+                                        EntityId.of(UUID.randomUUID()),
+                                        FTS_LINK.getIdentity()),
+                                new StringDataEntry(EXTRACTION),
+                                AuthorizationContext.allowAll()
+                        );
+                    }
+            );
+        }
+
+        @Test
+        void updateLink_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
@@ -2424,7 +2466,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_storesTextData() throws InvalidPropertyDataException {
+        void updateLink_storesTextData_withoutVersionConstraint() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
@@ -2452,6 +2494,63 @@ class DatamodelApiImplTest {
         }
 
         @Test
+        @Disabled
+        void updateLink_storesTextData_withVersionConstraint() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
+            // The text link version is calculated from the link identity and the stored text, not the entity version
+            var mustMatchVersionConstraint = ftsVersion(entityId, EXTRACTION);
+            var entityData = createDocumentData(entityId);
+            var updateResultEntityData = new EntityData(
+                    EntityIdentity.forEntity(DOCUMENT.getName(), entityId), // TODO ACC-3004 version?
+                    List.of(buildLinksAttribute(
+                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"),
+                            PDF_COMPOSITE_ATTRIBUTE_DATA
+                            ),
+                    SimpleAttributeData.builder().name(DOCUMENT_CATEGORY.getName()).build(),
+                    CompositeAttributeData.builder().name(DOCUMENT_ATTACHMENT.getName())
+                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getId().getName(),
+                                    "pdf-content-id"))
+                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getFilename().getName(),
+                                    "invoice.pdf"))
+                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getMimetype().getName(),
+                                    "application/pdf"))
+                            .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getLength().getName(), 1L))
+                            .build()));
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, updateResultEntityData));
+            var result = datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(
+                            DOCUMENT.getName(),
+                            entityId,
+                            FTS_LINK.getIdentity(),
+                            mustMatchVersionConstraint),
+                    new StringDataEntry("UPDATED_TEXT"),
+                    AuthorizationContext.allowAll());
+            assertThat(result)
+                    .isNotNull()
+                    .isInstanceOf(TextValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(TextValue.class))
+                    .satisfies(textValue -> {
+                                assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
+                                assertFalse(textValue.getVersion().isSatisfiedBy(mustMatchVersionConstraint)); // Version must have been updated
+                            }
+                    );
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getNestedAttributeByPath(
+                    PropertyPath.toAttribute(AttributeName.of("_links"), AttributeName.of("fts")),
+                    SimpleAttributeData.class))
+                    .hasValueSatisfying(
+                            simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo("UPDATED_TEXT"));
+        }
+
+        @Test
         void updateLink_invalidDataEntry() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
@@ -2465,7 +2564,8 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void updateLink_storesContentData() throws UnwritableContentException, InvalidPropertyDataException {
+        void updateLink_storesContentData_withoutVersionConstraint()
+                throws UnwritableContentException, InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
@@ -2477,8 +2577,12 @@ class DatamodelApiImplTest {
             var contentType = "application/pdf";
             Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
 
-            var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+            var result = datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(
+                            DOCUMENT.getName(),
+                            entityId,
+                            PDF_RENDITION_LINK.getIdentity()),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
             assertThat(result).isNotNull()
@@ -2519,6 +2623,125 @@ class DatamodelApiImplTest {
                                         )
                                 );
                     });
+        }
+
+        @Test
+        void updateLink_storesContentData_withVersionConstraint()
+                throws UnwritableContentException, InvalidPropertyDataException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var mustMatchVersionConstraint = Version.exactly("2rxsu95ym7wvmd6p1adhyytq"); // File ETAG
+            var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
+            Mockito.when(queryEngine.findById(any(), any(), any()))
+                    .thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+                    .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
+            var fileId = "my-file.bin";
+            var fileName = "invoice.pdf";
+            var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
+
+            var result = datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(
+                            DOCUMENT.getName(),
+                            entityId,
+                            PDF_RENDITION_LINK.getIdentity(),
+                            mustMatchVersionConstraint
+                            ),
+                    new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
+                    AuthorizationContext.allowAll());
+            assertThat(result)
+                    .isNotNull()
+                    .isInstanceOf(ContentValue.class)
+                    .asInstanceOf(instanceOfAssertFactory(ContentValue.class))
+                    .satisfies(contentValue -> {
+                        var content = contentValue.getContent();
+                        assertThat(content.getDescription()).isEqualTo(
+                                "ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
+                        assertThat(content.getMimeType()).isEqualTo(contentType);
+                        assertThat(content.getFilename()).isEqualTo(fileName);
+                        assertThat(content.getLength()).isEqualTo(150);
+                        assertThat(content.getVersion()).isNotNull();
+                        assertFalse(content.getVersion().isSatisfiedBy(mustMatchVersionConstraint)); // Version must have been updated
+                    });
+
+            assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
+            assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
+            assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links"))).isNotEmpty()
+                    .get()
+                    .isInstanceOf(CompositeAttributeData.class)
+                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
+                    .satisfies(attributeData -> {
+                        assertThat(attributeData).isNotNull();
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                                .get()
+                                .isInstanceOf(CompositeAttributeData.class)
+                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
+                                        Assertions::assertThat))
+                                .satisfies(pdfAttribute ->
+                                        assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
+                                                        fileId),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getFilename().getName(),
+                                                        fileName),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getMimetype().getName(),
+                                                        contentType),
+                                                new SimpleAttributeData<>(PDF_ATTRIBUTE.getLength().getName(), 150L)
+                                        )
+                                );
+                    });
+        }
+
+        @Test
+        @Disabled
+        void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+                    .thenReturn(Optional.of(entityData));
+            var ex = assertThrows(
+                    UnsatisfiedVersionException.class, () -> {
+                        datamodelApi.updateLink(
+                                DOCUMENT_APPLICATION,
+                                LinkRequest.forLink(
+                                        DOCUMENT.getName(),
+                                        entityId,
+                                        FTS_LINK.getIdentity(),
+                                        Version.exactly("SHOULD_NOT_BE_SATISFIED")),
+                                new StringDataEntry(EXTRACTION),
+                                AuthorizationContext.allowAll()
+                        );
+                    }
+            );
+            assertThat(ex).hasMessage("Requested version constraint 'exactly 'SHOULD_NOT_BE_SATISFIED'' can not be satisfied (actual version %s)".formatted(ftsVersion(entityId, EXTRACTION)));
+        }
+
+        @Test
+        @Disabled
+        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any()))
+                    .thenReturn(Optional.of(entityData));
+            var fileName = "invoice.pdf";
+            var contentType = "application/pdf";
+            var ex = assertThrows(
+                    UnsatisfiedVersionException.class, () -> {
+                        datamodelApi.updateLink(
+                                DOCUMENT_APPLICATION,
+                                LinkRequest.forLink(
+                                        DOCUMENT.getName(),
+                                        entityId,
+                                        PDF_RENDITION_LINK.getIdentity(),
+                                        Version.exactly("SHOULD_NOT_BE_SATISFIED")),
+                                new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
+                                AuthorizationContext.allowAll()
+                        );
+                    }
+            );
+            assertThat(ex).hasMessage("Requested version constraint 'exactly 'SHOULD_NOT_BE_SATISFIED'' can not be satisfied (actual version exactly '2rxsu95ym7wvmd6p1adhyytq')");
         }
 
         @Test
