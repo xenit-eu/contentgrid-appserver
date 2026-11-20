@@ -25,8 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -108,9 +106,7 @@ import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
-import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -157,11 +153,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.InstanceOfAssertFactory;
-import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -2553,7 +2545,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_storesTextData_withVersionConstraint() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
@@ -2724,16 +2715,11 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
                     .isNotEmpty()
                     .get()
-                    .isInstanceOf(CompositeAttributeData.class)
-                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
-                    .satisfies(attributeData -> {
+                    .isInstanceOfSatisfying(CompositeAttributeData.class, attributeData -> {
                         assertThat(attributeData).isNotNull();
                         assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
                                 .get()
-                                .isInstanceOf(CompositeAttributeData.class)
-                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
-                                        Assertions::assertThat))
-                                .satisfies(pdfAttribute ->
+                                .isInstanceOfSatisfying(CompositeAttributeData.class, pdfAttribute ->
                                         assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
                                                 new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
                                                         fileId),
@@ -2748,7 +2734,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
@@ -2763,7 +2748,7 @@ class DatamodelApiImplTest {
                                         entityId,
                                         FTS_LINK.getIdentity(),
                                         Version.exactly("SHOULD_NOT_BE_SATISFIED")),
-                                new StringDataEntry(EXTRACTION),
+                                new StringDataEntry("NEW DATA"),
                                 AuthorizationContext.allowAll()
                         );
                     }
@@ -2777,7 +2762,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
@@ -2898,9 +2882,5 @@ class DatamodelApiImplTest {
             ).isInstanceOf(EntityIdNotFoundException.class);
 
         }
-    }
-
-    private static <T> InstanceOfAssertFactory<T, ObjectAssert<T>> instanceOfAssertFactory(Class<T> instanceClass) {
-        return new InstanceOfAssertFactory<>(instanceClass, Assertions::assertThat);
     }
 }
