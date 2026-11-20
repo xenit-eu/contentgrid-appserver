@@ -11,7 +11,7 @@ import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.converter.UriListHttpMessageConverter.URIList;
 import com.contentgrid.appserver.rest.exception.EmptyRelationException;

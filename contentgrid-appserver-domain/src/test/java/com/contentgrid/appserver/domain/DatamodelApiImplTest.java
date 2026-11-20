@@ -25,6 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,7 +107,10 @@ import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.version.ExactlyVersion;
 import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
@@ -121,8 +126,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
@@ -205,6 +209,11 @@ class DatamodelApiImplTest {
         @Override
         public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
             return createEntityLink(entityIdentity) + "/" + relationName.getValue();
+        }
+
+        @Override
+        public String createStoredDataLinkLink(EntityIdentity entityIdentity, LinkIdentity linkIdentity) {
+            return createEntityLink(entityIdentity) + "/attachment/_links/pdf";
         }
     };
 
@@ -2144,6 +2153,11 @@ class DatamodelApiImplTest {
                 .storage(PDF_LINK_PATH)
                 .fallbackTemplate(automationTemplate("my-automation", "api", "/rendition?document=%{owner.link}"))
                 .build();
+        private static final EntityLinkData PDF_ENTITY_LINK = new EntityLinkData(
+                PDF_RENDITION_NAMEDLINK,
+                null,
+                "https://automation.example/my-automation/rendition?document=http://localhost/document/efaee931-bd01-4a25-a3c3-7eb96327e553/attachment"
+        );
         private static final StoredEntityLink FTS_LINK = StoredEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fts"))
                 .owner(ATTACHMENT_PATH)
@@ -2343,8 +2357,7 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             PDF_RENDITION_LINK.getIdentity(),
                             null,
-                            "https://automation.example/my-automation/rendition?document=" + encodedUriProviderLink(
-                                    entityId, "/attachment")
+                            "http://localhost/document/"+ entityId.getValue() + "/attachment/_links/pdf" // TODO check for correctness
                     )
             );
         }
@@ -2509,6 +2522,7 @@ class DatamodelApiImplTest {
             ).isInstanceOf(LinkNotFoundException.class);
         }
 
+        // TODO ACC-3004 check Version of input matches
         @Test
         void updateLink_storesTextData_withoutVersionConstraint() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
@@ -2764,13 +2778,15 @@ class DatamodelApiImplTest {
 
         @Test
         @Disabled
-        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() {
+        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
+            var fileId = "my-file.bin";
             var fileName = "invoice.pdf";
             var contentType = "application/pdf";
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
