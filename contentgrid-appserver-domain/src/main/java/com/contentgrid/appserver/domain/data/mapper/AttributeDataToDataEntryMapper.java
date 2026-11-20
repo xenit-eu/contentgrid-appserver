@@ -73,6 +73,9 @@ public class AttributeDataToDataEntryMapper implements
     private MapDataEntry mapCompositeAttribute(CompositeAttribute compositeAttribute, CompositeAttributeData data) {
         var map = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(compositeAttribute.getAttributes().size());
         for (var attribute : compositeAttribute.getAttributes()) {
+            if (attribute.isIgnored()) {
+                continue;
+            }
             var value = mapAttribute(attribute, data.getAttributeByName(attribute.getName()));
             map.put(attribute.getName().getValue(), value);
         }

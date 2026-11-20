@@ -16,6 +16,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Ty
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.CreatorFlag;
+import com.contentgrid.appserver.application.model.attributes.flags.IgnoredFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifiedDateFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ModifierFlag;
 import com.contentgrid.appserver.application.model.attributes.flags.ReadOnlyFlag;
@@ -26,8 +27,8 @@ import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkE
 import com.contentgrid.appserver.application.model.exceptions.InvalidSearchFilterException;
 import com.contentgrid.appserver.application.model.exceptions.RelationNotFoundException;
 import com.contentgrid.appserver.application.model.exceptions.SearchFilterNotFoundException;
-import com.contentgrid.appserver.application.model.links.EntityLink;
 import com.contentgrid.appserver.application.model.links.LinkIdentity.UnnamedLink;
+import com.contentgrid.appserver.application.model.links.PlainEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.SimpleUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.relations.ManyToManyRelation;
@@ -57,6 +58,7 @@ import com.contentgrid.appserver.application.model.values.SchemaName;
 import com.contentgrid.appserver.application.model.values.TableName;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -690,9 +692,39 @@ class ApplicationTest {
                                 .flag(CreatedDateFlag.INSTANCE)
                                 .build())
                         .build())
-                .link(EntityLink.builder()
+                .attribute(CompositeAttributeImpl.builder()
+                        .name(AttributeName.of("attachments"))
+                        .attribute(ContentAttribute.builder()
+                                .name(AttributeName.of("hidden_content"))
+                                .idColumn(ColumnName.of("attachments__hidden_content__id"))
+                                .filenameColumn(ColumnName.of("attachments__hidden_content__filename"))
+                                .mimetypeColumn(ColumnName.of("attachments__hidden_content__mimetype"))
+                                .lengthColumn(ColumnName.of("attachments__hidden_content__length"))
+                                .flag(IgnoredFlag.INSTANCE)
+                                .build())
+                        .build())
+                .attribute(ContentAttribute.builder()
+                        .name(AttributeName.of("document"))
+                        .pathSegment(PathSegmentName.of("document"))
+                        .linkName(LinkName.of("document"))
+                        .idColumn(ColumnName.of("document__id"))
+                        .filenameColumn(ColumnName.of("document__filename"))
+                        .mimetypeColumn(ColumnName.of("document__mimetype"))
+                        .lengthColumn(ColumnName.of("document__length"))
+                        .build())
+                .attribute(ContentAttribute.builder()
+                        .name(AttributeName.of("pdf"))
+                        .idColumn(ColumnName.of("pdf__id"))
+                        .filenameColumn(ColumnName.of("pdf__filename"))
+                        .mimetypeColumn(ColumnName.of("pdf__mimetype"))
+                        .lengthColumn(ColumnName.of("pdf__length"))
+                        .flag(IgnoredFlag.INSTANCE)
+                        .build())
+                .link(PlainEntityLink.builder()
                         .identity(new UnnamedLink(URI.create("https://example.com/rels/lookup")))
-                        .owner(PropertyPath.toAttribute(AttributeName.of(owner)))
+                        .owner(PropertyPath.toAttribute(Arrays.stream(owner.split("\\."))
+                                .map(AttributeName::of)
+                                .toArray(AttributeName[]::new)))
                         .fallbackTemplate(new SimpleUriTemplateDefinition(
                                 new ParameterizedUriTemplateParser<>(EnumSet.allOf(EntityLinkSubstitutionVariables.class))
                                         .parseUnchecked(template)))
@@ -701,7 +733,8 @@ class ApplicationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"vat", "tags", "owner", "auditing"})
+    @ValueSource(strings = {"vat", "tags", "owner", "auditing", "attachments", "document", "pdf",
+            "attachments.hidden_content"})
     void application_ownedLinkWithOwnerName(String owner) {
         var entity = entityWithOwnedLink(owner, "https://example.com/lookup/%{owner.name}");
 
@@ -714,7 +747,8 @@ class ApplicationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"tags", "owner", "auditing"})
+    @ValueSource(strings = {"tags", "owner", "auditing", "attachments", "document", "pdf",
+            "attachments.hidden_content"})
     void application_ownedLinkWithOwnerValueOnNonSimpleAttribute(String owner) {
         var entity = entityWithOwnedLink(owner, "https://example.com/lookup/%{owner.value}");
 
@@ -737,6 +771,31 @@ class ApplicationTest {
                     .entity(entity)
                     .build();
         });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"attachments", "pdf", "attachments.hidden_content"})
+    void application_ownedLinkWithOwnerLinkOnNonExposedContentAttribute(String owner) {
+        var entity = entityWithOwnedLink(owner, "https://example.com/lookup?src=%{owner.link}");
+
+        assertThrows(InvalidEntityLinkException.class, () -> {
+            Application.builder()
+                    .name(ApplicationName.of("test-app"))
+                    .entity(entity)
+                    .build();
+        });
+    }
+
+    @Test
+    void application_ownedLinkWithOwnerLinkOnExposedContentAttribute() {
+        var entity = entityWithOwnedLink("document", "https://example.com/lookup?src=%{owner.link}");
+
+        var application = Application.builder()
+                .name(ApplicationName.of("test-app"))
+                .entity(entity)
+                .build();
+
+        assertThat(application.getRequiredEntityByName(EntityName.of("test")).getLinks()).hasSize(1);
     }
 
     @Test
