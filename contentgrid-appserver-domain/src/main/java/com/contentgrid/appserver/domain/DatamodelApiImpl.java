@@ -645,13 +645,16 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName,
                         entityLink.getIdentity(), storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
-                    return Optional.of(
-                            new EntityLinkData(
-                                    entityLink.getIdentity(),
-                                    entityLink.getProfile().orElse(null),
-                                    linkUriProvider.createStoredDataLinkLink(entityData.getIdentity(), entityLink.getIdentity())
-                            )
-                    );
+                    if (!(maybeStoredLinkValue.get() instanceof ContentValue contentValue) || contentValue.getContent().getLength() > 0) {
+                        return Optional.of(
+                                new EntityLinkData(
+                                        entityLink.getIdentity(),
+                                        entityLink.getProfile().orElse(null),
+                                        linkUriProvider.createStoredDataLinkLink(entityData.getIdentity(), entityLink.getIdentity())
+                                )
+                        );
+                    }
+
                 }
             }
 
