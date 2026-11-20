@@ -2424,7 +2424,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void findLink_returnsText() {
+        void findLink_withAnyVersionConstraint_returnsText() {
             var entityId = EntityId.of(UUID.randomUUID());
             setupDocumentLinksQuery();
 
@@ -2433,7 +2433,20 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
+        }
+
+        @Test
+        void findLink_withVersionConstraint_returnsText() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksQuery();
+
+            var result = datamodelApi.findLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    AuthorizationContext.allowAll());
+
+            assertThat(result).isNotEmpty().get()
+                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2547,12 +2560,11 @@ class DatamodelApiImplTest {
         @Test
         void updateLink_storesTextData_withVersionConstraint() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             // The text link version is calculated from the link identity and the stored text, not the entity version
             var mustMatchVersionConstraint = ftsVersion(entityId, EXTRACTION);
             var entityData = createDocumentData(entityId);
             var updateResultEntityData = new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), entityId), // TODO ACC-3004 version?
+                    EntityIdentity.forEntity(DOCUMENT.getName(), entityId),
                     List.of(buildLinksAttribute(
                                 new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"),
                                 PDF_COMPOSITE_ATTRIBUTE_DATA
@@ -2568,7 +2580,7 @@ class DatamodelApiImplTest {
                                     .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getLength().getName(), 1L))
                             .build()));
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
             Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, updateResultEntityData));
@@ -2736,9 +2748,8 @@ class DatamodelApiImplTest {
         @Test
         void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var entityData = createDocumentData(entityId);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
@@ -2767,10 +2778,8 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
-            var fileId = "my-file.bin";
             var fileName = "invoice.pdf";
             var contentType = "application/pdf";
-            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,

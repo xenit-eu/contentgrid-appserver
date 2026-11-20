@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
@@ -64,6 +65,7 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -484,7 +486,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
     }
 
     @Override
-    public Optional<StoredLinkValue> findLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+    public Optional<StoredLinkValue> findLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
             @NonNull AuthorizationContext authorizationContext) {
         var storage = application.getRequiredEntityByName(linkRequest.getEntityName())
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
@@ -493,45 +497,54 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
         var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
+        var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(),
+                linkRequest.getLinkIdentity(), storage);
+        return maybeStoredLinkValue.flatMap( storedLinkValue -> {
+            if (!linkRequest.getVersionConstraint().isSatisfiedBy(storedLinkValue.getVersion())) {
+                throw new UnsatisfiedVersionException(storedLinkValue.getVersion(), linkRequest.getVersionConstraint());
+            }
+            return Optional.of(storedLinkValue);
+        });
     }
 
     private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
             @NonNull EntityData entityData,
             @NonNull Application application,
             @NonNull EntityName entityName,
+            @NonNull LinkIdentity linkIdentity,
             @NonNull AttributePath attributePath) {
-        var attributeData = entityData.getNestedAttributeByPath(attributePath);
-        if (attributeData.isPresent()) {
-            var attribute = application
-                    .getPropertyPathResolver()
-                    .resolveAttribute(entityName, attributePath)
-                    .getAttribute();
-            return switch (attribute) {
-                case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
-                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() != null) {
-                        yield Optional.of(
-                                new TextValue(
-                                        (String) ((SimpleAttributeData<?>) attributeData.get()).getValue(),
-                                        entityData.getIdentity().getVersion()));
-                    }
-                    yield Optional.empty();
-                }
-                case ContentAttribute contentAttribute -> {
-                    var contentStore = contentStoreResolver.resolve(application);
-                    yield Optional.of(
-                            new ContentValue(
-                                    new AttributeDataContent(
-                                            contentStore,
-                                            contentAttribute,
-                                            ((CompositeAttributeData) attributeData.get()))));
-                }
-                default -> throw new ApplicationModelException(
-                        "Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
-                                + " to a stored link value");
-            };
-        }
-        return Optional.empty();
+        return entityData.getNestedAttributeByPath(attributePath)
+                .flatMap((attributeData) -> {
+                    var attribute = application
+                            .getPropertyPathResolver()
+                            .resolveAttribute(entityName, attributePath)
+                            .getAttribute();
+                    return switch (attribute) {
+                        case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
+                            if (((SimpleAttributeData<?>) attributeData).getValue() != null) {
+                                String text = (String) ((SimpleAttributeData<?>) attributeData).getValue();
+                                yield Optional.of(
+                                        new TextValue(
+                                                text,
+                                                TextLinkVersion.calculate(entityData.getIdentity(), linkIdentity,
+                                                        text)));
+                            }
+                            yield Optional.empty();
+                        }
+                        case ContentAttribute contentAttribute -> {
+                            var contentStore = contentStoreResolver.resolve(application);
+                            yield Optional.of(
+                                    new ContentValue(
+                                            new AttributeDataContent(
+                                                    contentStore,
+                                                    contentAttribute,
+                                                    ((CompositeAttributeData) attributeData))));
+                        }
+                        default -> throw new ApplicationModelException(
+                                "Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
+                                        + " to a stored link value");
+                    };
+                });
     }
 
     @Override
@@ -544,34 +557,37 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var existingEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
         var existingEntityInstance =  findById(application, existingEntityRequest, authorizationContext)
                 .orElseThrow(() -> new EntityIdNotFoundException(existingEntityRequest));
+        var existingEntityInstanceIdentity = existingEntityInstance.getIdentity();
         var targetEntity = application.getRequiredEntityByName(linkRequest.getEntityName());
-        var storage = targetEntity
+        var targetLink = targetEntity
                 .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
-                .orElseThrow(() -> new LinkNotFoundException(linkRequest))
-                .getStorage();
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest));
         var inputMapper = createInputDataMapper(
                 application,
                 targetEntity.getName(),
-                AttributeAndRelationMapper.from(new SingleDataEntryToDataEntryMapper(storage), (r, i) -> Optional.empty() ),
+                AttributeAndRelationMapper.from(new SingleDataEntryToDataEntryMapper(targetLink.getStorage()), (r, i) -> Optional.empty() ),
                 // Like updatePartial for entities, missing fields are ommited so they are not updated
                 FilterDataEntryMapper.omitMissing(),
                 new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock)));
+        var existingEntityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
+        var maybeStoredLinkValue = mapAttributeDataToStoredValue(existingEntityData, application, linkRequest.getEntityName(),
+                linkRequest.getLinkIdentity(), targetLink.getStorage());
 
-        var entityIdentity = existingEntityInstance.getIdentity();
 
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
-            throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(maybeStoredLinkValue.map((StoredLinkValue::getVersion)).orElse(Version.unspecified()))) {
+            throw new UnsatisfiedVersionException(maybeStoredLinkValue.map((StoredLinkValue::getVersion)).orElse(Version.unspecified()), linkRequest.getVersionConstraint());
         }
 
         var entityData = new EntityData(
-                EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
+                existingEntityInstanceIdentity,
                 inputMapper.mapAttributes(value));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
-        var updatedEntityData = updateResult
-                .getUpdated();
-        return mapAttributeDataToStoredValue(updatedEntityData, application, linkRequest.getEntityName(), storage);
+        var updatedEntityData = updateResult.getUpdated();
+        return mapAttributeDataToStoredValue(updatedEntityData, application, linkRequest.getEntityName(),
+                linkRequest.getLinkIdentity(), targetLink.getStorage());
     }
 
     @RequiredArgsConstructor
@@ -628,7 +644,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
             // If this is a StoredEntityLink, linkUriProvider will render the appropriate href. early return
             if (entityLink instanceof StoredEntityLink storedEntityLink) {
-                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
+                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName,
+                        entityLink.getIdentity(), storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
                     return Optional.of(
                             new EntityLinkData(
