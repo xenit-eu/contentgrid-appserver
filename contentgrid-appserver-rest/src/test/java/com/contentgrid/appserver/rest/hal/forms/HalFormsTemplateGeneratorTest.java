@@ -232,13 +232,6 @@ class HalFormsTemplateGeneratorTest {
                         assertThat(options.getMaxItems()).isEqualTo(MultivalueAttribute.MAX_ELEMENTS);
                     });
                 },
-                portrait -> {
-                    assertThat(portrait.getName()).isEqualTo("portrait");
-                    assertThat(portrait.getPrompt()).isEqualTo("portrait");
-                    assertThat(portrait.isReadOnly()).isFalse();
-                    assertThat(portrait.isRequired()).isFalse();
-                    assertThat(portrait.getType()).isEqualTo(HtmlInputType.FILE_VALUE);
-                },
                 invoices -> {
                     assertThat(invoices.getName()).isEqualTo("invoices");
                     assertThat(invoices.isReadOnly()).isFalse();
@@ -285,7 +278,9 @@ class HalFormsTemplateGeneratorTest {
                     });
                 }
         );
-        assertThat(template.getContentType()).isEqualTo(MediaType.MULTIPART_FORM_DATA_VALUE);
+
+        // No File input; use JSON for mediatype
+        assertThat(template.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test

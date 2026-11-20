@@ -11,14 +11,20 @@ import lombok.NonNull;
  * Exception thrown when no entity matching the given id was found in the database.
  */
 @Getter
-public class EntityIdNotFoundException extends RuntimeException { //TODO ACC-3004 change to checked exception
+public class EntityIdNotFoundException extends RuntimeException { //TODO ACC-2447
     @NonNull
     private final EntityName entityName;
     @NonNull
     private final EntityId id;
 
     public EntityIdNotFoundException(@NonNull EntityName entityName, @NonNull EntityId entityId) {
-        super("No entity '%s' found with id '%s'".formatted(entityName, entityId));
+        super();
+        this.entityName = entityName;
+        this.id = entityId;
+    }
+
+    public EntityIdNotFoundException(@NonNull EntityName entityName, @NonNull EntityId entityId, @NonNull Throwable cause) {
+        super(cause);
         this.entityName = entityName;
         this.id = entityId;
     }

@@ -8,6 +8,7 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
 import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.LinkIdentity;
 import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
@@ -18,6 +19,7 @@ import com.contentgrid.appserver.application.model.propertypath.SimpleAttributeP
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.NullValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
@@ -64,6 +66,7 @@ import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
@@ -273,7 +276,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             @NonNull EntityName entityName,
             @NonNull RequestInputData requestData,
             @NonNull AuthorizationContext authorizationContext
-    ) throws QueryEngineException, InvalidPropertyDataException {
+    ) throws InvalidPropertyDataException {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
@@ -493,13 +496,14 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
         var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), storage);
+        return mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     private Optional<StoredLinkValue> mapAttributeDataToStoredValue(
             @NonNull EntityData entityData,
             @NonNull Application application,
             @NonNull EntityName entityName,
+            @NonNull LinkIdentity linkIdentity,
             @NonNull AttributePath attributePath) {
         var attributeData = entityData.getNestedAttributeByPath(attributePath);
         if (attributeData.isPresent()) {
@@ -509,13 +513,14 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                     .getAttribute();
             return switch (attribute) {
                 case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT -> {
-                    if (((SimpleAttributeData<?>) attributeData.get()).getValue() != null) {
-                        yield Optional.of(
-                                new TextValue(
-                                        (String) ((SimpleAttributeData<?>) attributeData.get()).getValue(),
-                                        entityData.getIdentity().getVersion()));
+                    String text = ((SimpleAttributeData<String>) attributeData.get()).getValue();
+                    if (text == null) {
+                        yield Optional.of(new NullValue());
                     }
-                    yield Optional.empty();
+                    yield Optional.of(
+                                new TextValue(
+                                        text,
+                                        TextLinkVersion.calculate(entityData.getIdentity(), linkIdentity, text)));
                 }
                 case ContentAttribute contentAttribute -> {
                     var contentStore = contentStoreResolver.resolve(application);
@@ -562,6 +567,15 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         if (!linkRequest.getVersionConstraint().isSatisfiedBy(entityIdentity.getVersion())) {
             throw new UnsatisfiedVersionException(entityIdentity.getVersion(), linkRequest.getVersionConstraint());
         }
+        // An empty link has no value, and therefore no version
+            //TODO ACC-3004 clean up
+        var linkVersion = mapAttributeDataToStoredValue(queryEngine.findById(application, existingEntityRequest, authorizationContext.predicate()).orElseThrow(), application, linkRequest.getEntityName(), storage)
+                .map(StoredLinkValue::getVersion)
+                .orElse(Version.nonExisting());
+
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(linkVersion)) {
+            throw new UnsatisfiedVersionException(linkVersion, linkRequest.getVersionConstraint());
+        }
 
         var entityData = new EntityData(
                 EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
@@ -571,7 +585,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
         var updatedEntityData = updateResult
                 .getUpdated();
-        return mapAttributeDataToStoredValue(updatedEntityData, application, linkRequest.getEntityName(), storage);
+        return mapAttributeDataToStoredValue(updatedEntityData, application, linkRequest.getEntityName(), linkRequest.getLinkIdentity(), storage);
     }
 
     @RequiredArgsConstructor
@@ -628,7 +642,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
             // If this is a StoredEntityLink, linkUriProvider will render the appropriate href. early return
             if (entityLink instanceof StoredEntityLink storedEntityLink) {
-                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getStorage());
+                var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName, storedEntityLink.getIdentity(), storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
                     return Optional.of(
                             new EntityLinkData(

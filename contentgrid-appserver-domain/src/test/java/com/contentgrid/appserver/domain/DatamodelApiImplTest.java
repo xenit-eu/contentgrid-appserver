@@ -17,7 +17,6 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_AGE;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_GENDER;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_NAME;
-import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_PORTRAIT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_TAGS;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
@@ -161,7 +160,6 @@ import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactory;
 import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -746,14 +744,7 @@ class DatamodelApiImplTest {
                         new SimpleAttributeData<>(PERSON_VAT.getName(), "123456"),
                         new SimpleAttributeData<>(PERSON_AGE.getName(), null),
                         new SimpleAttributeData<>(PERSON_GENDER.getName(), null),
-                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of()),
-                        CompositeAttributeData.builder()
-                                .name(PERSON_PORTRAIT.getName())
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getId().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getFilename().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getMimetype().getName(), null))
-                                .attribute(new SimpleAttributeData<>(PERSON_PORTRAIT.getLength().getName(), null))
-                                .build()
+                        new SimpleAttributeData<>(PERSON_TAGS.getName(), List.of())
                 );
 
                 assertThat(createData.getRelations()).isEmpty();
@@ -2441,7 +2432,7 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2553,7 +2544,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_storesTextData_withVersionConstraint() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
@@ -2748,7 +2738,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
@@ -2777,7 +2766,6 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
