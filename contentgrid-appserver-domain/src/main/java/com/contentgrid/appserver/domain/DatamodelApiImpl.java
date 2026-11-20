@@ -3,7 +3,12 @@ package com.contentgrid.appserver.domain;
 import com.contentgrid.appserver.application.model.Application;
 import com.contentgrid.appserver.application.model.Entity;
 import com.contentgrid.appserver.application.model.attributes.Attribute;
+import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
+import com.contentgrid.appserver.application.model.attributes.SimpleAttribute.Type;
+import com.contentgrid.appserver.application.model.exceptions.ApplicationModelException;
 import com.contentgrid.appserver.application.model.links.EntityLink;
+import com.contentgrid.appserver.application.model.links.StoredEntityLink;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.AutomationUriTemplateDefinition;
 import com.contentgrid.appserver.application.model.links.UriTemplateDefinition.EntityLinkSubstitutionVariables;
 import com.contentgrid.appserver.application.model.propertypath.AttributePath;
@@ -11,7 +16,10 @@ import com.contentgrid.appserver.application.model.propertypath.InvalidPropertyP
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleRelationPath;
 import com.contentgrid.appserver.application.model.values.EntityName;
+import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
+import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
+import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.EntityInstance;
@@ -31,6 +39,7 @@ import com.contentgrid.appserver.domain.data.mapper.FilterDataEntryMapper;
 import com.contentgrid.appserver.domain.data.mapper.OptionalFlatMapAdaptingMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataMapper;
 import com.contentgrid.appserver.domain.data.mapper.RequestInputDataToDataEntryMapper;
+import com.contentgrid.appserver.domain.data.mapper.SingleDataEntryToDataEntryMapper;
 import com.contentgrid.appserver.domain.data.validation.AllowedValuesConstraintValidator;
 import com.contentgrid.appserver.domain.data.validation.AttributeValidationDataMapper;
 import com.contentgrid.appserver.domain.data.validation.ContentAttributeModificationValidator;
@@ -45,14 +54,16 @@ import com.contentgrid.appserver.domain.paging.ResultSlice;
 import com.contentgrid.appserver.domain.paging.cursor.CursorCodec;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorPagination;
 import com.contentgrid.appserver.domain.paging.cursor.EncodedCursorSupport;
-import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.ItemCount;
+import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import com.contentgrid.appserver.domain.values.RelationRequest;
-import com.contentgrid.appserver.exception.InvalidSortParameterException;
+import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.version.Version;
+import com.contentgrid.appserver.exception.InvalidSortParameterException.InvalidSortParameterNameException;
 import com.contentgrid.appserver.query.engine.api.CreateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.DeleteEventConsumer;
 import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
@@ -60,9 +71,11 @@ import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
+import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
+import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
@@ -90,7 +103,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @Slf4j
-public class DatamodelApiImpl implements DatamodelApi {
+public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
     private final QueryEngine queryEngine;
     private final ContentStoreResolver contentStoreResolver;
@@ -100,16 +113,16 @@ public class DatamodelApiImpl implements DatamodelApi {
     private final CursorCodec cursorCodec;
     private final Clock clock;
 
-    private RequestInputDataMapper createInputDataMapper(
+    private <T> RequestInputDataMapper<T> createInputDataMapper(
             @NonNull Application application,
             @NonNull EntityName entityName,
+            @NonNull AttributeAndRelationMapper<T, Optional<DataEntry>, T, Optional<DataEntry>> inputMapper,
             @NonNull AttributeAndRelationMapper<DataEntry, Optional<DataEntry>, DataEntry, Optional<DataEntry>> mapper,
             @NonNull AttributeMapper<Optional<DataEntry>, Optional<DataEntry>> auditMapper
     ) {
         var entity = application.getRequiredEntityByName(entityName);
         var relations = application.getRelationsForSourceEntity(entity);
 
-        var inputMapper = AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper());
         var queryEngineMapper = new OptionalFlatMapAdaptingMapper<>(AttributeAndRelationMapper.from(new DataEntryToQueryEngineMapper()));
         var contentStore = contentStoreResolver.resolve(application);
 
@@ -144,7 +157,7 @@ public class DatamodelApiImpl implements DatamodelApi {
                 .andThen(constraintValidatingMapper)
                 .andThen(queryEngineMapper);
 
-        return new RequestInputDataMapper(
+        return new RequestInputDataMapper<>(
                 entity.getAttributes(),
                 relations,
                 combinedMapper,
@@ -216,7 +229,7 @@ public class DatamodelApiImpl implements DatamodelApi {
     private void validateSortData(Entity entity, SortData sortData) {
         for (FieldSort field : sortData.getSortedFields()) {
             var name = field.getName();
-            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterException.InvalidSortParameterNameException(entity.getName(), name));
+            entity.getSortableFieldByName(name).orElseThrow(() -> new InvalidSortParameterNameException(entity.getName(), name));
         }
     }
 
@@ -261,6 +274,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var inputMapper = createInputDataMapper(
                 application,
                 entityName,
+                AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper()),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -307,6 +321,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
+                AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper()),
                 // All missing fields are regarded as null
                 FilterDataEntryMapper.missingAsNull()
                         // Validate that content attribute is not partially set
@@ -346,6 +361,7 @@ public class DatamodelApiImpl implements DatamodelApi {
         var inputMapper = createInputDataMapper(
                 application,
                 existingEntity.getIdentity().getEntityName(),
+                AttributeAndRelationMapper.from(new RequestInputDataToDataEntryMapper()),
                 // Missing fields are omitted, so they are not updated
                 FilterDataEntryMapper.omitMissing()
                         // Validate that content attribute is not partially set
@@ -464,6 +480,76 @@ public class DatamodelApiImpl implements DatamodelApi {
         );
     }
 
+    @Override
+    public Optional<StoredLinkValue> findLink(@NonNull Application application, @NonNull LinkRequest linkRequest,
+            @NonNull AuthorizationContext authorizationContext) {
+        var storage = application.getRequiredEntityByName(linkRequest.getEntityName())
+                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest))
+                .getStorage();
+
+        return queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+                .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()))
+                .getNestedAttributeByPath(storage)
+                .flatMap(attributeData -> mapAttributeDataToStoredValue(attributeData, application,
+                        linkRequest.getEntityName(), storage));
+    }
+
+    private Optional<StoredLinkValue> mapAttributeDataToStoredValue(@NonNull AttributeData attributeData, @NonNull Application application,
+            @NonNull EntityName entityName, @NonNull AttributePath attributePath) {
+        var attribute = application
+                .getPropertyPathResolver()
+                .resolveAttribute(entityName, attributePath)
+                .getAttribute();
+        return switch (attribute) {
+            case SimpleAttribute simpleAttribute when simpleAttribute.getType() == Type.TEXT ->
+                    Optional.of(new TextValue((String) ((SimpleAttributeData<?>) attributeData).getValue(), Version.unspecified()));
+            case ContentAttribute contentAttribute -> {
+                var contentStore = contentStoreResolver.resolve(application);
+                yield Optional.of(new ContentValue(
+                        new AttributeDataContent(contentStore, contentAttribute, ((CompositeAttributeData) attributeData))));
+            }
+            default -> throw new ApplicationModelException("Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
+             + " to a stored link value");
+        };
+    }
+
+    @Override
+    public Optional<StoredLinkValue> updateLink(
+            @NonNull Application application,
+            @NonNull LinkRequest linkRequest,
+            @NonNull DataEntry value,
+            @NonNull AuthorizationContext authorizationContext
+    ) throws InvalidPropertyDataException {
+        var existingEntityRequest = EntityRequest.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId());
+        var existingEntityInstance =  findById(application, existingEntityRequest, authorizationContext)
+                .orElseThrow(() -> new EntityIdNotFoundException(existingEntityRequest));
+        var targetEntity = application.getRequiredEntityByName(linkRequest.getEntityName());
+        var storage = targetEntity
+                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest))
+                .getStorage();
+        var inputMapper = createInputDataMapper(
+                application,
+                targetEntity.getName(),
+                AttributeAndRelationMapper.from(new SingleDataEntryToDataEntryMapper(storage), (r, i) -> Optional.empty() ),
+                // Like updatePartial for entities, missing fields are ommited so they are not updated
+                FilterDataEntryMapper.omitMissing(),
+                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock)));
+
+        var entityData = new EntityData(
+                EntityIdentity.forEntity(linkRequest.getEntityName(), linkRequest.getEntityId()),
+                inputMapper.mapAttributes(value));
+        UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
+
+        var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+        var attributeData = updateResult
+                .getUpdated()
+                .getNestedAttributeByPath(storage)
+                .orElseThrow();
+        return mapAttributeDataToStoredValue(attributeData, application, linkRequest.getEntityName(), storage);
+    }
+
     @RequiredArgsConstructor
     private static class ResponseOutputDataMapper {
         private final List<Attribute> attributes;
@@ -516,7 +602,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                 // Whether the owner has data stored
                 var ownerHasData = entityLink.getOwner().map(owner -> {
                     try {
-                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue() != null;
+                        return entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                SimpleAttributeData.class).orElseThrow().getValue() != null;
                     } catch (InvalidPropertyPathException e) {
                         throw new IllegalStateException(e);
                     }
@@ -535,7 +622,8 @@ public class DatamodelApiImpl implements DatamodelApi {
                     case OWNER_NAME -> entityLink.getOwner().map(Objects::toString).orElseThrow();
                     case OWNER_VALUE -> entityLink.getOwner().map(owner -> {
                         try {
-                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class)).orElseThrow().getValue(), null);
+                            return Objects.toString(entityData.getNestedAttributeByPath(owner.as(AttributePath.class),
+                                    SimpleAttributeData.class).orElseThrow().getValue(), null);
                         } catch (InvalidPropertyPathException e) {
                             throw new IllegalStateException(e);
                         }

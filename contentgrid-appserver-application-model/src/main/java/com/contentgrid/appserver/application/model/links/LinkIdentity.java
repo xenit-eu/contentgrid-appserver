@@ -7,7 +7,7 @@ import lombok.NonNull;
 public sealed interface LinkIdentity extends Serializable {
     URI rel();
 
-    record UnnamedLink(@NonNull URI rel) implements LinkIdentity {
+    record UnnamedLink(@NonNull URI rel) implements LinkIdentity, Serializable {
 
         @Override
         public String toString() {
@@ -15,7 +15,7 @@ public sealed interface LinkIdentity extends Serializable {
         }
     }
 
-    record NamedLink(@NonNull URI rel, @NonNull String name) implements LinkIdentity {
+    record NamedLink(@NonNull URI rel, @NonNull String name) implements LinkIdentity, Serializable {
 
         public NamedLink {
             if (name.isBlank()) {

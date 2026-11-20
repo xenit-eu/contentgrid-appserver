@@ -14,5 +14,4 @@ public sealed interface AttributePath extends CrossesAttribute, ResolvesToAttrib
     AttributePath getRest();
 
     AttributePath withSuffix(AttributeName attributeName);
-
 }

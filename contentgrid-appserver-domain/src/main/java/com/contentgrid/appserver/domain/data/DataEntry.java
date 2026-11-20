@@ -157,13 +157,13 @@ public sealed interface DataEntry permits AnyRelationDataEntry, FileDataEntry, P
 
         @NonNull
         @Singular
-        Map<String, PlainDataEntry> items;
+        Map<String, DataEntry> items;
 
         public boolean containsKey(String key) {
             return items.containsKey(key);
         }
 
-        public PlainDataEntry get(String key) {
+        public DataEntry get(String key) {
             return items.getOrDefault(key, MissingDataEntry.INSTANCE);
         }
 

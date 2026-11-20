@@ -8,7 +8,6 @@ import com.contentgrid.appserver.application.model.propertypath.AttributePath;
 import com.contentgrid.appserver.application.model.propertypath.SimpleAttributePath;
 import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import com.contentgrid.appserver.domain.data.InvalidDataException;
 import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.data.validation.ValidationExceptionCollector;
@@ -62,7 +61,7 @@ public abstract class AbstractDescendingAttributeMapper implements AttributeMapp
                 var entry = mapDataEntry.get(attribute.getName().getValue());
                 collector.use(() -> mapAttribute(path.withSuffix(attribute.getName()), attribute, entry)
                         .ifPresent(
-                                dataEntry -> builder.item(attribute.getName().getValue(), (PlainDataEntry) dataEntry)));
+                                dataEntry -> builder.item(attribute.getName().getValue(), dataEntry)));
             }
             collector.rethrow();
             return Optional.of(builder.build());

@@ -22,16 +22,16 @@ import lombok.RequiredArgsConstructor;
  * Validation errors are collected for all attributes and relations, and rethrown so all validation errors can be reported to the user at once
  */
 @RequiredArgsConstructor
-public class RequestInputDataMapper {
+public class RequestInputDataMapper<T> {
     private final List<Attribute> attributes;
     private final Set<Relation> relations;
 
-    private final AttributeMapper<RequestInputData, Optional<AttributeData>> attributeMapper;
+    private final AttributeMapper<T, Optional<AttributeData>> attributeMapper;
 
-    private final RelationMapper<RequestInputData, Optional<RelationData>> relationMapper;
+    private final RelationMapper<T, Optional<RelationData>> relationMapper;
 
 
-    public List<AttributeData> mapAttributes(RequestInputData requestInputData) throws InvalidPropertyDataException {
+    public List<AttributeData> mapAttributes(T requestInputData) throws InvalidPropertyDataException {
         var data = new ArrayList<AttributeData>(attributes.size());
         var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
         for (var attribute : attributes) {
@@ -42,7 +42,7 @@ public class RequestInputDataMapper {
         return data;
     }
 
-    public List<RelationData> mapRelations(RequestInputData requestInputData) throws InvalidPropertyDataException {
+    public List<RelationData> mapRelations(T requestInputData) throws InvalidPropertyDataException {
         var data = new ArrayList<RelationData>(relations.size());
         var exceptionCollector = new ValidationExceptionCollector<>(InvalidPropertyDataException.class);
         for (var relation : relations) {

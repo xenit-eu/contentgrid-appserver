@@ -6,7 +6,6 @@ import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MapDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.MissingDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
-import com.contentgrid.appserver.domain.data.DataEntry.PlainDataEntry;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 
@@ -31,7 +30,7 @@ public abstract class FilterDataEntryMapper implements AttributeAndRelationMappe
                 var builder = MapDataEntry.builder();
                 for (var entry : mapDataEntry.getItems().entrySet()) {
                     transformNested(entry.getValue())
-                            .ifPresent(newValue -> builder.item(entry.getKey(), (PlainDataEntry) newValue));
+                            .ifPresent(newValue -> builder.item(entry.getKey(),newValue));
                 }
                 yield Optional.of(builder.build());
             }
