@@ -624,7 +624,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             var linkData = new ArrayList<EntityLinkData>(links.size());
 
             for (var entityLink : links) {
-                createLink(application, entityName, entityData, entityLink)
+                createLink(entityData, entityLink)
                         .ifPresent(linkData::add);
             }
 
@@ -637,8 +637,6 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         }
 
         private Optional<EntityLinkData> createLink(
-                Application application,
-                EntityName entityName,
                 EntityData entityData,
                 EntityLink entityLink) {
 
