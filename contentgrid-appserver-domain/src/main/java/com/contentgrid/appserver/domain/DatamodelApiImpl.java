@@ -533,12 +533,14 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                         }
                         case ContentAttribute contentAttribute -> {
                             var contentStore = contentStoreResolver.resolve(application);
-                            yield Optional.of(
-                                    new ContentValue(
-                                            new AttributeDataContent(
-                                                    contentStore,
-                                                    contentAttribute,
-                                                    ((CompositeAttributeData) attributeData))));
+                            var content = new AttributeDataContent(
+                                    contentStore,
+                                    contentAttribute,
+                                    ((CompositeAttributeData) attributeData));
+                            if (content.getContentId().isPresent()) {
+                                yield Optional.of(new ContentValue(content));
+                            }
+                            yield Optional.empty();
                         }
                         default -> throw new ApplicationModelException(
                                 "Could not map attribute class: " + attribute.getClass() + " at path " + attributePath
@@ -576,8 +578,10 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 linkRequest.getLinkIdentity(), targetLink.getStorage());
 
 
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(maybeStoredLinkValue.map((StoredLinkValue::getVersion)).orElse(Version.unspecified()))) {
-            throw new UnsatisfiedVersionException(maybeStoredLinkValue.map((StoredLinkValue::getVersion)).orElse(Version.unspecified()), linkRequest.getVersionConstraint());
+        // No stored value means the link data does not exist yet
+        var currentVersion = maybeStoredLinkValue.map(StoredLinkValue::getVersion).orElse(Version.nonExisting());
+        if (!linkRequest.getVersionConstraint().isSatisfiedBy(currentVersion)) {
+            throw new UnsatisfiedVersionException(currentVersion, linkRequest.getVersionConstraint());
         }
 
         var entityData = new EntityData(
@@ -646,16 +650,13 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, entityName,
                         entityLink.getIdentity(), storedEntityLink.getStorage());
                 if (maybeStoredLinkValue.isPresent()) {
-                    if (!(maybeStoredLinkValue.get() instanceof ContentValue contentValue) || contentValue.getContent().getLength() > 0) {
-                        return Optional.of(
-                                new EntityLinkData(
-                                        entityLink.getIdentity(),
-                                        entityLink.getProfile().orElse(null),
-                                        linkUriProvider.createStoredDataLinkLink(entityData.getIdentity(), entityLink.getIdentity())
-                                )
-                        );
-                    }
-
+                    return Optional.of(
+                            new EntityLinkData(
+                                    entityLink.getIdentity(),
+                                    entityLink.getProfile().orElse(null),
+                                    linkUriProvider.createStoredDataLinkLink(entityData.getIdentity(), entityLink.getIdentity())
+                            )
+                    );
                 }
             }
 
