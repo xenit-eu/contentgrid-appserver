@@ -248,6 +248,32 @@ class DatamodelApiImplTest {
                 .build();
     }
 
+    private static final User AUDIT_USER = new User("00000000-0000-0000-0000-000000000000", "keycloak",
+            "alice@example.com");
+
+    private static boolean subValueMatches(AttributeData data, String subAttrName, Object value) {
+        if (data instanceof CompositeAttributeData composite) {
+            var sub = composite.getAttributeByName(AttributeName.of(subAttrName));
+            if (sub.isEmpty()) {
+                return false;
+            }
+            if (sub.get() instanceof SimpleAttributeData<?> simpData) {
+                return value.equals(simpData.getValue());
+            }
+        }
+        return false;
+    }
+
+    private static void assertOnlyLastModifiedUpdated(AttributeData data) {
+        assertThat(data.getName()).isEqualTo(INVOICE_AUDIT_METADATA.getName());
+        assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
+        assertThat(((CompositeAttributeData) data).getAttributes())
+                .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_by")))
+                .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_date")))
+                .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                        && subValueMatches(sub, "name", AUDIT_USER.getName()));
+    }
+
     @BeforeEach
     void setup() {
         datamodelApi = new DatamodelApiImpl(
@@ -880,18 +906,34 @@ class DatamodelApiImplTest {
             Mockito.verifyNoInteractions(contentStore);
         }
 
+        @Test
+        void auditMetadata_onCreateWithContent() throws InvalidPropertyDataException, UnwritableContentException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor("my-file-123.bin"));
 
-        private static boolean subValueMatches(AttributeData data, String subAttrName, Object value) {
-            if (data instanceof CompositeAttributeData composite) {
-                var sub = composite.getAttributeByName(AttributeName.of(subAttrName));
-                if (sub.isEmpty()) {
-                    return false;
-                }
-                if (sub.get() instanceof SimpleAttributeData<?> simpData) {
-                    return value.equals(simpData.getValue());
-                }
-            }
-            return false;
+            datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                    "number", "1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "customer", new RelationDataEntry(PERSON.getName(), personId),
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(110))
+            )), AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertThat(createDataCaptor.getValue().getAttributes())
+                    .anySatisfy(data -> {
+                        assertThat(data.getName()).isEqualTo(INVOICE_AUDIT_METADATA.getName());
+                        assertThat(subValueMatches(data, "created_date", Instant.now(clock))).isTrue();
+                        assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
+                        assertThat(((CompositeAttributeData) data).getAttributes())
+                                .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_by"))
+                                        && subValueMatches(sub, "name", AUDIT_USER.getName()))
+                                .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                                        && subValueMatches(sub, "name", AUDIT_USER.getName()));
+                    });
         }
 
         @ParameterizedTest
@@ -1682,6 +1724,28 @@ class DatamodelApiImplTest {
                     getAuditMetadataData(false)
             );
         }
+
+        @Test
+        void auditMetadata_onPartialUpdateWithContent() throws InvalidPropertyDataException, UnwritableContentException {
+            setupEntityQuery();
+
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor("my-file-123.bin"));
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
+                            "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(150))
+                    )), AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertThat(updateDataCaptor.getValue().getAttributes())
+                    .anySatisfy(DatamodelApiImplTest::assertOnlyLastModifiedUpdated);
+        }
     }
 
     @Nested
@@ -2166,6 +2230,7 @@ class DatamodelApiImplTest {
                 .attribute(DOCUMENT_CATEGORY)
                 .attribute(DOCUMENT_ATTACHMENT)
                 .attribute(LINKS_ATTRIBUTE)
+                .attribute(INVOICE_AUDIT_METADATA)
                 .link(CATEGORY_LINK)
                 .link(PREVIEW_LINK)
                 .link(ATTACHMENT_SCAN_LINK)
@@ -2610,6 +2675,60 @@ class DatamodelApiImplTest {
                             SimpleAttributeData.class))
                     .hasValueSatisfying(
                             simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo("UPDATED_TEXT"));
+        }
+
+        /**
+         * The link input mapper emits (empty) shells for every composite attribute; what matters is that no audit
+         * value (date or user field) is written.
+         */
+        private static void assertNoAuditValues(EntityData updateData) {
+            updateData.getAttributeByName(INVOICE_AUDIT_METADATA.getName())
+                    .ifPresent(audit -> assertThat(leafValues(audit)).isEmpty());
+        }
+
+        private static List<SimpleAttributeData<?>> leafValues(AttributeData data) {
+            return switch (data) {
+                case SimpleAttributeData<?> simple -> List.of(simple);
+                case CompositeAttributeData composite -> composite.getAttributes().stream()
+                        .flatMap(sub -> leafValues(sub).stream())
+                        .toList();
+                default -> List.of();
+            };
+        }
+
+        @Test
+        void updateLink_textData_doesNotUpdateAuditMetadata() throws InvalidPropertyDataException {
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    new StringDataEntry("UPDATED_TEXT"), AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertNoAuditValues(updateDataCaptor.getValue());
+        }
+
+        @Test
+        void updateLink_contentData_doesNotUpdateAuditMetadata()
+                throws UnwritableContentException, InvalidPropertyDataException {
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
+                    .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor("my-file.bin"));
+
+            datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    new FileDataEntry("invoice.pdf", "application/pdf", inputStreamWithSize(150)),
+                    AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertNoAuditValues(updateDataCaptor.getValue());
         }
 
         @Test

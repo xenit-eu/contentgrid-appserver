@@ -336,7 +336,9 @@ public class JOOQQueryEngine implements QueryEngine {
     }
 
     @Override
-    public UpdateResult update(@NonNull Application application, @NonNull EntityData data,
+    public UpdateResult update(
+            @NonNull Application application,
+            @NonNull EntityData data,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
             @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);

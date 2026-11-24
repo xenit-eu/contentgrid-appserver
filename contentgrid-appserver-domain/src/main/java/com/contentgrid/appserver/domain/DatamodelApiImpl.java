@@ -568,7 +568,8 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 AttributeAndRelationMapper.from(new SingleDataEntryToDataEntryMapper(targetLink.getStorage()), (r, i) -> Optional.empty() ),
                 // Like updatePartial for entities, missing fields are ommited so they are not updated
                 FilterDataEntryMapper.omitMissing(),
-                new AuditAttributeMapper(Mode.UPDATE, authorizationContext.user(), Instant.now(clock)));
+                // Updating a link must not modify the audit metadata of the entity
+                (attribute, input) -> input);
         var existingEntityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
         var maybeStoredLinkValue = mapAttributeDataToStoredValue(existingEntityData, application, linkRequest.getEntityName(),
