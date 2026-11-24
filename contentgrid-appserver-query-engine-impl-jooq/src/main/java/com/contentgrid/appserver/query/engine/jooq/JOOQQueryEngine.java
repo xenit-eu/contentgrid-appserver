@@ -31,9 +31,11 @@ import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdatePrecondition;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.RelationData;
@@ -340,6 +342,8 @@ public class JOOQQueryEngine implements QueryEngine {
             @NonNull Application application,
             @NonNull EntityData data,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull EntityEtagBehaviour entityEtagBehaviour,
+            @NonNull UpdatePrecondition precondition,
             @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
         var dslContext = resolver.resolve(application);
         var entity = application.getRequiredEntityByName(data.getName());
@@ -357,19 +361,55 @@ public class JOOQQueryEngine implements QueryEngine {
         var update = dslContext.update(table)
                 .set(updatedFields);
 
-        // Increment version
         var maybeVersionField = JOOQUtils.resolveVersionField(entity);
-        // Randomize the increase a bit, so it's clear for consumers that it is not a number or monotonically increasing field to be dependent on
-        // Instead, due to the large possibility of version increments, it will wrap around very soon and very often
-        var versionIncrement = secureRandom.nextLong(1, VERSION_MODULUS >> 1);
-        if(maybeVersionField.isPresent()) {
-            update = update.set(maybeVersionField.get(), maybeVersionField.get().plus(versionIncrement).modulo(VERSION_MODULUS));
+        var versionIncrement = switch (entityEtagBehaviour) {
+            // Randomize the increase a bit, so it's clear for consumers that it is not a number or monotonically increasing field to be dependent on
+            // Instead, due to the large possibility of version increments, it will wrap around very soon and very often
+            case ADVANCE -> secureRandom.nextLong(1, VERSION_MODULUS >> 1);
+            // Keep the etag as-is; the version check below still runs against the locked row
+            case PRESERVE -> 0L;
+        };
+        if (maybeVersionField.isPresent()) {
+            // For PRESERVE, this sets the version to itself: the etag is unchanged, but the UPDATE is always executed,
+            // so the row is locked and the current version is returned to check against the requested version
+            update = update.set(maybeVersionField.get(),
+                    maybeVersionField.get().plus(versionIncrement).modulo(VERSION_MODULUS));
         }
 
         try {
+            if (precondition != UpdatePrecondition.NONE) {
+                // Lock the row for the rest of the (caller's) transaction, so the precondition is evaluated against the
+                // state that this update will be applied to: concurrent writers of this entity wait until we commit.
+                // FOR NO KEY UPDATE (instead of FOR UPDATE) does not block inserts/updates of rows that reference
+                // this row with a foreign key, since we never change the primary key here.
+                //
+                // Cost of the precondition callback:
+                // - one extra SELECT round-trip, only paid when a precondition is given
+                // - the row lock is held from here until commit, including while the callback runs, so the callback
+                //   directly adds to the wait time of every concurrent writer of this entity. It must stay cheap and
+                //   must not do I/O (content store access, remote calls).
+                //
+                // Alternative on PostgreSQL 18+: `UPDATE ... RETURNING OLD.*, NEW.*` returns the pre-update values from
+                // the UPDATE statement itself (which holds the row lock). The precondition could then be checked on
+                // the OLD values after the UPDATE, throwing to roll back the savepoint (the same pattern as the etag
+                // check below), which saves this extra SELECT. That requires PostgreSQL 18 and jOOQ support for
+                // OLD/NEW in RETURNING, so we use the explicit lock for now.
+                dslContext.select(primaryKey)
+                        .from(table)
+                        .where(primaryKey.eq(id.getValue()))
+                        .forNoKeyUpdate()
+                        .fetchOptional()
+                        .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId()));
+            }
+
             // If previous value was not found with an update, the user does not have permission to update the object
             // so we act as if it does not exist at all
             var oldValue = getByIdRequired(application, data.getIdentity().toRequest(), permitUpdatePredicate);
+
+            // Row is locked (when a precondition is given), and nothing has been written yet:
+            // a failing check needs no rollback of this update
+            precondition.check(oldValue);
+
             var newValue = oldValue;
 
             if (update.isExecutable()) {
@@ -381,14 +421,14 @@ public class JOOQQueryEngine implements QueryEngine {
                         .map(result -> EntityDataMapper.from(entity, result))
                         .orElseThrow(() -> new EntityIdNotFoundException(entity.getName(), data.getId())));
 
-                // When the update is done properly, the value of the new version field will be one higher
-                // than the previous value, so restore it back to the previous value to check against the requested version
+                // The UPDATE holds the row lock and RETURNING gives the version it was applied on, plus the increment.
+                // Subtract the increment again (0 for PRESERVE) to get the version to check against the requested version
                 var previousVersion = previousVersion(newValue.getIdentity().getVersion(), versionIncrement);
 
                 // If the update was done, and it has violated the version requirement, throw an exception.
                 // Throwing the exception will both signal a failure, and will result in the transaction being rolled back,
                 // so the update will not actually be committed
-                if(!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
+                if (!data.getIdentity().getVersion().isSatisfiedBy(previousVersion)) {
                     throw new UnsatisfiedVersionException(
                             data.getIdentity().getVersion(),
                             previousVersion

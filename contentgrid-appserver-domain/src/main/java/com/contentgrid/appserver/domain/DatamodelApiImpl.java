@@ -73,10 +73,12 @@ import com.contentgrid.appserver.query.engine.api.LinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
+import com.contentgrid.appserver.query.engine.api.UpdatePrecondition;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -352,7 +354,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), EntityEtagBehaviour.ADVANCE, onUpdate);
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -392,7 +394,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         var outputMapper = createOutputDataMapper(application, existingEntity.getIdentity().getEntityName());
 
         UpdateEventConsumer onUpdate = new EventConsumerImpl(outputMapper);
-        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), onUpdate);
+        var updateData = queryEngine.update(application, entityData, authorizationContext.predicate(), EntityEtagBehaviour.ADVANCE, onUpdate);
 
         return outputMapper.mapAttributes(updateData.getUpdated());
     }
@@ -572,24 +574,42 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 FilterDataEntryMapper.omitMissing(),
                 // Updating a link must not modify the audit metadata of the entity
                 (attribute, input) -> input);
+        // Checks the version constraint of the request against the version of the stored link value.
+        // The link version is calculated from the stored data (see TextLinkVersion and ContentVersion), so it is
+        // checked on the entity data itself instead of on a version column.
+        //
+        // Cost: the query engine runs this check while it holds the row lock on the entity, so every concurrent writer
+        // of this entity waits for it. Keep it to in-memory work on the given entity data (hashing is fine);
+        // no content store access or other I/O.
+        UpdatePrecondition linkVersionCheck = current -> {
+            // No stored value means the link data does not exist yet
+            var currentVersion = mapAttributeDataToStoredValue(current, application, linkRequest.getEntityName(),
+                    linkRequest.getLinkIdentity(), targetLink.getStorage())
+                    .map(StoredLinkValue::getVersion)
+                    .orElse(Version.nonExisting());
+            if (!linkRequest.getVersionConstraint().isSatisfiedBy(currentVersion)) {
+                throw new UnsatisfiedVersionException(currentVersion, linkRequest.getVersionConstraint());
+            }
+        };
+
+        // Early rejection before mapping (and uploading) the new value. This read is not locked, so the same check is
+        // repeated by the query engine on the locked row to guard against concurrent writes of this link.
         var existingEntityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        var maybeStoredLinkValue = mapAttributeDataToStoredValue(existingEntityData, application, linkRequest.getEntityName(),
-                linkRequest.getLinkIdentity(), targetLink.getStorage());
-
-
-        // No stored value means the link data does not exist yet
-        var currentVersion = maybeStoredLinkValue.map(StoredLinkValue::getVersion).orElse(Version.nonExisting());
-        if (!linkRequest.getVersionConstraint().isSatisfiedBy(currentVersion)) {
-            throw new UnsatisfiedVersionException(currentVersion, linkRequest.getVersionConstraint());
-        }
+        linkVersionCheck.check(existingEntityData);
 
         var entityData = new EntityData(
                 existingEntityInstanceIdentity,
                 inputMapper.mapAttributes(value));
         UpdateEventConsumer noOpConsumer = (app, consumerEntityData, predicate) -> {};
 
-        var updateResult = queryEngine.update(application, entityData, authorizationContext.predicate(), noOpConsumer);
+        var updateResult = queryEngine.update(
+                application,
+                entityData,
+                authorizationContext.predicate(),
+                EntityEtagBehaviour.PRESERVE,
+                linkVersionCheck,
+                noOpConsumer);
         var updatedEntityData = updateResult.getUpdated();
         return mapAttributeDataToStoredValue(updatedEntityData, application, linkRequest.getEntityName(),
                 linkRequest.getLinkIdentity(), targetLink.getStorage());

@@ -8,6 +8,7 @@ import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.RelationRequest;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -81,9 +82,37 @@ public interface QueryEngine {
      * @return Result of the update, including old and new entity data objects
      * @throws QueryEngineException if an error occurs during the update operation
      */
-    UpdateResult update(@NonNull Application application, @NonNull EntityData data,
+    default UpdateResult update(
+            @NonNull Application application,
+            @NonNull EntityData data,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
-            @NonNull UpdateEventConsumer updateEventConsumer) throws QueryEngineException;
+            @NonNull EntityEtagBehaviour entityEtagBehaviour,
+            @NonNull UpdateEventConsumer updateEventConsumer
+    ) throws QueryEngineException {
+        return update(application, data, permitUpdatePredicate, entityEtagBehaviour, UpdatePrecondition.NONE,
+                updateEventConsumer);
+    }
+
+    /**
+     * Updates an entity with the given data, after checking a precondition on the current entity data.
+     *
+     * @param application the application context
+     * @param data the updated data for the entity, must include the entity's id
+     * @param permitUpdatePredicate predicate that has to pass for the entity to be allowed to be updated
+     * @param entityEtagBehaviour whether the entity etag is advanced or preserved by this update
+     * @param precondition check on the current entity data, evaluated while the entity is locked against concurrent
+     * writes; see {@link UpdatePrecondition} for the constraints on its implementation
+     * @return Result of the update, including old and new entity data objects
+     * @throws QueryEngineException if an error occurs during the update operation
+     */
+    UpdateResult update(
+            @NonNull Application application,
+            @NonNull EntityData data,
+            @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull EntityEtagBehaviour entityEtagBehaviour,
+            @NonNull UpdatePrecondition precondition,
+            @NonNull UpdateEventConsumer updateEventConsumer
+    ) throws QueryEngineException;
 
     /**
      * Deletes the entity that matches the given identity
