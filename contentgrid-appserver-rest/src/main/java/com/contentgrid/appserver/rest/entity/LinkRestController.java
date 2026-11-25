@@ -120,7 +120,7 @@ public class LinkRestController {
                 application,
                 linkRequest,
                 authorizationContext
-        ).orElseThrow(() -> new LinkNotFoundException(linkRequest));
+        ).orElse(new NullValue());
 
         if (versionValidator.checkVersion(webRequest, versionConstraint, targetLink.getVersion())) {
             return null;
