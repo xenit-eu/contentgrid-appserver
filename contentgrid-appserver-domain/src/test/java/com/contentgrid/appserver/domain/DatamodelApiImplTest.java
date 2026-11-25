@@ -2517,8 +2517,7 @@ class DatamodelApiImplTest {
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
                     AuthorizationContext.allowAll());
 
-            assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
+            assertThat(result).get().isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2530,8 +2529,7 @@ class DatamodelApiImplTest {
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
                     AuthorizationContext.allowAll());
 
-            assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
+            assertThat(result).get().isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2626,7 +2624,6 @@ class DatamodelApiImplTest {
                     new StringDataEntry(EXTRACTION), AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(TextValue.class, textValue -> {
                             assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
@@ -2677,7 +2674,6 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(TextValue.class, textValue -> {
                                 assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
@@ -2827,7 +2823,6 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
                         assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
@@ -2840,12 +2835,10 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(CompositeAttributeData.class, attributeData -> {
                         assertThat(attributeData).isNotNull();
                         assertThat(attributeData.getAttributeByName(AttributeName.of("pdf")))
-                                .isNotEmpty()
                                 .get()
                                 .isInstanceOfSatisfying(CompositeAttributeData.class, pdfAttribute ->
                                         assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
@@ -2885,7 +2878,6 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
                         assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
@@ -2899,11 +2891,10 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(CompositeAttributeData.class, attributeData -> {
                         assertThat(attributeData).isNotNull();
-                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf")))
                                 .get()
                                 .isInstanceOfSatisfying(CompositeAttributeData.class, pdfAttribute ->
                                         assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
