@@ -2500,6 +2500,7 @@ class DatamodelApiImplTest {
         @Test
         void findLink_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksQuery();
             assertThatThrownBy(() -> datamodelApi.findLink(
                     DOCUMENT_APPLICATION,
                     LinkRequest.forLink(DOCUMENT.getName(), entityId,

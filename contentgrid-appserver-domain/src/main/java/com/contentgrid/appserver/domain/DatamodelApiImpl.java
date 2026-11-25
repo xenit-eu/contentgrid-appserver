@@ -489,15 +489,13 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             @NonNull Application application,
             @NonNull LinkRequest linkRequest,
             @NonNull AuthorizationContext authorizationContext) {
-        var storage = application.getRequiredEntityByName(linkRequest.getEntityName())
-                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
-                .orElseThrow(() -> new LinkNotFoundException(linkRequest))
-                .getStorage();
-
-        var entityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+        var existingEntityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
-        var maybeStoredLinkValue = mapAttributeDataToStoredValue(entityData, application, linkRequest.getEntityName(),
-                linkRequest.getLinkIdentity(), storage);
+        var targetLink = application.getRequiredEntityByName(linkRequest.getEntityName())
+                .findLinkByIdentity(linkRequest.getLinkIdentity(), StoredEntityLink.class)
+                .orElseThrow(() -> new LinkNotFoundException(linkRequest));
+        var maybeStoredLinkValue = mapAttributeDataToStoredValue(existingEntityData, application, linkRequest.getEntityName(),
+                linkRequest.getLinkIdentity(), targetLink.getStorage());
         return maybeStoredLinkValue.flatMap( storedLinkValue -> {
             if (!linkRequest.getVersionConstraint().isSatisfiedBy(storedLinkValue.getVersion())) {
                 throw new UnsatisfiedVersionException(storedLinkValue.getVersion(), linkRequest.getVersionConstraint());
