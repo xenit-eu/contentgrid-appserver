@@ -1,6 +1,5 @@
 package com.contentgrid.appserver.domain.values.exception;
 
-import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.RelationIdentity;
 import lombok.Getter;
 import lombok.NonNull;
@@ -11,16 +10,15 @@ import lombok.NonNull;
  * This only occurs during linking a new item to a relation
  */
 @Getter
-public class RelationTargetNotFoundException extends EntityIdNotFoundException {
+public class RelationTargetNotFoundException extends RuntimeException {
     private final RelationIdentity relation;
 
-    public RelationTargetNotFoundException(@NonNull EntityIdentity entity, @NonNull RelationIdentity relation) {
-        super(entity.getEntityName(), entity.getEntityId());
+    public RelationTargetNotFoundException(@NonNull RelationIdentity relation) {
         this.relation = relation;
     }
 
     @Override
     public String getMessage() {
-        return "Can not link item to %s: %s".formatted(relation, super.getMessage());
+        return "Can not link item:\nRelationIdentity:%s".formatted(relation);
     }
 }

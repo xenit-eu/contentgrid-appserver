@@ -165,7 +165,7 @@ public class ProblemDetailsExceptionHandler {
     ResponseEntity<Problem> inputValidation(RelationTargetNotFoundException exception, LinkFactoryProvider linkFactoryProvider) {
         return createResponse(inputValidation(allExceptions(exception, RelationTargetNotFoundException.class)
                 .map(e -> {
-                    var identity = EntityIdentity.forEntity(e.getEntityName(), e.getId());
+                    var identity = EntityIdentity.forEntity(e.getRelation().getEntityName(), e.getRelation().getEntityId());
                     return problemFactory.createProblem(ProblemType.INPUT_VALIDATION_MISSING_RELATION_TARGET, identity)
                             .withStatus(HttpStatus.BAD_REQUEST)
                             .withProperties(Map.of(
