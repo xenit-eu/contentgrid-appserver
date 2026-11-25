@@ -27,6 +27,7 @@ import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.query.engine.api.TableCreator;
@@ -145,20 +146,20 @@ public class LinkRestControllerTest {
         return LinkRequest.forLink(PERSON.getName(), personId(personUrl), PERSON_SUMMARY_LINK.getIdentity());
     }
 
-    private StoredLinkValue seedSummary(String personUrl) {
+    private StoredLinkValue seedSummary(String personUrl) throws InvalidPropertyDataException {
         return datamodelApi.updateLink(
                 APPLICATION,
                 summaryLinkRequest(personUrl),
                 new StringDataEntry(new String(SUMMARY_BYTES, StandardCharsets.UTF_8)),
                 AuthorizationContext.allowAll()
-        );
+        ).orElseThrow();
     }
 
     private Optional<StoredLinkValue> findSummary(String personUrl) {
         return datamodelApi.findLink(APPLICATION, summaryLinkRequest(personUrl), AuthorizationContext.allowAll());
     }
 
-    private StoredLinkValue seedPortrait(String personUrl) {
+    private StoredLinkValue seedPortrait(String personUrl) throws InvalidPropertyDataException {
         return datamodelApi.updateLink(
                 APPLICATION,
                 portraitLinkRequest(personUrl),
@@ -167,7 +168,7 @@ public class LinkRestControllerTest {
                         PORTRAIT_CONTENT_FILE.getContentType(),
                         () -> new ByteArrayInputStream(PORTRAIT_CONTENT_BYTES)),
                 AuthorizationContext.allowAll()
-        );
+        ).orElseThrow();
     }
 
     private Content findPortrait(String personUrl) {

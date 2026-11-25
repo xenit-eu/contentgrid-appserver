@@ -16,6 +16,7 @@ import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.FileDataEntry.InputStreamSupplier;
 import com.contentgrid.appserver.domain.data.DataEntry.NullDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.StringDataEntry;
+import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.LinkRequest;
@@ -113,12 +114,8 @@ public class LinkRestController {
             ) {
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
-        var linkRequest = LinkRequest.forLink(
-                entity.getName(),
-                entityId,
-                storedLink.getIdentity(),
-                versionConstraint
-        ) ;
+        var linkRequest = LinkRequest.forLink(entity.getName(), entityId, storedLink.getIdentity())
+                .withVersionConstraint(versionConstraint);
         var targetLink = datamodelApi.findLink(
                 application,
                 linkRequest,
@@ -136,8 +133,9 @@ public class LinkRestController {
             case ContentValue contentValue -> {
                 var content = contentValue.getContent();
                 if (content.getMimeType() == null) {
-                    throw new ContentNotFoundException(EntityIdentity.forEntity(entity.getName(), entityId),
-                            storedLink.getStorage().getLast());
+                    throw new ContentNotFoundException(
+                            EntityIdentity.forEntity(entity.getName(), entityId),
+                            storedLink.getStorage().getFirst());
                 }
 
                 var disposition = ContentDisposition.attachment();
@@ -157,7 +155,7 @@ public class LinkRestController {
             case NullValue nullValue -> {
                 throw new ContentNotFoundException(
                         EntityIdentity.forEntity(entity.getName(), entityId),
-                        storedLink.getStorage().getLast());
+                        storedLink.getStorage().getFirst());
             }
         };
     }
@@ -173,29 +171,22 @@ public class LinkRestController {
             @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
             @RequestBody(required = false) String requestBody,
             AuthorizationContext authorizationContext
-    ) throws ForbiddenRequestHeaderException {
+    ) throws ForbiddenRequestHeaderException, InvalidPropertyDataException {
         if (StringUtils.hasText(contentRange)) {
             // Partial PUT is not supported
             throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
         }
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
-        var linkRequest = LinkRequest.forLink(
-                entity.getName(),
-                entityId,
-                storedLink.getIdentity(),
-                versionConstraint
-        );
-        // TODO ACC-3319
-        var newValue = datamodelApi.updateLink(
+        var linkRequest = LinkRequest.forLink(entity.getName(), entityId, storedLink.getIdentity()).withVersionConstraint(versionConstraint);
+        var maybeNewValue = datamodelApi.updateLink(
                 application,
                 linkRequest,
                 requestBody != null ? new StringDataEntry(requestBody) : NullDataEntry.INSTANCE,
                 authorizationContext
         );
-        return ResponseEntity.noContent()
-                .eTag(versionValidator.calculateETag(newValue.getVersion()))
-                .build();
+        return maybeNewValue.map((newValue) -> ResponseEntity.noContent().eTag(versionValidator.calculateETag(newValue.getVersion())).build())
+                .orElse(ResponseEntity.noContent().build());
     }
 
     @SpecializedOnLinkType(type = StoredLinkType.CONTENT, entityPathVariable = "entityName", linkPathVariable = "*linkPath")
@@ -211,19 +202,15 @@ public class LinkRestController {
             @RequestHeader(value = HttpHeaders.CONTENT_RANGE, required = false) String contentRange,
             @RequestBody(required = false) InputStreamResource requestBody,
             AuthorizationContext authorizationContext
-    ) throws ForbiddenRequestHeaderException {
+    ) throws ForbiddenRequestHeaderException, InvalidPropertyDataException {
         if (StringUtils.hasText(contentRange)) {
             // Partial PUT is not supported
             throw new ForbiddenRequestHeaderException(HttpHeaders.CONTENT_RANGE);
         }
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
-        var linkRequest = LinkRequest.forLink(
-                entity.getName(),
-                entityId,
-                storedLink.getIdentity(),
-                versionConstraint
-        );
+        var linkRequest = LinkRequest.forLink(entity.getName(), entityId, storedLink.getIdentity())
+                .withVersionConstraint(versionConstraint);
 
         String filename = null;
         if (contentDisposition != null) {
@@ -234,16 +221,14 @@ public class LinkRestController {
             }
         }
         InputStreamSupplier inputStreamSupplier = requestBody != null ? requestBody::getInputStream : InputStream::nullInputStream;
-        // TODO ACC-3319
-        var newValue = datamodelApi.updateLink(
+        var maybeNewValue = datamodelApi.updateLink(
                 application,
                 linkRequest,
                 new FileDataEntry(filename, contentType.toString(), inputStreamSupplier),
                 authorizationContext
         );
-        return ResponseEntity.noContent()
-                .eTag(versionValidator.calculateETag(newValue.getVersion()))
-                .build();
+        return maybeNewValue.map((newValue) -> ResponseEntity.noContent().eTag(versionValidator.calculateETag(newValue.getVersion())).build())
+                .orElse(ResponseEntity.noContent().build());
     }
 
     @DeleteMapping("/{entityName}/{entityId}/{*linkPath}")
@@ -254,28 +239,19 @@ public class LinkRestController {
             @PathVariable PathSegmentName linkPath,
             VersionConstraint versionConstraint,
             AuthorizationContext authorizationContext
-    ) {
+    ) throws InvalidPropertyDataException {
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
-        var linkRequest = LinkRequest.forLink(
-                entity.getName(),
-                entityId,
-                storedLink.getIdentity(),
-                versionConstraint
-        ) ;
-        // TODO ACC-3319
-        datamodelApi.deleteLink(
-                application,
-                linkRequest,
-                authorizationContext
-        );
+        var linkRequest = LinkRequest.forLink(entity.getName(), entityId, storedLink.getIdentity())
+                .withVersionConstraint(versionConstraint);
+        datamodelApi.deleteLink(application, linkRequest, authorizationContext);
         return ResponseEntity.noContent().build();
     }
 
     private StoredEntityLink getStoredLinkOrThrow(@NonNull Entity entity, @NonNull PathSegmentName linkPath) {
         // Spring includes the leading slash in the value of a multi-segment parameter
         var strippedLinkPath = PathSegmentName.of(linkPath.getValue().substring(1));
-        return entity.getStoredEntityLinkByPathSegments(strippedLinkPath)
+        return entity.getStoredEntityLinkByPathSegment(strippedLinkPath)
                 .orElseThrow(InvalidEntityLinkException::new);
     }
 }
