@@ -2292,7 +2292,7 @@ class DatamodelApiImplTest {
 
         private static EntityData createDocumentDataWithEmptyLinks(EntityId id) {
             return new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), id, Version.unspecified()),
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id).withVersion(Version.unspecified()),
                     List.of(buildLinksAttribute(null))
             );
         }
@@ -2303,7 +2303,7 @@ class DatamodelApiImplTest {
 
         private static EntityData createDocumentData(EntityId id, Version entityVersion) {
             return new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), id, entityVersion),
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id).withVersion(entityVersion),
                     List.of(buildLinksAttribute(
                             new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION),
                             PDF_COMPOSITE_ATTRIBUTE_DATA),
