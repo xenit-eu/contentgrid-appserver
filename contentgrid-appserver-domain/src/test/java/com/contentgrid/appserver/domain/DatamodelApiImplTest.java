@@ -2124,11 +2124,16 @@ class DatamodelApiImplTest {
         private static final SimpleAttributePath ATTACHMENT_PATH = new SimpleAttributePath(
                 DOCUMENT_ATTACHMENT.getName());
 
+        private static final SimpleAttribute FALLBACK_ATTRIBUTE = SimpleAttribute.builder()
+                .name(AttributeName.of("fallbackTemplate"))
+                .column(ColumnName.of("_links__text_fallback"))
+                .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
         private static final AttributeName FTS = AttributeName.of("fts");
         private static final SimpleAttribute FTS_ATTRIBUTE = SimpleAttribute.builder()
                 .name(FTS)
                 .column(ColumnName.of("_links__text__content"))
-                .flag(IgnoredFlag.INSTANCE)
                 .type(Type.TEXT)
                 .flag(IgnoredFlag.INSTANCE)
                 .build();
@@ -2142,7 +2147,7 @@ class DatamodelApiImplTest {
                 .build();
         private static final CompositeAttribute LINKS_ATTRIBUTE = CompositeAttributeImpl.builder()
                 .name(AttributeName.of("_links"))
-                .attributes(Set.of(FTS_ATTRIBUTE, PDF_ATTRIBUTE))
+                .attributes(Set.of(FTS_ATTRIBUTE, PDF_ATTRIBUTE, FALLBACK_ATTRIBUTE))
                 .flag(IgnoredFlag.INSTANCE)
                 .build();
 
@@ -2150,6 +2155,9 @@ class DatamodelApiImplTest {
                 LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(FTS_ATTRIBUTE.getName()));
         private static final CompositeAttributePath PDF_LINK_PATH = new CompositeAttributePath(
                 LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(PDF_ATTRIBUTE.getName()));
+        private static final CompositeAttributePath FALLBACK_LINK_PATH = new CompositeAttributePath(
+                LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(FALLBACK_ATTRIBUTE.getName())
+        );
 
         // Uses all entity substitution variables and the owner value of an attribute
         private static final PlainEntityLink CATEGORY_LINK = PlainEntityLink.builder()
@@ -2211,16 +2219,18 @@ class DatamodelApiImplTest {
                 .storage(PDF_LINK_PATH)
                 .fallbackTemplate(automationTemplate("my-automation", "api", "/rendition?document=%{owner.link}"))
                 .build();
-        private static final EntityLinkData PDF_ENTITY_LINK = new EntityLinkData(
-                PDF_RENDITION_NAMEDLINK,
-                null,
-                "https://automation.example/my-automation/rendition?document=http://localhost/document/efaee931-bd01-4a25-a3c3-7eb96327e553/attachment"
-        );
         private static final StoredEntityLink FTS_LINK = StoredEntityLink.builder()
                 .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fts"))
                 .owner(ATTACHMENT_PATH)
                 .pathSegment(PathSegmentName.of(DOCUMENT_ATTACHMENT.getPathSegment().getValue()+"/_links/fts"))
                 .storage(FTS_LINK_PATH)
+                .build();
+        private static final StoredEntityLink SHOULD_FALLBACKTEMPLATE_LINK = StoredEntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fallbackTemplate"))
+                .pathSegment(PathSegmentName.of(DOCUMENT_ATTACHMENT.getPathSegment().getValue()+"_links/fallbackTempmlate"))
+                .owner(ATTACHMENT_PATH)
+                .storage(FALLBACK_LINK_PATH)
+                .fallbackTemplate(automationTemplate("my-automation", "api", "/fallback?ownerName=%{owner.name}"))
                 .build();
 
         private static final Entity DOCUMENT = Entity.builder()
@@ -2242,6 +2252,7 @@ class DatamodelApiImplTest {
                 .link(UNKNOWN_BASE_PATH_LINK)
                 .link(PDF_RENDITION_LINK)
                 .link(FTS_LINK)
+                .link(SHOULD_FALLBACKTEMPLATE_LINK)
                 .build();
 
         private static final ManyToOneRelation DOCUMENT_AUTHOR = ManyToOneRelation.builder()
@@ -2416,7 +2427,12 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             PDF_RENDITION_LINK.getIdentity(),
                             null,
-                            "http://localhost/document/"+ entityId.getValue() + "/attachment/_links/pdf" // TODO check for correctness
+                            "http://localhost/document/"+ entityId.getValue() + "/attachment/_links/pdf"
+                    ),
+                    new EntityLinkData(
+                            SHOULD_FALLBACKTEMPLATE_LINK.getIdentity(),
+                            null,
+                            "https://automation.example/my-automation/fallback?ownerName=attachment"
                     )
             );
         }
@@ -2439,7 +2455,8 @@ class DatamodelApiImplTest {
                             ATTACHMENT_SCAN_LINK.getIdentity(),
                             AUTHOR_LINK.getIdentity(),
                             AUTOMATION_LINK.getIdentity(),
-                            PDF_RENDITION_LINK.getIdentity()
+                            PDF_RENDITION_LINK.getIdentity(),
+                            SHOULD_FALLBACKTEMPLATE_LINK.getIdentity()
                     );
         }
 
@@ -2465,7 +2482,8 @@ class DatamodelApiImplTest {
                             ATTACHMENT_SCAN_LINK.getIdentity(),
                             AUTHOR_LINK.getIdentity(),
                             AUTOMATION_LINK.getIdentity(),
-                            PDF_RENDITION_LINK.getIdentity()
+                            PDF_RENDITION_LINK.getIdentity(),
+                            SHOULD_FALLBACKTEMPLATE_LINK.getIdentity()
                     );
         }
 
