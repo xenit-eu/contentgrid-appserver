@@ -2653,11 +2653,8 @@ class DatamodelApiImplTest {
                     .thenReturn(new UpdateResult(entityData, updateResultEntityData));
             var result = datamodelApi.updateLink(
                     DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(
-                            DOCUMENT.getName(),
-                            entityId,
-                            FTS_LINK.getIdentity(),
-                            mustMatchVersionConstraint),
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity())
+                            .withVersionConstraint(mustMatchVersionConstraint),
                     new StringDataEntry("UPDATED_TEXT"),
                     AuthorizationContext.allowAll());
 
@@ -2743,9 +2740,12 @@ class DatamodelApiImplTest {
             Mockito.when(queryEngine.update(any(), any(), any(), any(), preconditionCaptor.capture(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 
-            datamodelApi.updateLink(DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity(), mustMatchVersionConstraint),
-                    new StringDataEntry("UPDATED_TEXT"), AuthorizationContext.allowAll());
+            datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity())
+                            .withVersionConstraint(mustMatchVersionConstraint),
+                    new StringDataEntry("UPDATED_TEXT"),
+                    AuthorizationContext.allowAll());
 
             var precondition = preconditionCaptor.getValue();
             // The locked row still has the text the version constraint was based on: update may proceed
@@ -2861,12 +2861,8 @@ class DatamodelApiImplTest {
 
             var result = datamodelApi.updateLink(
                     DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(
-                            DOCUMENT.getName(),
-                            entityId,
-                            PDF_RENDITION_LINK.getIdentity(),
-                            mustMatchVersionConstraint
-                            ),
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity())
+                            .withVersionConstraint(mustMatchVersionConstraint),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
 
@@ -2914,11 +2910,8 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
-                                LinkRequest.forLink(
-                                        DOCUMENT.getName(),
-                                        entityId,
-                                        FTS_LINK.getIdentity(),
-                                        Version.exactly("SHOULD_NOT_BE_SATISFIED")),
+                                LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity())
+                                        .withVersionConstraint(Version.exactly("SHOULD_NOT_BE_SATISFIED")),
                                 new StringDataEntry("NEW DATA"),
                                 AuthorizationContext.allowAll()
                         );
@@ -2943,11 +2936,8 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
-                                LinkRequest.forLink(
-                                        DOCUMENT.getName(),
-                                        entityId,
-                                        PDF_RENDITION_LINK.getIdentity(),
-                                        Version.exactly("SHOULD_NOT_BE_SATISFIED")),
+                                LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity())
+                                        .withVersionConstraint(Version.exactly("SHOULD_NOT_BE_SATISFIED")),
                                 new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                                 AuthorizationContext.allowAll()
                         );
