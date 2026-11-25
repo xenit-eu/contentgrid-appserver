@@ -175,12 +175,9 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
             @NonNull Application application,
             @NonNull EntityName entityName
     ) {
-        var entity = application.getRequiredEntityByName(entityName);
         return new ResponseOutputDataMapper(
                 application,
                 entityName,
-                entity.getAttributes(),
-                entity.getLinks(),
                 linkUriProviderFactory.createLinkUriProvider(application),
                 configurationPropertiesFactory.createConfigurationProperties(application),
                 new AttributeDataToDataEntryMapper()
@@ -615,7 +612,6 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
                 linkRequest.getLinkIdentity(), targetLink.getStorage());
     }
 
-    @RequiredArgsConstructor
     private class ResponseOutputDataMapper {
         private final Application application;
         private final EntityName entityName;
@@ -624,6 +620,24 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
         private final LinkUriProvider linkUriProvider;
         private final ConfigurationProperties configurationProperties;
         private final AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper;
+
+        public ResponseOutputDataMapper(
+            Application application,
+            EntityName entityName,
+            LinkUriProvider linkUriProvider,
+            ConfigurationProperties configurationProperties,
+            AttributeMapper<Optional<AttributeData>, PlainDataEntry> attributeMapper
+        ) {
+            var entity = application.getRequiredEntityByName(entityName);
+            this.application = application;
+            this.entityName = entityName;
+            this.attributes = entity.getAttributes();
+            this.links = entity.getLinks();
+            this.linkUriProvider = linkUriProvider;
+            this.configurationProperties = configurationProperties;
+            this.attributeMapper = attributeMapper;
+
+        }
 
         public InternalEntityInstance mapAttributes(@NonNull EntityData entityData) {
             var data = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(attributes.size());
