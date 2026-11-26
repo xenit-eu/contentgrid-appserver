@@ -17,11 +17,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.contentgrid.appserver.contentstore.api.ContentStore;
 import com.contentgrid.appserver.contentstore.impl.utils.testing.MockContentStore;
-import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.DatamodelApiImpl;
 import com.contentgrid.appserver.domain.StoredLinkValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.ContentValue;
-import com.contentgrid.appserver.domain.StoredLinkValue.NullValue;
 import com.contentgrid.appserver.domain.StoredLinkValue.TextValue;
 import com.contentgrid.appserver.domain.authorization.AuthorizationContext;
 import com.contentgrid.appserver.domain.content.ContentStoreResolver;
@@ -36,6 +34,7 @@ import com.contentgrid.appserver.rest.test.ProblemDetailsMockMvcMatchers;
 import com.contentgrid.appserver.rest.test.TestApplication;
 import com.contentgrid.appserver.rest.test.WithMockJwt;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
@@ -171,11 +170,16 @@ public class LinkRestControllerTest {
         ).orElseThrow();
     }
 
-    private Content findPortrait(String personUrl) {
+    private Optional<ContentValue> findPortrait(String personUrl) {
         return datamodelApi.findLink(APPLICATION, portraitLinkRequest(personUrl), AuthorizationContext.allowAll())
-                .map(ContentValue.class::cast)
-                .map(ContentValue::getContent)
-                .orElseThrow();
+                .map(ContentValue.class::cast);
+    }
+
+    static Stream<Arguments> path_etagHeaderName_arguments() {
+        return Stream.of(
+                Arguments.argumentSet("getTextLink_ifNoneMatch", SUMMARY_LINK_PATH, HttpHeaders.IF_NONE_MATCH),
+                Arguments.argumentSet("getContentLink_ifNoneMatch", PORTRAIT_LINK_PATH, HttpHeaders.IF_NONE_MATCH)
+        );
     }
 
     @Nested
@@ -252,13 +256,34 @@ public class LinkRestControllerTest {
                     )
             );
         }
+
+        @ParameterizedTest
+        @MethodSource("com.contentgrid.appserver.rest.entity.LinkRestControllerTest#path_etagHeaderName_arguments")
+        void testHeadLinkResponds304IfEtagUnchanged(String endpoint, String headerName) throws Exception {
+            var personUrl = createPerson();
+            if (endpoint.equals(SUMMARY_LINK_PATH)) {
+                seedSummary(personUrl);
+            } else {
+                seedPortrait(personUrl);
+            }
+
+            var etag = mockMvc.perform(get(personUrl + endpoint))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getHeader(HttpHeaders.ETAG);
+
+            mockMvc.perform(get(personUrl + endpoint).header(headerName, etag))
+                    .andExpect(status().isNotModified());
+        }
+
     }
 
     @Nested
     class GetLink {
 
         @Test
-        void testGetNonExistingLink() throws Exception {
+        void testGetLink_onNonExistingLink_returns404EndpointNotFound() throws Exception {
             var personUrl = createPerson();
 
             mockMvc.perform(get(personUrl + "/_links/does-not-exist/portrait"))
@@ -307,8 +332,8 @@ public class LinkRestControllerTest {
         }
 
         @ParameterizedTest
-        @MethodSource("path_etagHeaderName_arguments")
-        void testGetLink_withConditionalEtagHeaderAndCorrectEtag_returns304Unmodified(String endpoint, String etagHeaderName) throws Exception {
+        @MethodSource("com.contentgrid.appserver.rest.entity.LinkRestControllerTest#path_etagHeaderName_arguments")
+        void testGetLink_withIfNoneMatchEtagHeaderAndCorrectEtag_returns304Unmodified(String endpoint, String etagHeaderName) throws Exception {
             var personUrl = createPerson();
             if (endpoint.equals(SUMMARY_LINK_PATH)) {
                 seedSummary(personUrl);
@@ -322,8 +347,7 @@ public class LinkRestControllerTest {
                     .getResponse()
                     .getHeader(HttpHeaders.ETAG);
 
-            mockMvc.perform(get(personUrl + endpoint)
-                            .header(etagHeaderName, etag))
+            mockMvc.perform(get(personUrl + endpoint).header(etagHeaderName, etag))
                     .andExpect(status().isNotModified());
         }
 
@@ -353,13 +377,6 @@ public class LinkRestControllerTest {
             );
         }
 
-        static Stream<Arguments> path_etagHeaderName_arguments() {
-            return Stream.of(
-                    Arguments.argumentSet("getTextLink_ifNoneMatch", SUMMARY_LINK_PATH, HttpHeaders.IF_NONE_MATCH),
-                    Arguments.argumentSet("getContentLink_ifNoneMatch", PORTRAIT_LINK_PATH, HttpHeaders.IF_NONE_MATCH)
-            );
-        }
-
         static Stream<Arguments> path_arguments() {
             return Stream.of(
                     Arguments.argumentSet("getTextLink", SUMMARY_LINK_PATH),
@@ -383,10 +400,16 @@ public class LinkRestControllerTest {
                     .andExpect(header().exists(HttpHeaders.ETAG));
 
             // Verify link content was updated
-            var portrait = findPortrait(personUrl);
-            assertThat(portrait.getFilename()).isEqualTo("new.jpg");
-            assertThat(portrait.getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
-            assertThat(portrait.getInputStream()).hasContent("new portrait data");
+            assertThat(findPortrait(personUrl)).get()
+                    .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                        assertThat(contentValue.getContent().getFilename()).isEqualTo("new.jpg");
+                        assertThat(contentValue.getContent().getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
+                        try {
+                            assertThat(contentValue.getContent().getInputStream()).hasContent("new portrait data");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
         }
 
         @Test
@@ -395,7 +418,7 @@ public class LinkRestControllerTest {
 
             mockMvc.perform(put(personUrl + SUMMARY_LINK_PATH)
                             .contentType(MediaType.TEXT_PLAIN)
-                            .content("updated summary"))
+                            .content("updated summary".getBytes(StandardCharsets.UTF_8)))
                     .andExpect(status().isNoContent())
                     .andExpect(header().exists(HttpHeaders.ETAG));
 
@@ -417,10 +440,16 @@ public class LinkRestControllerTest {
                     .andExpect(header().exists(HttpHeaders.ETAG));
 
             // Verify link content was updated
-            var portrait = findPortrait(personUrl);
-            assertThat(portrait.getFilename()).isEqualTo("new.jpg");
-            assertThat(portrait.getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
-            assertThat(portrait.getInputStream()).hasSameContentAs(ByteArrayInputStream.nullInputStream());
+            assertThat(findPortrait(personUrl)).get()
+                    .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                            assertThat(contentValue.getContent().getFilename()).isEqualTo("new.jpg");
+                            assertThat(contentValue.getContent().getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
+                        try {
+                            assertThat(contentValue.getContent().getInputStream()).hasSameContentAs(ByteArrayInputStream.nullInputStream());
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
         }
 
         @Test
@@ -432,7 +461,7 @@ public class LinkRestControllerTest {
                     .andExpect(status().isNoContent());
 
             // Verify link value was updated
-            assertThat(findSummary(personUrl).get()).isInstanceOf(NullValue.class);
+            assertThat(findSummary(personUrl)).isEmpty();
         }
 
         @Test
@@ -493,7 +522,10 @@ public class LinkRestControllerTest {
                     .andExpect(status().isNoContent());
 
             // Verify link content was updated
-            assertThat(findPortrait(personUrl).getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
+            assertThat(findPortrait(personUrl)).get()
+                    .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                            assertThat(contentValue.getContent().getMimeType()).isEqualTo(MediaType.IMAGE_JPEG_VALUE);
+                    });
         }
 
         @Test
@@ -512,9 +544,10 @@ public class LinkRestControllerTest {
                     );
 
             // Verify link content was not changed
-            var portrait = findPortrait(personUrl);
-            assertThat(portrait.getFilename()).isEqualTo("portrait.png");
-            assertThat(portrait.getMimeType()).isEqualTo("image/png");
+            assertThat(findPortrait(personUrl)).get().isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                assertThat(contentValue.getContent().getFilename()).isEqualTo("portrait.png");
+                assertThat(contentValue.getContent().getMimeType()).isEqualTo("image/png");
+            });
         }
 
         @Test
@@ -527,7 +560,7 @@ public class LinkRestControllerTest {
                     .andExpect(status().isUnsupportedMediaType());
 
             // Verify link value was not set
-            assertThat(findSummary(personUrl).get()).isInstanceOf(NullValue.class);
+            assertThat(findSummary(personUrl)).isEmpty();
         }
 
         @Test
@@ -608,9 +641,7 @@ public class LinkRestControllerTest {
                     .andExpect(status().isNoContent());
 
             // Verify link content was cleared
-            var portrait = findPortrait(personUrl);
-            assertThat(portrait.getFilename()).isNull();
-            assertThat(portrait.getMimeType()).isNull();
+            assertThat(findPortrait(personUrl)).isEmpty();
         }
 
         @Test
@@ -622,7 +653,7 @@ public class LinkRestControllerTest {
                     .andExpect(status().isNoContent());
 
             // Verify link value was cleared
-            assertThat(findSummary(personUrl).get()).isInstanceOf(NullValue.class);
+            assertThat(findSummary(personUrl)).isEmpty();
         }
 
         @Test
@@ -651,9 +682,10 @@ public class LinkRestControllerTest {
                     );
 
             // Verify link content still exists
-            var portrait = findPortrait(personUrl);
-            assertThat(portrait.getFilename()).isEqualTo("portrait.png");
-            assertThat(portrait.getMimeType()).isEqualTo("image/png");
+            assertThat(findPortrait(personUrl)).get().isInstanceOfSatisfying(ContentValue.class, contentValue -> {
+                assertThat(contentValue.getContent().getFilename()).isEqualTo("portrait.png");
+                assertThat(contentValue.getContent().getMimeType()).isEqualTo("image/png");
+            });
         }
 
         @Test

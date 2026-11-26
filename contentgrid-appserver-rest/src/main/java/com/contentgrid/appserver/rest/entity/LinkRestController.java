@@ -20,7 +20,6 @@ import com.contentgrid.appserver.domain.data.InvalidPropertyDataException;
 import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.EntityIdentity;
 import com.contentgrid.appserver.domain.values.LinkRequest;
-import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
 import com.contentgrid.appserver.domain.values.version.VersionConstraint;
 import com.contentgrid.appserver.rest.VersionValidator;
 import com.contentgrid.appserver.rest.entity.util.ContentResource;
@@ -114,8 +113,13 @@ public class LinkRestController {
             ) {
         var entity = getEntityOrThrow(application, entityName);
         var storedLink = getStoredLinkOrThrow(entity, linkPath);
-        var linkRequest = LinkRequest.forLink(entity.getName(), entityId, storedLink.getIdentity())
-                .withVersionConstraint(versionConstraint);
+        // Do not pass versionConstraint to entityApi:
+        // 1. If-None-Match header with matching ETag should return 304.
+        // 2. If-None-Match is interpreted as "version matching 'any' AND NOT version matching 'ETAG'"
+        // 3. This constraint results in UnsatisfiedVersionException in the api, throw up to the problemdetailshandler, resulting in a 412 Precondition failed.
+        // Not passing a versionConstraint in the linkRequest implies an ANY versionConstraint.
+        // The versionValidator will then check the ETAG and version again and handle the response appropriately
+        var linkRequest = LinkRequest.forLink(entity.getName(), entityId, storedLink.getIdentity());
         var targetLink = datamodelApi.findLink(
                 application,
                 linkRequest,
