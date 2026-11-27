@@ -6,6 +6,7 @@ import com.contentgrid.appserver.application.model.attributes.ContentAttribute;
 import com.contentgrid.appserver.application.model.attributes.MultivalueAttribute;
 import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.application.model.attributes.UserAttribute;
+import com.contentgrid.appserver.domain.data.DataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.BooleanDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.DecimalDataEntry;
 import com.contentgrid.appserver.domain.data.DataEntry.InstantDataEntry;
@@ -60,7 +61,7 @@ public class AttributeDataToDataEntryMapper implements
                 contentAttribute.getMimetype()
         );
 
-        var map = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(allowedAttributes.size());
+        var map = LinkedHashMap.<String, DataEntry>newLinkedHashMap(allowedAttributes.size());
 
         for (var attribute : allowedAttributes) {
             var value = mapAttribute(attribute, data.getAttributeByName(attribute.getName()));
@@ -71,7 +72,7 @@ public class AttributeDataToDataEntryMapper implements
     }
 
     private MapDataEntry mapCompositeAttribute(CompositeAttribute compositeAttribute, CompositeAttributeData data) {
-        var map = LinkedHashMap.<String, PlainDataEntry>newLinkedHashMap(compositeAttribute.getAttributes().size());
+        var map = LinkedHashMap.<String, DataEntry>newLinkedHashMap(compositeAttribute.getAttributes().size());
         for (var attribute : compositeAttribute.getAttributes()) {
             if (attribute.isIgnored()) {
                 continue;

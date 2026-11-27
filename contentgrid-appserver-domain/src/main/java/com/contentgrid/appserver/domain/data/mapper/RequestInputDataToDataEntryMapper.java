@@ -143,7 +143,7 @@ public class RequestInputDataToDataEntryMapper implements AttributeMapper<Reques
                     var builder = MapDataEntry.builder();
                     for (var attr : compositeAttribute.getAttributes()) {
                         mapAttribute(attr, data.get())
-                                .ifPresent(attrData -> builder.item(attr.getName().getValue(), (PlainDataEntry)attrData));
+                                .ifPresent(attrData -> builder.item(attr.getName().getValue(), attrData));
                     }
 
                     yield Optional.of(builder.build());

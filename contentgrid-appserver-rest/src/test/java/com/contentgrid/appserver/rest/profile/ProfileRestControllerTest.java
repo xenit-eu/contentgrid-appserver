@@ -645,6 +645,10 @@ class ProfileRestControllerTest {
                                                 }
                                             ]
                                         }
+                                    },
+                                    {
+                                            name: "portrait",
+                                            title: "portrait"
                                     }
                                 ],
                                 "blueprint:relation": [
@@ -833,6 +837,10 @@ class ProfileRestControllerTest {
                                             prompt: "Tags"
                                         },
                                         {
+                                            name: "portrait",
+                                            prompt: "portrait"
+                                        },
+                                        {
                                             name: "invoices",
                                             prompt: "invoices"
                                         },
@@ -860,7 +868,7 @@ class ProfileRestControllerTest {
     void getProfileEntity_withoutContent() throws Exception {
         mockMvc.perform(get("/profile/persons").accept(MediaTypes.HAL_FORMS_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._templates.create-form.contentType").value("application/json"));
+                .andExpect(jsonPath("$._templates.create-form.contentType").value("multipart/form-data"));
     }
 
     @Test
