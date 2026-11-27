@@ -22,6 +22,7 @@ import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixt
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PERSON_VAT;
 import static com.contentgrid.appserver.application.model.fixtures.ModelTestFixtures.PRODUCT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -105,8 +106,10 @@ import com.contentgrid.appserver.domain.values.ItemCount;
 import com.contentgrid.appserver.domain.values.LinkRequest;
 import com.contentgrid.appserver.domain.values.User;
 import com.contentgrid.appserver.domain.values.exception.LinkNotFoundException;
+import com.contentgrid.appserver.domain.values.exception.UnsatisfiedVersionException;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
+import com.contentgrid.appserver.query.engine.api.UpdatePrecondition;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
@@ -121,8 +124,7 @@ import com.contentgrid.appserver.query.engine.api.data.SortData.Direction;
 import com.contentgrid.appserver.query.engine.api.data.SortData.FieldSort;
 import com.contentgrid.appserver.query.engine.api.data.XToManyRelationData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
-import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
-import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
+import com.contentgrid.appserver.domain.values.exception.EntityIdNotFoundException;
 import com.contentgrid.appserver.query.engine.api.thunx.expression.SearchComparison;
 import com.contentgrid.hateoas.pagination.api.Pagination;
 import com.contentgrid.hateoas.uritemplate.ParameterizedUriTemplateParser;
@@ -153,11 +155,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.InstanceOfAssertFactory;
-import org.assertj.core.api.ObjectAssert;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -206,6 +204,11 @@ class DatamodelApiImplTest {
         public String createRelationLink(EntityIdentity entityIdentity, RelationName relationName) {
             return createEntityLink(entityIdentity) + "/" + relationName.getValue();
         }
+
+        @Override
+        public String createStoredDataLinkLink(EntityIdentity entityIdentity, LinkIdentity linkIdentity) {
+            return createEntityLink(entityIdentity) + "/attachment/_links/pdf";
+        }
     };
 
     private final ConfigurationProperties configurationProperties = new ConfigurationProperties() {
@@ -245,6 +248,32 @@ class DatamodelApiImplTest {
                         .attribute(new SimpleAttributeData<String>(AttributeName.of("name"), null))
                         .build())
                 .build();
+    }
+
+    private static final User AUDIT_USER = new User("00000000-0000-0000-0000-000000000000", "keycloak",
+            "alice@example.com");
+
+    private static boolean subValueMatches(AttributeData data, String subAttrName, Object value) {
+        if (data instanceof CompositeAttributeData composite) {
+            var sub = composite.getAttributeByName(AttributeName.of(subAttrName));
+            if (sub.isEmpty()) {
+                return false;
+            }
+            if (sub.get() instanceof SimpleAttributeData<?> simpData) {
+                return value.equals(simpData.getValue());
+            }
+        }
+        return false;
+    }
+
+    private static void assertOnlyLastModifiedUpdated(AttributeData data) {
+        assertThat(data.getName()).isEqualTo(INVOICE_AUDIT_METADATA.getName());
+        assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
+        assertThat(((CompositeAttributeData) data).getAttributes())
+                .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_by")))
+                .noneMatch(sub -> sub.getName().equals(AttributeName.of("created_date")))
+                .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                        && subValueMatches(sub, "name", AUDIT_USER.getName()));
     }
 
     @BeforeEach
@@ -796,7 +825,7 @@ class DatamodelApiImplTest {
             var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build()
@@ -840,7 +869,7 @@ class DatamodelApiImplTest {
             var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var personId = EntityId.of(UUID.randomUUID());
-            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build(),
                             EntityData.builder().name(INVOICE.getName()).id(entityId).build()
@@ -879,18 +908,34 @@ class DatamodelApiImplTest {
             Mockito.verifyNoInteractions(contentStore);
         }
 
+        @Test
+        void auditMetadata_onCreateWithContent() throws InvalidPropertyDataException, UnwritableContentException {
+            var createDataCaptor = ArgumentCaptor.forClass(EntityCreateData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var personId = EntityId.of(UUID.randomUUID());
+            Mockito.when(queryEngine.create(any(), createDataCaptor.capture(), any(), any()))
+                    .thenReturn(EntityData.builder().name(INVOICE.getName()).id(entityId).build());
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor("my-file-123.bin"));
 
-        private static boolean subValueMatches(AttributeData data, String subAttrName, Object value) {
-            if (data instanceof CompositeAttributeData composite) {
-                var sub = composite.getAttributeByName(AttributeName.of(subAttrName));
-                if (sub.isEmpty()) {
-                    return false;
-                }
-                if (sub.get() instanceof SimpleAttributeData<?> simpData) {
-                    return value.equals(simpData.getValue());
-                }
-            }
-            return false;
+            datamodelApi.create(APPLICATION, INVOICE.getName(), MapRequestInputData.fromMap(Map.of(
+                    "number", "1",
+                    "amount", 1.50,
+                    "confidentiality", "public",
+                    "customer", new RelationDataEntry(PERSON.getName(), personId),
+                    "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(110))
+            )), AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertThat(createDataCaptor.getValue().getAttributes())
+                    .anySatisfy(data -> {
+                        assertThat(data.getName()).isEqualTo(INVOICE_AUDIT_METADATA.getName());
+                        assertThat(subValueMatches(data, "created_date", Instant.now(clock))).isTrue();
+                        assertThat(subValueMatches(data, "last_modified_date", Instant.now(clock))).isTrue();
+                        assertThat(((CompositeAttributeData) data).getAttributes())
+                                .anyMatch(sub -> sub.getName().equals(AttributeName.of("created_by"))
+                                        && subValueMatches(sub, "name", AUDIT_USER.getName()))
+                                .anyMatch(sub -> sub.getName().equals(AttributeName.of("last_modified_by"))
+                                        && subValueMatches(sub, "name", AUDIT_USER.getName()));
+                    });
         }
 
         @ParameterizedTest
@@ -1040,7 +1085,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1104,7 +1149,7 @@ class DatamodelApiImplTest {
             });
 
             Mockito.verify(queryEngine, Mockito.never())
-                    .update(any(), any(), any(), any());
+                    .update(any(), any(), any(), any(), any());
             Mockito.verifyNoInteractions(contentStore);
         }
 
@@ -1117,7 +1162,7 @@ class DatamodelApiImplTest {
                     .id(entityId)
                     .build();
             setupEntityQueryWithContent("content.bin");
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1226,7 +1271,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.update(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1276,7 +1321,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
 
             Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
@@ -1332,7 +1377,7 @@ class DatamodelApiImplTest {
                     .build();
 
             setupEntityQuery();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1386,7 +1431,7 @@ class DatamodelApiImplTest {
             });
 
             Mockito.verify(queryEngine, Mockito.never())
-                    .update(any(), any(), any(), any());
+                    .update(any(), any(), any(), any(), any());
             Mockito.verifyNoInteractions(contentStore);
         }
 
@@ -1412,7 +1457,7 @@ class DatamodelApiImplTest {
             });
 
             Mockito.verify(queryEngine, Mockito.never())
-                    .update(any(), any(), any(), any());
+                    .update(any(), any(), any(), any(), any());
             Mockito.verifyNoInteractions(contentStore);
 
         }
@@ -1426,7 +1471,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1453,7 +1498,7 @@ class DatamodelApiImplTest {
 
             setupEntityQueryWithContent("content.bin");
 
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1549,7 +1594,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1584,7 +1629,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1620,7 +1665,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
                     MapRequestInputData.fromMap(Map.of(
@@ -1657,7 +1702,7 @@ class DatamodelApiImplTest {
                     .name(INVOICE.getName())
                     .id(entityId)
                     .build();
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entity, entity));
             Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor(fileId));
             datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
@@ -1680,6 +1725,28 @@ class DatamodelApiImplTest {
                             .build(),
                     getAuditMetadataData(false)
             );
+        }
+
+        @Test
+        void auditMetadata_onPartialUpdateWithContent() throws InvalidPropertyDataException, UnwritableContentException {
+            setupEntityQuery();
+
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entity = EntityData.builder()
+                    .name(INVOICE.getName())
+                    .id(entityId)
+                    .build();
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any(), any()))
+                    .thenReturn(new UpdateResult(entity, entity));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor("my-file-123.bin"));
+            datamodelApi.updatePartial(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), entityId),
+                    MapRequestInputData.fromMap(Map.of(
+                            "content", new FileDataEntry("my-file.pdf", "application/pdf", inputStreamWithSize(150))
+                    )), AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertThat(updateDataCaptor.getValue().getAttributes())
+                    .anySatisfy(DatamodelApiImplTest::assertOnlyLastModifiedUpdated);
         }
     }
 
@@ -2057,11 +2124,16 @@ class DatamodelApiImplTest {
         private static final SimpleAttributePath ATTACHMENT_PATH = new SimpleAttributePath(
                 DOCUMENT_ATTACHMENT.getName());
 
+        private static final SimpleAttribute FALLBACK_ATTRIBUTE = SimpleAttribute.builder()
+                .name(AttributeName.of("fallbackTemplate"))
+                .column(ColumnName.of("_links__text_fallback"))
+                .type(Type.TEXT)
+                .flag(IgnoredFlag.INSTANCE)
+                .build();
         private static final AttributeName FTS = AttributeName.of("fts");
         private static final SimpleAttribute FTS_ATTRIBUTE = SimpleAttribute.builder()
                 .name(FTS)
                 .column(ColumnName.of("_links__text__content"))
-                .flag(IgnoredFlag.INSTANCE)
                 .type(Type.TEXT)
                 .flag(IgnoredFlag.INSTANCE)
                 .build();
@@ -2075,7 +2147,7 @@ class DatamodelApiImplTest {
                 .build();
         private static final CompositeAttribute LINKS_ATTRIBUTE = CompositeAttributeImpl.builder()
                 .name(AttributeName.of("_links"))
-                .attributes(Set.of(FTS_ATTRIBUTE, PDF_ATTRIBUTE))
+                .attributes(Set.of(FTS_ATTRIBUTE, PDF_ATTRIBUTE, FALLBACK_ATTRIBUTE))
                 .flag(IgnoredFlag.INSTANCE)
                 .build();
 
@@ -2083,6 +2155,9 @@ class DatamodelApiImplTest {
                 LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(FTS_ATTRIBUTE.getName()));
         private static final CompositeAttributePath PDF_LINK_PATH = new CompositeAttributePath(
                 LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(PDF_ATTRIBUTE.getName()));
+        private static final CompositeAttributePath FALLBACK_LINK_PATH = new CompositeAttributePath(
+                LINKS_ATTRIBUTE.getName(), new SimpleAttributePath(FALLBACK_ATTRIBUTE.getName())
+        );
 
         // Uses all entity substitution variables and the owner value of an attribute
         private static final PlainEntityLink CATEGORY_LINK = PlainEntityLink.builder()
@@ -2150,6 +2225,13 @@ class DatamodelApiImplTest {
                 .pathSegment(PathSegmentName.of(DOCUMENT_ATTACHMENT.getPathSegment().getValue()+"/_links/fts"))
                 .storage(FTS_LINK_PATH)
                 .build();
+        private static final StoredEntityLink SHOULD_FALLBACKTEMPLATE_LINK = StoredEntityLink.builder()
+                .identity(new NamedLink(URI.create("https://links.example/rels/renditions/text"), "fallbackTemplate"))
+                .pathSegment(PathSegmentName.of(DOCUMENT_ATTACHMENT.getPathSegment().getValue()+"_links/fallbackTempmlate"))
+                .owner(ATTACHMENT_PATH)
+                .storage(FALLBACK_LINK_PATH)
+                .fallbackTemplate(automationTemplate("my-automation", "api", "/fallback?ownerName=%{owner.name}"))
+                .build();
 
         private static final Entity DOCUMENT = Entity.builder()
                 .name(EntityName.of("document"))
@@ -2160,6 +2242,7 @@ class DatamodelApiImplTest {
                 .attribute(DOCUMENT_CATEGORY)
                 .attribute(DOCUMENT_ATTACHMENT)
                 .attribute(LINKS_ATTRIBUTE)
+                .attribute(INVOICE_AUDIT_METADATA)
                 .link(CATEGORY_LINK)
                 .link(PREVIEW_LINK)
                 .link(ATTACHMENT_SCAN_LINK)
@@ -2169,6 +2252,7 @@ class DatamodelApiImplTest {
                 .link(UNKNOWN_BASE_PATH_LINK)
                 .link(PDF_RENDITION_LINK)
                 .link(FTS_LINK)
+                .link(SHOULD_FALLBACKTEMPLATE_LINK)
                 .build();
 
         private static final ManyToOneRelation DOCUMENT_AUTHOR = ManyToOneRelation.builder()
@@ -2219,7 +2303,7 @@ class DatamodelApiImplTest {
 
         private static EntityData createDocumentDataWithEmptyLinks(EntityId id) {
             return new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), id, Version.unspecified()),
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id).withVersion(Version.unspecified()),
                     List.of(buildLinksAttribute(null))
             );
         }
@@ -2230,7 +2314,7 @@ class DatamodelApiImplTest {
 
         private static EntityData createDocumentData(EntityId id, Version entityVersion) {
             return new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), id, entityVersion),
+                    EntityIdentity.forEntity(DOCUMENT.getName(), id).withVersion(entityVersion),
                     List.of(buildLinksAttribute(
                             new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), EXTRACTION),
                             PDF_COMPOSITE_ATTRIBUTE_DATA),
@@ -2343,8 +2427,12 @@ class DatamodelApiImplTest {
                     new EntityLinkData(
                             PDF_RENDITION_LINK.getIdentity(),
                             null,
-                            "https://automation.example/my-automation/rendition?document=" + encodedUriProviderLink(
-                                    entityId, "/attachment")
+                            "http://localhost/document/"+ entityId.getValue() + "/attachment/_links/pdf"
+                    ),
+                    new EntityLinkData(
+                            SHOULD_FALLBACKTEMPLATE_LINK.getIdentity(),
+                            null,
+                            "https://automation.example/my-automation/fallback?ownerName=attachment"
                     )
             );
         }
@@ -2367,7 +2455,8 @@ class DatamodelApiImplTest {
                             ATTACHMENT_SCAN_LINK.getIdentity(),
                             AUTHOR_LINK.getIdentity(),
                             AUTOMATION_LINK.getIdentity(),
-                            PDF_RENDITION_LINK.getIdentity()
+                            PDF_RENDITION_LINK.getIdentity(),
+                            SHOULD_FALLBACKTEMPLATE_LINK.getIdentity()
                     );
         }
 
@@ -2393,7 +2482,8 @@ class DatamodelApiImplTest {
                             ATTACHMENT_SCAN_LINK.getIdentity(),
                             AUTHOR_LINK.getIdentity(),
                             AUTOMATION_LINK.getIdentity(),
-                            PDF_RENDITION_LINK.getIdentity()
+                            PDF_RENDITION_LINK.getIdentity(),
+                            SHOULD_FALLBACKTEMPLATE_LINK.getIdentity()
                     );
         }
 
@@ -2410,6 +2500,7 @@ class DatamodelApiImplTest {
         @Test
         void findLink_throwsLinkNotFound() {
             var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksQuery();
             assertThatThrownBy(() -> datamodelApi.findLink(
                     DOCUMENT_APPLICATION,
                     LinkRequest.forLink(DOCUMENT.getName(), entityId,
@@ -2419,7 +2510,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        void findLink_returnsText() {
+        void findLink_withAnyVersionConstraint_returnsText() {
             var entityId = EntityId.of(UUID.randomUUID());
             setupDocumentLinksQuery();
 
@@ -2427,8 +2518,19 @@ class DatamodelApiImplTest {
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
                     AuthorizationContext.allowAll());
 
-            assertThat(result).isNotEmpty().get()
-                    .isEqualTo(new TextValue(EXTRACTION, Version.unspecified()));
+            assertThat(result).get().isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
+        }
+
+        @Test
+        void findLink_withVersionConstraint_returnsText() {
+            var entityId = EntityId.of(UUID.randomUUID());
+            setupDocumentLinksQuery();
+
+            var result = datamodelApi.findLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    AuthorizationContext.allowAll());
+
+            assertThat(result).get().isEqualTo(new TextValue(EXTRACTION, ftsVersion(entityId, EXTRACTION)));
         }
 
         @Test
@@ -2509,20 +2611,20 @@ class DatamodelApiImplTest {
             ).isInstanceOf(LinkNotFoundException.class);
         }
 
+        // TODO ACC-3004 check Version of input matches
         @Test
         void updateLink_storesTextData_withoutVersionConstraint() throws InvalidPropertyDataException {
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
             var result = datamodelApi.updateLink(DOCUMENT_APPLICATION,
                     LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
                     new StringDataEntry(EXTRACTION), AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(TextValue.class, textValue -> {
                             assertThat(textValue.getValue()).isEqualTo(EXTRACTION);
@@ -2539,15 +2641,13 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_storesTextData_withVersionConstraint() throws InvalidPropertyDataException {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             // The text link version is calculated from the link identity and the stored text, not the entity version
             var mustMatchVersionConstraint = ftsVersion(entityId, EXTRACTION);
             var entityData = createDocumentData(entityId);
             var updateResultEntityData = new EntityData(
-                    EntityIdentity.forEntity(DOCUMENT.getName(), entityId), // TODO ACC-3004 version?
+                    EntityIdentity.forEntity(DOCUMENT.getName(), entityId),
                     List.of(buildLinksAttribute(
                                 new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "UPDATED_TEXT"),
                                 PDF_COMPOSITE_ATTRIBUTE_DATA
@@ -2563,22 +2663,18 @@ class DatamodelApiImplTest {
                                     .attribute(new SimpleAttributeData<>(DOCUMENT_ATTACHMENT.getLength().getName(), 1L))
                             .build()));
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, updateResultEntityData));
             var result = datamodelApi.updateLink(
                     DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(
-                            DOCUMENT.getName(),
-                            entityId,
-                            FTS_LINK.getIdentity(),
-                            mustMatchVersionConstraint),
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity())
+                            .withVersionConstraint(mustMatchVersionConstraint),
                     new StringDataEntry("UPDATED_TEXT"),
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(TextValue.class, textValue -> {
                                 assertThat(textValue.getValue()).isEqualTo("UPDATED_TEXT");
@@ -2593,6 +2689,102 @@ class DatamodelApiImplTest {
                             SimpleAttributeData.class))
                     .hasValueSatisfying(
                             simpleAttributeData -> assertThat(simpleAttributeData.getValue()).isEqualTo("UPDATED_TEXT"));
+        }
+
+        /**
+         * The link input mapper emits (empty) shells for every composite attribute; what matters is that no audit
+         * value (date or user field) is written.
+         */
+        private static void assertNoAuditValues(EntityData updateData) {
+            updateData.getAttributeByName(INVOICE_AUDIT_METADATA.getName())
+                    .ifPresent(audit -> assertThat(leafValues(audit)).isEmpty());
+        }
+
+        private static List<SimpleAttributeData<?>> leafValues(AttributeData data) {
+            return switch (data) {
+                case SimpleAttributeData<?> simple -> List.of(simple);
+                case CompositeAttributeData composite -> composite.getAttributes().stream()
+                        .flatMap(sub -> leafValues(sub).stream())
+                        .toList();
+                default -> List.of();
+            };
+        }
+
+        @Test
+        void updateLink_textData_doesNotUpdateAuditMetadata() throws InvalidPropertyDataException {
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any(), any(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity()),
+                    new StringDataEntry("UPDATED_TEXT"), AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertNoAuditValues(updateDataCaptor.getValue());
+        }
+
+        @Test
+        void updateLink_contentData_doesNotUpdateAuditMetadata()
+                throws UnwritableContentException, InvalidPropertyDataException {
+            var updateDataCaptor = ArgumentCaptor.forClass(EntityData.class);
+            var entityId = EntityId.of(UUID.randomUUID());
+            var entityData = createDocumentData(entityId);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), updateDataCaptor.capture(), any(), any(), any(), any()))
+                    .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
+            Mockito.when(contentStore.writeContent(any())).thenAnswer(contentAccessorFor("my-file.bin"));
+
+            datamodelApi.updateLink(DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity()),
+                    new FileDataEntry("invoice.pdf", "application/pdf", inputStreamWithSize(150)),
+                    AuthorizationContext.allowAll(AUDIT_USER));
+
+            assertNoAuditValues(updateDataCaptor.getValue());
+        }
+
+        @Test
+        void updateLink_passesLinkVersionCheckAsPrecondition() throws InvalidPropertyDataException {
+            var entityId = EntityId.of(UUID.randomUUID());
+            var mustMatchVersionConstraint = ftsVersion(entityId, EXTRACTION);
+            var entityData = createDocumentData(entityId);
+            var preconditionCaptor = ArgumentCaptor.forClass(UpdatePrecondition.class);
+            Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
+            Mockito.when(queryEngine.update(any(), any(), any(), any(), preconditionCaptor.capture(), any()))
+                    .thenReturn(new UpdateResult(entityData, entityData));
+
+            datamodelApi.updateLink(
+                    DOCUMENT_APPLICATION,
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity())
+                            .withVersionConstraint(mustMatchVersionConstraint),
+                    new StringDataEntry("UPDATED_TEXT"),
+                    AuthorizationContext.allowAll());
+
+            var precondition = preconditionCaptor.getValue();
+            // The locked row still has the text the version constraint was based on: update may proceed
+            assertThatCode(() -> precondition.check(entityData)).doesNotThrowAnyException();
+
+            // A concurrent write changed the text after the early check: update must be rejected
+            var concurrentlyChanged = new EntityData(
+                    entityData.getIdentity(),
+                    List.of(buildLinksAttribute(
+                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), "CONCURRENT_TEXT"),
+                            PDF_COMPOSITE_ATTRIBUTE_DATA))
+            );
+            assertThatThrownBy(() -> precondition.check(concurrentlyChanged))
+                    .isInstanceOf(UnsatisfiedVersionException.class);
+
+            // A concurrent delete of the text: link data does not exist anymore, so the update must be rejected
+            var concurrentlyDeleted = new EntityData(
+                    entityData.getIdentity(),
+                    List.of(buildLinksAttribute(
+                            new SimpleAttributeData<>(FTS_ATTRIBUTE.getName(), null),
+                            PDF_COMPOSITE_ATTRIBUTE_DATA))
+            );
+            assertThatThrownBy(() -> precondition.check(concurrentlyDeleted))
+                    .isInstanceOf(UnsatisfiedVersionException.class);
         }
 
         @Test
@@ -2615,7 +2807,7 @@ class DatamodelApiImplTest {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any(), any()))
                     .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
             var fileId = "my-file.bin";
             var fileName = "invoice.pdf";
@@ -2632,7 +2824,6 @@ class DatamodelApiImplTest {
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
                         assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
@@ -2645,12 +2836,10 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(CompositeAttributeData.class, attributeData -> {
                         assertThat(attributeData).isNotNull();
                         assertThat(attributeData.getAttributeByName(AttributeName.of("pdf")))
-                                .isNotEmpty()
                                 .get()
                                 .isInstanceOfSatisfying(CompositeAttributeData.class, pdfAttribute ->
                                         assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
@@ -2675,7 +2864,7 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId, mustMatchVersionConstraint);
             Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any(), any()))
                     .thenAnswer(invocation -> new UpdateResult(entityData, invocation.getArgument(1)));
             var fileId = "my-file.bin";
             var fileName = "invoice.pdf";
@@ -2684,17 +2873,12 @@ class DatamodelApiImplTest {
 
             var result = datamodelApi.updateLink(
                     DOCUMENT_APPLICATION,
-                    LinkRequest.forLink(
-                            DOCUMENT.getName(),
-                            entityId,
-                            PDF_RENDITION_LINK.getIdentity(),
-                            mustMatchVersionConstraint
-                            ),
+                    LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity())
+                            .withVersionConstraint(mustMatchVersionConstraint),
                     new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                     AuthorizationContext.allowAll());
 
             assertThat(result)
-                    .isNotEmpty()
                     .get()
                     .isInstanceOfSatisfying(ContentValue.class, contentValue -> {
                         assertThat(contentValue.getContent().getDescription()).isEqualTo("ContentAttribute pdf: 'ContentReference(value="+ fileId + ")'");
@@ -2708,18 +2892,12 @@ class DatamodelApiImplTest {
             assertThat(createDataCaptor.getValue().getId()).isEqualTo(entityId);
             assertThat(createDataCaptor.getValue().getName()).isEqualTo(DOCUMENT.getName());
             assertThat(createDataCaptor.getValue().getAttributeByName(AttributeName.of("_links")))
-                    .isNotEmpty()
                     .get()
-                    .isInstanceOf(CompositeAttributeData.class)
-                    .asInstanceOf(instanceOfAssertFactory(CompositeAttributeData.class))
-                    .satisfies(attributeData -> {
+                    .isInstanceOfSatisfying(CompositeAttributeData.class, attributeData -> {
                         assertThat(attributeData).isNotNull();
-                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf"))).isNotEmpty()
+                        assertThat(attributeData.getAttributeByName(AttributeName.of("pdf")))
                                 .get()
-                                .isInstanceOf(CompositeAttributeData.class)
-                                .asInstanceOf(new InstanceOfAssertFactory<>(CompositeAttributeData.class,
-                                        Assertions::assertThat))
-                                .satisfies(pdfAttribute ->
+                                .isInstanceOfSatisfying(CompositeAttributeData.class, pdfAttribute ->
                                         assertThat(pdfAttribute.getAttributes()).containsExactlyInAnyOrder(
                                                 new SimpleAttributeData<>(PDF_ATTRIBUTE.getId().getName(),
                                                         fileId),
@@ -2734,22 +2912,17 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
         void updateLink_rejectUnsatisfiedVersionConstraint_textData() {
             var entityId = EntityId.of(UUID.randomUUID());
-            var entityRequest = EntityRequest.forEntity(DOCUMENT.getName(), entityId);
             var entityData = createDocumentData(entityId);
-            Mockito.when(queryEngine.findById(any(), eq(entityRequest), any()))
+            Mockito.when(queryEngine.findById(any(), any(), any()))
                     .thenReturn(Optional.of(entityData));
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
-                                LinkRequest.forLink(
-                                        DOCUMENT.getName(),
-                                        entityId,
-                                        FTS_LINK.getIdentity(),
-                                        Version.exactly("SHOULD_NOT_BE_SATISFIED")),
-                                new StringDataEntry(EXTRACTION),
+                                LinkRequest.forLink(DOCUMENT.getName(), entityId, FTS_LINK.getIdentity())
+                                        .withVersionConstraint(Version.exactly("SHOULD_NOT_BE_SATISFIED")),
+                                new StringDataEntry("NEW DATA"),
                                 AuthorizationContext.allowAll()
                         );
                     }
@@ -2763,8 +2936,7 @@ class DatamodelApiImplTest {
         }
 
         @Test
-        @Disabled
-        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() {
+        void updateLink_rejectUnsatisfiedVersionConstraint_contentData() throws UnwritableContentException {
             var entityId = EntityId.of(UUID.randomUUID());
             var entityData = createDocumentData(entityId);
             Mockito.when(queryEngine.findById(any(), any(), any()))
@@ -2774,11 +2946,8 @@ class DatamodelApiImplTest {
             assertThatThrownBy(() -> {
                         datamodelApi.updateLink(
                                 DOCUMENT_APPLICATION,
-                                LinkRequest.forLink(
-                                        DOCUMENT.getName(),
-                                        entityId,
-                                        PDF_RENDITION_LINK.getIdentity(),
-                                        Version.exactly("SHOULD_NOT_BE_SATISFIED")),
+                                LinkRequest.forLink(DOCUMENT.getName(), entityId, PDF_RENDITION_LINK.getIdentity())
+                                        .withVersionConstraint(Version.exactly("SHOULD_NOT_BE_SATISFIED")),
                                 new FileDataEntry(fileName, contentType, inputStreamWithSize(150)),
                                 AuthorizationContext.allowAll()
                         );
@@ -2809,7 +2978,7 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 
             datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll);
@@ -2831,7 +3000,7 @@ class DatamodelApiImplTest {
             var entityData = createDocumentData(entityId);
             var createDataCaptor = ArgumentCaptor.forClass(EntityData.class);
             Mockito.when(queryEngine.findById(any(), any(), any())).thenReturn(Optional.of(entityData));
-            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any()))
+            Mockito.when(queryEngine.update(any(), createDataCaptor.capture(), any(), any(), any(), any()))
                     .thenReturn(new UpdateResult(entityData, entityData));
 
             datamodelApi.deleteLink(DOCUMENT_APPLICATION, linkRequest, allowAll);
@@ -2882,9 +3051,5 @@ class DatamodelApiImplTest {
             ).isInstanceOf(EntityIdNotFoundException.class);
 
         }
-    }
-
-    private static <T> InstanceOfAssertFactory<T, ObjectAssert<T>> instanceOfAssertFactory(Class<T> instanceClass) {
-        return new InstanceOfAssertFactory<>(instanceClass, Assertions::assertThat);
     }
 }

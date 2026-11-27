@@ -38,6 +38,7 @@ import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateEventConsumer;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.QueryEngineException;
@@ -126,6 +127,7 @@ public class EventsDispatchTest {
                                 .build())
                         .build(),
                 PERMIT_ALWAYS,
+                EntityEtagBehaviour.ADVANCE,
                 updateEventConsumer
         );
 
@@ -283,6 +285,7 @@ public class EventsDispatchTest {
                 APPLICATION,
                 updatePayload,
                 PERMIT_ALWAYS,
+                EntityEtagBehaviour.ADVANCE,
                 updateEventConsumer
         )).isInstanceOf(SomeEventFailureException.class);
 
@@ -345,6 +348,7 @@ public class EventsDispatchTest {
                 APPLICATION,
                 updatePayload,
                 PERMIT_ALWAYS,
+                EntityEtagBehaviour.ADVANCE,
                 updateEventConsumer
         )).isInstanceOf(QueryEngineException.class);
 

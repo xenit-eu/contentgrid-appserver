@@ -2,6 +2,7 @@ package com.contentgrid.appserver.query.engine.jooq;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ch.qos.logback.classic.Level;
 import com.contentgrid.appserver.application.model.Application;
@@ -26,19 +27,22 @@ import com.contentgrid.appserver.application.model.values.LinkName;
 import com.contentgrid.appserver.application.model.values.PathSegmentName;
 import com.contentgrid.appserver.application.model.values.RelationName;
 import com.contentgrid.appserver.application.model.values.TableName;
+import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.domain.values.RelationRequest;
+import com.contentgrid.appserver.domain.values.EntityId;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.EntityIdAndVersion;
 import com.contentgrid.appserver.query.engine.api.QueryEngine;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.XToOneRelationData;
 import com.contentgrid.appserver.query.engine.api.exception.ConcurrencyFailureException;
 import com.contentgrid.appserver.query.engine.api.exception.EntityIdNotFoundException;
+import com.contentgrid.appserver.query.engine.api.UpdatePrecondition;
 import com.contentgrid.appserver.query.engine.api.exception.RelationLinkNotFoundException;
 import com.contentgrid.appserver.query.engine.api.exception.UnsatisfiedVersionException;
-import com.contentgrid.appserver.domain.values.EntityRequest;
 import com.contentgrid.appserver.query.engine.jooq.ConcurrencyJOOQQueryEngineTest.Config;
 import com.contentgrid.appserver.query.engine.jooq.test.JooqTest;
 import com.contentgrid.appserver.query.engine.jooq.test.NoneEvents;
@@ -49,6 +53,7 @@ import com.contentgrid.appserver.query.engine.jooq.test.logging.LoggerContext;
 import com.contentgrid.thunx.predicates.model.Scalar;
 import com.contentgrid.thunx.predicates.model.ThunkExpression;
 import java.util.List;
+import java.util.UUID;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -574,7 +579,7 @@ class ConcurrencyJOOQQueryEngineTest {
                                                 .value("value1")
                                                 .build()
                                 ));
-                                queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                                queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
                             })
                         )
                         .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class))
@@ -601,7 +606,7 @@ class ConcurrencyJOOQQueryEngineTest {
                                     .value("value2")
                                     .build()
                     ));
-                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
                 }).doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class)
         );
     }
@@ -623,7 +628,7 @@ class ConcurrencyJOOQQueryEngineTest {
                                                     .value("text_value")
                                                     .build())
                                             .build();
-                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
                                 }))
                         .verify(thrown -> thrown.doesNotThrowAnyException())
                         .verify((entityA, thrown) -> {
@@ -644,8 +649,221 @@ class ConcurrencyJOOQQueryEngineTest {
                                     .value(42L)
                                     .build())
                             .build();
-                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
                 }
+        );
+    }
+
+    @Test
+    void preserveUpdate_keepsEtag() {
+        var app = createModel();
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        var updatePayload = new EntityData(entityA.getIdentity(), List.of(
+                SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_TEXT.getName())
+                        .value("value1")
+                        .build()
+        ));
+        var result = queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.PRESERVE, NONE_EVENTS);
+
+        assertThat(result.getUpdated().getIdentity().getVersion()).isEqualTo(entityA.getIdentity().getVersion());
+        var stored = queryEngine.findById(app, EntityRequest.forEntity(entityA.getName(), entityA.getId()), PERMIT_ALWAYS)
+                .orElseThrow();
+        assertThat(stored.getIdentity().getVersion()).isEqualTo(entityA.getIdentity().getVersion());
+        assertThat(stored.getAttributeByName(ATTRIBUTE_TEXT.getName()))
+                .hasValueSatisfying(attr -> assertThat(((SimpleAttributeData<?>) attr).getValue()).isEqualTo("value1"));
+    }
+
+    @Test
+    void preserveUpdate_withStaleVersion_isRejected() {
+        var app = createModel();
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        var staleIdentity = entityA.getIdentity().withVersion(Version.exactly("stale"));
+        var updatePayload = new EntityData(staleIdentity, List.of(
+                SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_TEXT.getName())
+                        .value("value1")
+                        .build()
+        ));
+
+        assertThatThrownBy(() -> queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.PRESERVE, NONE_EVENTS))
+                .isInstanceOf(UnsatisfiedVersionException.class);
+
+        var stored = queryEngine.findById(app, EntityRequest.forEntity(entityA.getName(), entityA.getId()), PERMIT_ALWAYS)
+                .orElseThrow();
+        assertThat(stored.getAttributeByName(ATTRIBUTE_TEXT.getName()))
+                .hasValueSatisfying(attr -> assertThat(((SimpleAttributeData<?>) attr).getValue()).isNull());
+    }
+
+    @Test
+    void preserveUpdate_withoutChangedFields_stillChecksVersion() {
+        var app = createModel();
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        var staleIdentity = entityA.getIdentity().withVersion(Version.exactly("stale"));
+        var updatePayload = new EntityData(staleIdentity, List.of());
+
+        assertThatThrownBy(() -> queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.PRESERVE, NONE_EVENTS))
+                .isInstanceOf(UnsatisfiedVersionException.class);
+    }
+
+    @Test
+    void concurrentPreserveUpdateAndAdvanceUpdate() {
+        var app = createModel();
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> createItem(app, ENTITY_A.getName()),
+                                // PRESERVE update with version check on the entity
+                                entityA -> assertThatCode(() -> {
+                                    var updatePayload = new EntityData(entityA.getIdentity(), List.of(
+                                            SimpleAttributeData.builder()
+                                                    .name(ATTRIBUTE_TEXT.getName())
+                                                    .value("value1")
+                                                    .build()
+                                    ));
+                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.PRESERVE, NONE_EVENTS);
+                                }))
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(UnsatisfiedVersionException.class))
+                        .verify((entityA, thrown) -> {
+                            var entityRequest = EntityRequest.forEntity(entityA.getName(), entityA.getId());
+                            var updated = queryEngine.findById(app, entityRequest, PERMIT_ALWAYS).orElseThrow();
+                            var textAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_TEXT.getName()).orElseThrow();
+                            var numberAttr = (SimpleAttributeData<?>) updated.getAttributeByName(ATTRIBUTE_NUMBER.getName()).orElseThrow();
+                            // The ADVANCE update has no version check, so it always goes through
+                            assertThat(numberAttr.getValue()).isEqualTo(42L);
+                            thrown.satisfiesAnyOf(
+                                    // ADVANCE update ran after the PRESERVE update
+                                    throwable -> {
+                                        assertThat(throwable).isNull();
+                                        assertThat(textAttr.getValue()).isEqualTo("value1");
+                                    },
+                                    // ADVANCE update committed before the PRESERVE update: the etag changed, so it must be rejected
+                                    throwable -> {
+                                        assertThat(throwable).isInstanceOf(UnsatisfiedVersionException.class);
+                                        assertThat(textAttr.getValue()).isNull();
+                                    }
+                            );
+                        })
+                ,
+                entityA -> {
+                    var updatePayload = EntityData.builder()
+                            .name(ENTITY_A.getName())
+                            .id(entityA.getId())
+                            .attribute(SimpleAttributeData.builder()
+                                    .name(ATTRIBUTE_NUMBER.getName())
+                                    .value(42L)
+                                    .build())
+                            .build();
+                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
+                }
+        );
+    }
+
+    private static class PreconditionFailed extends RuntimeException {
+    }
+
+    /**
+     * Precondition that only allows the update when the text field is still empty; stands in for a calculated
+     * version check (like a link version) that can not be expressed as an etag column
+     */
+    private static final UpdatePrecondition TEXT_STILL_EMPTY = current -> {
+        var text = current.getAttributeByName(ATTRIBUTE_TEXT.getName())
+                .map(SimpleAttributeData.class::cast)
+                .map(SimpleAttributeData::getValue)
+                .orElse(null);
+        if (text != null) {
+            throw new PreconditionFailed();
+        }
+    };
+
+    private EntityData textUpdate(EntityData entityA, String value) {
+        // No entity version: only the precondition guards this update
+        return EntityData.builder()
+                .name(ENTITY_A.getName())
+                .id(entityA.getId())
+                .attribute(SimpleAttributeData.builder()
+                        .name(ATTRIBUTE_TEXT.getName())
+                        .value(value)
+                        .build())
+                .build();
+    }
+
+    private Object readText(Application app, EntityData entityA) {
+        var stored = queryEngine.findById(app, EntityRequest.forEntity(entityA.getName(), entityA.getId()), PERMIT_ALWAYS)
+                .orElseThrow();
+        return ((SimpleAttributeData<?>) stored.getAttributeByName(ATTRIBUTE_TEXT.getName()).orElseThrow()).getValue();
+    }
+
+    @Test
+    void precondition_rejection_writesNothing() {
+        var app = createModel();
+        var entityA = createItem(app, ENTITY_A.getName());
+        queryEngine.update(app, textUpdate(entityA, "existing"), PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
+
+        assertThatThrownBy(() -> queryEngine.update(app, textUpdate(entityA, "value1"), PERMIT_ALWAYS,
+                EntityEtagBehaviour.PRESERVE, TEXT_STILL_EMPTY, NONE_EVENTS))
+                .isInstanceOf(PreconditionFailed.class);
+
+        assertThat(readText(app, entityA)).isEqualTo("existing");
+    }
+
+    @Test
+    void precondition_receivesCurrentData() {
+        var app = createModel();
+        var entityA = createItem(app, ENTITY_A.getName());
+
+        var result = queryEngine.update(app, textUpdate(entityA, "value1"), PERMIT_ALWAYS,
+                EntityEtagBehaviour.PRESERVE, TEXT_STILL_EMPTY, NONE_EVENTS);
+
+        assertThat(result.getUpdated().getIdentity().getVersion()).isEqualTo(entityA.getIdentity().getVersion());
+        assertThat(readText(app, entityA)).isEqualTo("value1");
+    }
+
+    @Test
+    void precondition_onMissingEntity_throwsEntityIdNotFound() {
+        var app = createModel();
+        var missing = EntityData.builder()
+                .name(ENTITY_A.getName())
+                .id(EntityId.of(UUID.randomUUID()))
+                .build();
+
+        assertThatThrownBy(() -> queryEngine.update(app, missing, PERMIT_ALWAYS,
+                EntityEtagBehaviour.PRESERVE, TEXT_STILL_EMPTY, NONE_EVENTS))
+                .isInstanceOf(EntityIdNotFoundException.class);
+    }
+
+    @Test
+    void concurrentPreconditionedPreserveUpdates() {
+        var app = createModel();
+
+        tester.runConcurrencyTest(
+                UnderTestRunnable.test(() -> createItem(app, ENTITY_A.getName()),
+                                entityA -> assertThatCode(() -> queryEngine.update(app, textUpdate(entityA, "value1"),
+                                        PERMIT_ALWAYS, EntityEtagBehaviour.PRESERVE, TEXT_STILL_EMPTY, NONE_EVENTS)))
+                        .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(PreconditionFailed.class))
+                        .verify((entityA, thrown) -> {
+                            // Neither update changes the etag, so only the precondition on the locked row can
+                            // detect the other write: exactly one of both may win
+                            var text = readText(app, entityA);
+                            thrown.satisfiesAnyOf(
+                                    // Under-test update won; the interfering update must have seen "value1" and failed
+                                    throwable -> {
+                                        assertThat(throwable).isNull();
+                                        assertThat(text).isEqualTo("value1");
+                                    },
+                                    // Interfering update committed first; the under-test update must see it and fail
+                                    throwable -> {
+                                        assertThat(throwable).isInstanceOf(PreconditionFailed.class);
+                                        assertThat(text).isEqualTo("value2");
+                                    }
+                            );
+                        })
+                ,
+                entityA -> assertThatCode(() -> queryEngine.update(app, textUpdate(entityA, "value2"),
+                        PERMIT_ALWAYS, EntityEtagBehaviour.PRESERVE, TEXT_STILL_EMPTY, NONE_EVENTS))
+                        .doesNotThrowAnyExceptionExcept(PreconditionFailed.class)
         );
     }
 
@@ -664,7 +882,7 @@ class ConcurrencyJOOQQueryEngineTest {
                                                     .value("updated_value")
                                                     .build())
                                             .build();
-                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, NONE_EVENTS);
+                                    queryEngine.update(app, updatePayload, PERMIT_ALWAYS, EntityEtagBehaviour.ADVANCE, NONE_EVENTS);
                                 }))
                         .verify(thrown -> thrown.doesNotThrowAnyExceptionExcept(EntityIdNotFoundException.class))
                         .verify((entityA, thrown) -> {

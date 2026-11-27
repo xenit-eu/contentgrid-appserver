@@ -15,6 +15,7 @@ import com.contentgrid.appserver.query.engine.api.UnlinkEventConsumer;
 import com.contentgrid.appserver.query.engine.api.UpdateResult;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.QueryPageData;
 import com.contentgrid.appserver.query.engine.api.data.SliceData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -92,11 +93,17 @@ public class TransactionalQueryEngine implements QueryEngine {
     }
 
     @Override
-    public UpdateResult update(@NonNull Application application, @NonNull EntityData data,
+    public UpdateResult update(
+            @NonNull Application application,
+            @NonNull EntityData data,
             @NonNull ThunkExpression<Boolean> permitUpdatePredicate,
+            @NonNull EntityEtagBehaviour entityEtagBehaviour,
+            @NonNull com.contentgrid.appserver.query.engine.api.UpdatePrecondition precondition,
             @NonNull com.contentgrid.appserver.query.engine.api.UpdateEventConsumer updateEventConsumer) throws QueryEngineException {
+        // The row lock taken for the precondition is held until this transaction ends
         return runInWriteTransaction(() ->
-                delegate.update(application, data, permitUpdatePredicate, updateEventConsumer)
+                delegate.update(application, data, permitUpdatePredicate, entityEtagBehaviour, precondition,
+                        updateEventConsumer)
         );
     }
 

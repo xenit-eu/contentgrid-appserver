@@ -68,6 +68,7 @@ import com.contentgrid.appserver.query.engine.api.data.AttributeData;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.EntityCreateData;
 import com.contentgrid.appserver.query.engine.api.data.EntityData;
+import com.contentgrid.appserver.query.engine.api.data.EntityEtagBehaviour;
 import com.contentgrid.appserver.query.engine.api.data.OffsetData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SortData;
@@ -1631,7 +1632,7 @@ class JOOQQueryEngineTest {
     @MethodSource("validUpdateData")
     void updateEntityValidData(EntityData data) {
         var old = queryEngine.findById(APPLICATION, data.getIdentity().toRequest(), TRUE_EXPRESSION).orElseThrow();
-        var updateResult = queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, updateEventConsumer);
+        var updateResult = queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, EntityEtagBehaviour.ADVANCE, updateEventConsumer);
         var updated = queryEngine.findById(APPLICATION, data.getIdentity().toRequest(), TRUE_EXPRESSION).orElseThrow();
 
         assertEntityDataEquals(updateResult.getOriginal(), old);
@@ -1747,7 +1748,7 @@ class JOOQQueryEngineTest {
     @ParameterizedTest
     @MethodSource("invalidUpdateData")
     void updateEntityInvalidData(Class<? extends Throwable> exceptionType, EntityData data) {
-        assertThrows(exceptionType, () -> queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, updateEventConsumer));
+        assertThrows(exceptionType, () -> queryEngine.update(APPLICATION, data, TRUE_EXPRESSION, EntityEtagBehaviour.ADVANCE, updateEventConsumer));
         assertNothingChanged();
     }
 
@@ -1762,7 +1763,7 @@ class JOOQQueryEngineTest {
                 // This does not match the version set during construction
                 .version(Version.exactly("5"))
                 .attribute(new SimpleAttributeData<>(INVOICE_AMOUNT.getName(), 5.3))
-                .build(), TRUE_EXPRESSION, updateEventConsumer)
+                .build(), TRUE_EXPRESSION, EntityEtagBehaviour.ADVANCE, updateEventConsumer)
         );
 
         var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), TRUE_EXPRESSION)
@@ -1782,7 +1783,7 @@ class JOOQQueryEngineTest {
                 .id(INVOICE2_ID)
                 .version(existingEntity.getIdentity().getVersion())
                 .attribute(new SimpleAttributeData<>(INVOICE_NUMBER.getName(), newValue))
-                .build(), TRUE_EXPRESSION, updateEventConsumer);
+                .build(), TRUE_EXPRESSION, EntityEtagBehaviour.ADVANCE, updateEventConsumer);
 
         var newEntity = queryEngine.findById(APPLICATION, EntityRequest.forEntity(INVOICE.getName(), INVOICE2_ID), TRUE_EXPRESSION)
                 .orElseThrow();
@@ -1813,7 +1814,7 @@ class JOOQQueryEngineTest {
                     .id(INVOICE2_ID)
                     .version(identity.getVersion())
                     .attribute(new SimpleAttributeData<>(INVOICE_NUMBER.getName(), newValue+i))
-                    .build(), TRUE_EXPRESSION, updateEventConsumer);
+                    .build(), TRUE_EXPRESSION, EntityEtagBehaviour.ADVANCE, updateEventConsumer);
 
             identity = updateResult.getUpdated().getIdentity();
             versions.add(identity.getVersion());
@@ -1877,7 +1878,7 @@ class JOOQQueryEngineTest {
 
 
         if(allowed) {
-            queryEngine.update(APPLICATION, updatedData, permissionCheck, updateEventConsumer);
+            queryEngine.update(APPLICATION, updatedData, permissionCheck, EntityEtagBehaviour.ADVANCE, updateEventConsumer);
             // Check that changed
             assertThat(queryEngine.findById(APPLICATION, EntityRequest.forEntity(createdEntity.getName(), createdEntity.getId()), TRUE_EXPRESSION))
                     .hasValueSatisfying(newData -> {
@@ -1888,7 +1889,7 @@ class JOOQQueryEngineTest {
                         });
                     });
         } else {
-            assertThrows(PermissionDeniedException.class, () -> queryEngine.update(APPLICATION, updatedData, permissionCheck, updateEventConsumer));
+            assertThrows(PermissionDeniedException.class, () -> queryEngine.update(APPLICATION, updatedData, permissionCheck, EntityEtagBehaviour.ADVANCE, updateEventConsumer));
             // Check that unchanged
             assertThat(queryEngine.findById(APPLICATION, EntityRequest.forEntity(createdEntity.getName(), createdEntity.getId()), TRUE_EXPRESSION))
                     .hasValueSatisfying(newData -> {
