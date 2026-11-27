@@ -589,7 +589,7 @@ public class DatamodelApiImpl implements DatamodelApi, EntityLinkApi {
 
         // Early rejection before mapping (and uploading) the new value. This read is not locked, so the same check is
         // repeated by the query engine on the locked row to guard against concurrent writes of this link.
-        var existingEntityData = queryEngine.findById(application, linkRequest.toEntityRequest(), authorizationContext.predicate())
+        var existingEntityData = queryEngine.findById(application, existingEntityRequest, authorizationContext.predicate())
                 .orElseThrow(() -> new EntityIdNotFoundException(linkRequest.toEntityRequest()));
         linkVersionCheck.check(existingEntityData);
 

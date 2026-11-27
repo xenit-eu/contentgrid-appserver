@@ -398,6 +398,12 @@ public class Entity implements HasAttributes, Translatable<EntityTranslations> {
         return Optional.ofNullable(contentAttributes.get(pathSegment));
     }
 
+    /**
+     * Finds a storedEntityLink by its path segment name.
+     *
+     * @param pathSegment the path of the target storedEntityLink, as a single PathSegmentName
+     * @return an Optional containing the StoredEntityLink model if found, empty if not found.
+     */
     public Optional<StoredEntityLink> getStoredEntityLinkByPathSegment(PathSegmentName pathSegment) {
         for (var link : links) {
             if (link instanceof StoredEntityLink storedEntityLink && Objects.equals(storedEntityLink.getPathSegment(), pathSegment)) {

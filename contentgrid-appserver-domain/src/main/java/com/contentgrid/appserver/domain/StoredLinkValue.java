@@ -2,6 +2,7 @@ package com.contentgrid.appserver.domain;
 
 import com.contentgrid.appserver.domain.ContentApi.Content;
 import com.contentgrid.appserver.domain.values.version.Version;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -13,6 +14,15 @@ import lombok.Value;
 public sealed interface StoredLinkValue {
 
     Version getVersion();
+
+    @NoArgsConstructor
+    final class NullValue implements StoredLinkValue {
+
+        @Override
+        public Version getVersion() {
+            return Version.nonExisting();
+        }
+    }
 
     @Value
     class TextValue implements StoredLinkValue {
