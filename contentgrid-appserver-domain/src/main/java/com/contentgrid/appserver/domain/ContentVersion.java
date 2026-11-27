@@ -5,19 +5,11 @@ import com.contentgrid.appserver.application.model.attributes.SimpleAttribute;
 import com.contentgrid.appserver.domain.values.version.Version;
 import com.contentgrid.appserver.query.engine.api.data.CompositeAttributeData;
 import com.contentgrid.appserver.query.engine.api.data.SimpleAttributeData;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
-import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 
-public final class ContentVersion {
-
-    private static final int HASH_LENGTH_BYTES = 16;
-
-    private ContentVersion() {
-    }
+@UtilityClass
+public class ContentVersion extends AbstractHashbasedVersion {
 
     public static Optional<Version> calculate(
             ContentAttribute contentAttribute,
@@ -55,22 +47,5 @@ public final class ContentVersion {
                 .map(SimpleAttributeData::getValue)
                 .map(String.class::cast)
                 .orElse(null);
-    }
-
-    @SneakyThrows(NoSuchAlgorithmException.class)
-    private static String hash(String... inputs) {
-        var md = MessageDigest.getInstance("SHA256");
-
-        for (var input : inputs) {
-            md.update(input.getBytes(StandardCharsets.UTF_8));
-            md.update((byte) 0); // NUL-byte as separator for fields
-        }
-
-        var digest = md.digest();
-
-        // An always-positive bigint, limited to 16 bytes (truncated sha-256 hash), to reduce the size of the version
-        // This reduces the size of the version from 50 characters to a more sensible 25 characters
-        return new BigInteger(1, digest, 0, HASH_LENGTH_BYTES)
-                .toString(Character.MAX_RADIX);
     }
 }

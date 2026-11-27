@@ -10,7 +10,7 @@ import lombok.Value;
 
 @Value
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class ETagFlag implements IgnoredFlag {
+public class ETagFlag extends IgnoredFlag {
 
     public static final ETagFlag INSTANCE = new ETagFlag();
 

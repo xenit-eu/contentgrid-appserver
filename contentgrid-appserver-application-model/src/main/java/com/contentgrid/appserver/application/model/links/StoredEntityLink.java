@@ -1,0 +1,55 @@
+package com.contentgrid.appserver.application.model.links;
+
+import com.contentgrid.appserver.application.model.exceptions.InvalidEntityLinkException;
+import com.contentgrid.appserver.application.model.propertypath.AttributePath;
+import com.contentgrid.appserver.application.model.propertypath.PropertyPath;
+import com.contentgrid.appserver.application.model.values.PathSegmentName;
+import java.net.URI;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
+
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Getter
+@EqualsAndHashCode(callSuper = true)
+final public class StoredEntityLink extends EntityLink {
+
+    @NonNull
+    PathSegmentName pathSegment;
+
+    @NonNull
+    AttributePath storage;
+
+    @Builder
+    public StoredEntityLink(
+            @NonNull LinkIdentity identity,
+            URI profile,
+            PropertyPath owner,
+            @NonNull AttributePath storage,
+            @NonNull PathSegmentName pathSegment,
+            UriTemplateDefinition fallbackTemplate
+    ) {
+        super(identity, profile, owner, fallbackTemplate);
+        this.pathSegment = pathSegment;
+        this.storage = storage;
+    }
+
+    // Partial implementation of builder to provide inputvalidation.
+    // Is automatically extended by Lombok.
+    // See @Builder documentation at https://projectlombok.org/features/Builder
+    public static class StoredEntityLinkBuilder {
+
+        private PathSegmentName pathSegment;
+
+        public StoredEntityLinkBuilder pathSegment(PathSegmentName pathSegment) {
+            if (pathSegment.toString().endsWith("/")) {
+                throw new InvalidEntityLinkException("StoredEntityLinks cannot have a pathSegment with a trailing slash.");
+            }
+            this.pathSegment = pathSegment;
+            return this;
+        }
+    }
+}
